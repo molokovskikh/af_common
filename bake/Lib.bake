@@ -50,9 +50,10 @@ class Lib:
 		return Name
 
 installed = List of string()
+libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
 def InstallLib(lib as string):
-	libPath = "C:/Projects/Production/Common/trunk/Lib/${lib}/"
+	libPath = Path.Combine(libRoot, lib)
 	if not Exist(libPath):
 		raise "Library ${libPath} not exists"
 	Cp(FileSet("**.*", BaseDirectory : libPath, Excludes : ["**/.svn/**", "deps"]), "lib", true)
@@ -73,7 +74,7 @@ Desc """
 Выводит список доступных библиотек
 """
 Task @list:
-	for lib in Directory.GetDirectories("C:/Projects/Production/Common/trunk/Lib/"):
+	for lib in Directory.GetDirectories(libRoot):
 		print Path.GetFileName(lib) unless Path.GetFileName(lib) == ".svn"
 
 Task @InstallSourceLib:
