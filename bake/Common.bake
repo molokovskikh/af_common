@@ -1,0 +1,25 @@
+import System.Net.Mail
+import System.IO
+import Mono.Cecil
+
+Desc """	
+Заменяет ссылки на System.Core от Microsoft на System.Core от mono
+что бы можно было использовать блага CSharp 3 и не зависить от .net 3.
+"""
+Task @ReplaceMsCoreToMonoCore:
+	#system.core подписаное ключем от mono 
+	#System.Core, Version=3.5.0.0, Culture=neutral, PublicKeyToken=0738eb9f132ed756"
+	buildTo = Path.GetFullPath("build/${Globals.project}")
+	monoPublicKeyToken = array(byte, (0x07, 0x38, 0xeb, 0x9f, 0x13, 0x2e, 0xd7, 0x56))
+	for file in FileSet(["*.dll", "*.exe"], BaseDirectory : buildTo).Files:
+		assembly = AssemblyFactory.GetAssembly(file)
+		msCore as AssemblyNameReference = null
+		for reference as AssemblyNameReference in assembly.MainModule.AssemblyReferences:
+			if reference.Name == "System.Core":
+				msCore = reference
+				break
+		if msCore:
+			msCore.PublicKeyToken = monoPublicKeyToken
+			AssemblyFactory.SaveAssembly(assembly, file)
+			print "${file} successfully patched"
+	Cp("lib/System.Core.dll", "${buildTo}/System.Core.dll") if not Exist("${buildTo}/System.Core.dll")

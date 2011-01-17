@@ -1,0 +1,128 @@
+﻿import System
+import Bake.IO.Extensions
+import Bake.Compiler.Extensions
+import Bake.Win32.Helper
+import System.IO
+import System.Security.Cryptography.X509Certificates
+import Microsoft.Win32
+import Microsoft.Build.Tasks.Deployment.ManifestUtilities
+import file from Deploy.bake
+import file from AssemblyInfo.bake
+
+def Copy(fileSet as FileSet, destination as string):
+	for file in fileSet.Files:
+		dir = Path.GetDirectoryName(file).Replace(fileSet.BaseDirectory, destination)
+		MkDir(dir) if not Exist(dir)
+		print "Copying file from ${file} to ${file.Replace(fileSet.BaseDirectory, destination)}"
+		Cp(file, file.Replace(fileSet.BaseDirectory, destination))
+		
+def CopyWithDeploy(fileSet as FileSet, destination as string):
+	for file in fileSet.Files:
+		dir = Path.GetDirectoryName(file).Replace(fileSet.BaseDirectory, destination)
+		MkDir(dir) if not Exist(dir)
+		print "Copying file from ${file} to ${file.Replace(fileSet.BaseDirectory, destination)}"
+		Cp(file, file.Replace(fileSet.BaseDirectory, destination) + ".deploy")
+
+def GetResource(resource as string):
+	return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/${resource}")
+
+def GeneratePublishPage(file as string, version as string, productName as string):
+	template = File.ReadAllText(GetResource("publish.htm.template"))
+	result = template.Replace("{version}", version)
+	result = result.Replace("{name}", productName)
+	File.AppendAllText(file, result)
+
+def BootstrapperSdkPath() as string:
+	key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\GenericBootstrapper\\3.5")
+	if key:
+		path = key.GetValue("Path", "").ToString()
+		key.Close()
+		return path
+	key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Wow6432Node\\Microsoft\\GenericBootstrapper\\3.5")
+	if key:
+		path = key.GetValue("Path", "").ToString()
+		key.Close()
+		return path
+	return ""
+
+def GetAssemblyVersion(assemblyFile as string) as string:
+	return System.Reflection.Assembly.LoadFile(assemblyFile).GetName().Version.ToString()
+
+def ClearDir(dirname as string):
+	for delDirName in Directory.GetDirectories(dirname):
+		Directory.Delete(delDirName, true)
+	for fname in Directory.GetFiles(dirname):
+		File.Delete(fname)
+
+projectName = Globals.Project
+productName = Globals.HumanReadableName
+configuration = "release"
+projectPath = Path.GetFullPath("src/${projectName}/")
+projectFile = "${projectPath}${projectName}.csproj"
+publishTo = "\\\\acdcserv.adc.analit.net\\WebPublish\\${projectName}\\"
+deploymentUrl = "http://publish.analit.net/${projectName}/"
+publishVersion = "0.0.0.0";
+
+buildRoot = "output"
+buildTo = Path.GetFullPath("${buildRoot}/${projectName}/")
+buildPublishTo = Path.GetFullPath("${buildRoot}/${projectName}Publish/")
+
+Task "default", ["build"]
+
+params = { "OutDir" : "${buildTo}", "Configuration" : "release" }
+if Globals.IsDefined("Platform"):
+	params.Add("Platform", Globals.Platform)
+
+Task "build", ["clean", @GenerateAssemblyInfo]:
+	MsBuild(projectFile,
+			Parameters : params,
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	if Exist("${projectPath}App.${configuration}.config"):
+		Cp("${projectPath}App.${configuration}.config", "${buildTo}${projectName}.exe.config", true)
+	Rm(FileSet("*.*", 
+			   BaseDirectory : buildTo,
+			   Excludes : ["*.dll", "*.exe", "*.config"]))
+	publishVersion = GetAssemblyVersion("${buildTo}${projectName}.exe")
+				
+Task "clean":
+	MsBuild(projectFile,
+			Target : "clean",
+			Parameters : { "Configuration" : "release" },
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	RmDir(buildTo, true) if Exist(buildTo)
+	MkDir(buildTo)
+			
+Task "build publish package", ["build", "clean publish package"]:
+	certPath = GetResource("inforoomCS.pfx")
+	password = "password"
+	Cp(GetResource("publish.build"), buildPublishTo)
+	Cp(GetResource("Microsoft.Sdc.Common.tasks"), buildPublishTo)
+	MsBuild("${buildPublishTo}publish.build", 
+			Parameters : { "Version" : publishVersion,
+							"MinVersion" : publishVersion,
+							"ClickOnceUrl" : deploymentUrl,
+							"ClickOnceAppTitle" : productName,
+							"SolutionName" : projectName,
+							"PublishDir" : buildTo, 
+							"SigningCert" : certPath,                                                        
+							"Password" : password, 
+							"SdkPath" : Sdk().Path(),
+							"BootstrapperSdkPath" : BootstrapperSdkPath()},
+			FrameworkVersion : "3.5").Execute()
+	CopyWithDeploy(FileSet("**\\*.*", BaseDirectory : buildTo), buildPublishTo)
+	cert = X509Certificate2(File.ReadAllBytes(certPath), password)
+	Exec("\"${Sdk().Path()}\\signtool.exe\"",
+		 "sign /sha1 ${cert.Thumbprint} ${buildPublishTo}setup.exe").Execute()
+	Rm("${buildPublishTo}/publish.build")
+	Rm("${buildPublishTo}/Microsoft.Sdc.Common.tasks")
+	GeneratePublishPage("${buildPublishTo}publish.htm", publishVersion, productName)
+
+Task "clean publish package":
+	RmDir(buildPublishTo, true) if Exist(buildPublishTo)
+	MkDir(buildPublishTo)
+
+Task "publish", ["build publish package", "clean publish dir", @SendDeployNotification]:
+	Copy(FileSet("**\\*.*", BaseDirectory : buildPublishTo), publishTo)
+
+Task "clean publish dir":
+	ClearDir(publishTo)

@@ -1,0 +1,112 @@
+import System
+import System.Collections.Generic
+import System.Linq.Enumerable
+import System.Threading
+import System.Linq.Enumerable from System.Core
+import System.IO
+import System.ServiceProcess
+import System.ComponentModel
+import System.Security.Principal
+import System.Runtime.InteropServices
+import file from Tools.boo
+
+[DllImport("advapi32.dll", SetLastError: true, CharSet: CharSet.Unicode)]
+def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as String, dwLogonType as int, dwLogonProvider as int, ref phToken as IntPtr) as bool:
+	pass
+
+[DllImport("kernel32.dll", CharSet: CharSet.Auto)]
+def CloseHandle(handle as IntPtr) as bool:
+	pass
+
+project = Globals.project
+buildTo = Path.GetFullPath("build")
+projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
+
+params = { "OutDir" : buildTo + "\\", "Configuration" : "release" }
+if Globals.IsDefined("platform"):
+	params.Add("Platform", Globals.platform)
+
+serviceName = "${project}";
+if Globals.IsDefined("serviceName"):
+	serviceName = Globals.serviceName
+
+Task @BuildService, [@CleanService]:
+	MsBuild(projectFile,
+			Target : "build",
+			Parameters : params,
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	Rm("${buildTo}/*.xml")
+	Cp("src/${project}/App.release.config", "${buildTo}/${project}.exe.config", true)
+
+Task @CleanService:
+	MsBuild(projectFile,
+			Target : "clean",
+			Parameters : params,
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	if Exist(buildTo):
+		Rm("${buildTo}/*", true)
+	else:
+		MkDir(buildTo)
+
+Task @DeployService, [@BuildService]:
+	servers = List of string()
+	if Globals.Maybe.Servers:
+		for server in Globals.Maybe.Servers:
+			servers.Add(server.ToString())
+
+	if not servers.Count:
+		servers.Add(Globals.server.ToString())
+
+	logServer = servers.First()
+
+	Console.Write("user for $logServer: ")
+	user = Console.ReadLine()
+	Console.Write("password: ")
+	password = GetPassword()
+
+	LOGON32_PROVIDER_DEFAULT = 0;
+	LOGON32_LOGON_INTERACTIVE = 2;
+	tokenHandle = IntPtr.Zero;
+	
+	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
+		raise Win32Exception()
+	
+	try:
+		using WindowsIdentity.Impersonate(tokenHandle):
+			services = List of ServiceController()
+			for server in servers:
+				serverServices = ServiceController.GetServices(server).Where({s| s.ServiceName == serviceName}).ToList()
+				if not serverServices.Count:
+					raise "Can`t find service \"${serviceName}\" on server ${server}"
+				services.AddRange(serverServices)
+
+			for service in services:
+				if service.Status != ServiceControllerStatus.Stopped:
+					service.Stop()
+					done = false
+					iteration = 0
+					while not done:
+						iteration++
+						service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20))
+						done = service.Status == ServiceControllerStatus.Stopped or iteration > 3
+						if not done:
+							print "служба не остановилась за 20 секунд, буду ждать, всего жду 3 раза по 20 секунд"
+
+			fin = false
+			interation = 0
+			while not fin:
+				try:
+					Cp(FileSet("**.*", BaseDirectory : buildTo), "\\\\$logServer\\$project", true)
+					fin = true
+				except e:
+					raise if not e.Message.Contains("The process cannot access the file")
+					interation++
+					if interation >= 3:
+						raise
+					print "can`t access files, sleep..."
+					System.Threading.Thread.Sleep(100)
+
+			for service in services:
+				service.Start()
+	ensure:
+		CloseHandle(tokenHandle);

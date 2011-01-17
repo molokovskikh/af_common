@@ -1,0 +1,410 @@
+﻿import System
+import System.IO
+import System.Reflection
+import System.Diagnostics
+import System.Collections.Generic
+import System.Linq.Enumerable from System.Core
+import MySql.Data.MySqlClient
+
+import Boo.Lang.PatternMatching
+import Boo.Lang.Compiler
+import Boo.Lang.Compiler.Pipelines
+import Boo.Lang.Compiler.IO
+
+import Bake.Engine.Runner
+
+import NHibernate.Mapping
+import NHibernate.AdoNet.Util
+import NHibernate.Tool.hbm2ddl
+
+import Castle.ActiveRecord
+
+import file from Config.bake
+import file from Db.boo
+import file from ActiveRecord.boo
+import file from LoggingBuilder.boo
+import file from Svn.boo
+
+class Migration:
+	property Version as string
+	property MigratedOn as DateTime?
+
+	def Cancel():
+		Db.Execute("delete from logs.SchemaMigrations where Version = '$Version'")
+
+	override def ToString():
+		return Version
+
+class AssemblyLocator:
+	static assemblies as Dictionary[of string, Assembly]
+
+	static def Init():
+		assemblies = Dictionary[of string, Assembly]()
+		AppDomain.CurrentDomain.AssemblyLoad += CurrentDomain_AssemblyLoad
+		AppDomain.CurrentDomain.AssemblyResolve += CurrentDomain_AssemblyResolve
+
+	static def CurrentDomain_AssemblyResolve(sender as object, args as ResolveEventArgs):
+		assembly as Assembly = null
+		assemblies.TryGetValue(args.Name, assembly)
+		if not assembly:
+			name = args.Name[:args.Name.IndexOf(",")]
+			assemblyFile = FileSet("lib/**/$name.dll").Files.FirstOrDefault()
+			if assemblyFile:
+				assembly = Assembly.LoadFrom(Path.GetFullPath(assemblyFile))
+		return assembly
+
+	static def CurrentDomain_AssemblyLoad(sender as object, args as AssemblyLoadEventArgs):
+		assembly = args.LoadedAssembly
+		assemblies.Add(assembly.GetName().Name, assembly)
+
+AssemblyLocator.Init()
+
+activeRecordInitalized = false
+
+def FindAssembly(name as string):
+	if Exist("src/${Globals.Project}/bin/$name.dll"):
+		return "src/${Globals.Project}/bin/$name.dll"
+	elif Exist("src/${Globals.Project}/bin/Debug/$name.dll"):
+		return "src/${Globals.Project}/bin/Debug/$name.dll"
+	elif Exist("src/${Globals.Project}/bin/Debug/$name.exe"):
+		return "src/${Globals.Project}/bin/Debug/$name.exe"
+
+def GetConfiguration():
+	assemblies = List of string()
+	if assembly = FindAssembly(Globals.Project):
+		assemblies.Add(assembly)
+	if not assemblies.Count:
+		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
+			+ " Is ${Globals.Project} correct project name and project leave at 'src/${Globals.Project}'?"
+	if Globals.Maybe.AdditionalAssemblies:
+		for name in Globals.Maybe.AdditionalAssemblies:
+			if assembly = FindAssembly(name):
+				assemblies.Add(assembly)
+	return GetActiveRecordConfiguration(assemblies.ToArray())
+
+def SetupActiveRecord():
+	return if activeRecordInitalized
+	GetConfiguration()
+	activeRecordInitalized = true
+	
+def ImInProject():
+	return Exist("src")
+
+def GetMigratedMigrations():
+	migrations = List of Migration()
+	for migration in Db.Read("select Version, MigratedOn from logs.SchemaMigrations order by MigratedOn"):
+		m = Migration(Version: migration.Version.ToString())
+		if not migration.MigratedOn isa DBNull:
+			m.MigratedOn = cast(DateTime, migration.MigratedOn)
+		migrations.Add(m)
+	return migrations
+
+def GetMigrated() as List[of string]:
+	migrations = List[of string]()
+	for migration in Db.Read("select Version from logs.SchemaMigrations"):
+		migrations.Add(migration.Version.ToString())
+	return migrations
+
+def PrintMigration(name as string, file as string):
+	print "Migration ${name}"
+	if not File.ReadAllText(file):
+		print "Empty migration"
+	else:
+		print "------------------------------------------------------------"
+		print File.ReadAllText(file)
+		print "------------------------------------------------------------"
+
+def FindMigration(migration as string):
+	fileName = "${Globals.MigrationsPath}/${migration}.sql"
+	fileName = "migrations/${migration}.sql" if not Exist(fileName)
+	fileName = "${Globals.MigrationsPath}/${migration}.boo" if not Exist(fileName)
+	fileName = "migrations/${migration}.boo" if not Exist(fileName)
+	return fileName
+
+def Apply(fileName as string):
+	begin = DateTime.Now
+	migration = Path.GetFileNameWithoutExtension(fileName)
+	rows = 0
+	match Path.GetExtension(fileName).ToLower():
+		case ".boo":
+			if ImInProject():
+				SetupActiveRecord()
+
+			compiler = BooCompiler()
+			compiler.Parameters.Input.Add(FileInput(fileName))
+			compiler.Parameters.Pipeline = CompileToMemory()
+			compiler.Parameters.Pipeline.Insert(1, AutoReferenceFilesCompilerStep(AppDomain.CurrentDomain.BaseDirectory));
+			if ImInProject():
+				compiler.Parameters.LibPaths.Add("lib")
+				for dir in Directory.GetDirectories("lib/"):
+					continue if Path.GetFileName(dir).ToLower() == ".svn"
+					compiler.Parameters.LibPaths.Add(dir)
+			else:
+				for dir in Directory.GetDirectories("../lib/"):
+					continue if Path.GetFileName(dir).ToLower() == ".svn"
+					compiler.Parameters.LibPaths.Add(dir)
+
+			result = compiler.Run()
+			if len(result.Warnings):
+				print(result.Warnings.ToString())
+			if len(result.Errors):
+				print(result.Errors.ToString(true))
+				return
+			main = result.GeneratedAssembly.EntryPoint
+			if ImInProject():
+				using scope = TransactionScope(OnDispose.Rollback):
+					main.Invoke(null, (null, ))
+					scope.VoteCommit()
+			else:
+				main.Invoke(null, (null, ))
+		case ".sql":
+			sql = File.ReadAllText(fileName)
+			if not sql:
+				return
+			rows = Db.Execute(sql)
+	seconds = (DateTime.Now - begin).TotalSeconds
+	print "executed in ${seconds}s, ${rows} rows affected" 
+	Db.Execute("insert into logs.SchemaMigrations Values('${migration}', now())")
+
+#def GetMark(migration as string):
+#	match migration:
+#		case /^\d+_/:
+#			return 
+
+def ToTimeStamp(m as string):
+	chars = m[:m.IndexOf("_")].ToCharArray()
+	System.Array.Reverse(chars)
+	return Convert.ToUInt64(string(chars))
+
+def Migrate(migrations as string*):
+	migrated = GetMigrated()
+	needToMigrate = migrations.Where({m| migrated.All({mg| mg != m})}).ToList()
+	if needToMigrate.Count == 0:
+		print "Nothing to migrate"
+		return
+	needToMigrate = needToMigrate.OrderBy({m as string| ToTimeStamp(m)}).ToList()
+	for migration in needToMigrate:
+		fileName = FindMigration(migration)
+		PrintMigration(migration, fileName)
+		Apply(fileName)
+
+def GetMigrationFileName(filename as string) as string:
+	extension = Path.GetExtension(filename)
+	filename = Path.GetFileNameWithoutExtension(filename)
+	if not extension:
+		extension = ".sql"
+	mark = DateTime.Now.ToString("ssmmHHMMddyyyy")
+	return "${mark}_${filename}${extension}"
+	#return "${filename}_${mark}${extension}"
+
+def GetMigrationFileNameByRequest() as string:
+	Console.Write("enter file name:")
+	filename = Console.ReadLine()
+	return GetMigrationFileName(filename.Trim())
+
+def Save(filename as string, commands as string*):
+	if not filename:
+		filename = GetMigrationFileNameByRequest()
+
+	if not Exist("migrations"):
+		MkDir("migrations")
+
+	migrationFile = Path.GetFullPath("migrations\\${filename}")
+	using stream = StreamWriter(File.OpenWrite(migrationFile)):
+		for command in commands:
+			stream.Write(command)
+			stream.WriteLine(";")
+
+	print "saved to ${migrationFile}"
+	return migrationFile
+
+def GetMigrations():
+	migrations = List[of string]();
+	if ImInProject():
+		if Exist("migration.txt"):
+			migrations.AddRange(List of string(File.ReadAllLines("migrations.txt")).Where({l| not String.IsNullOrEmpty(l)}))
+		if Exist("migrations"):
+			localMigrations = List[of string](Directory.GetFiles("migrations", "*.sql"))
+			localMigrations = localMigrations.Concat(List[of string](Directory.GetFiles("migrations", "*.boo"))).ToList()
+			migrations = migrations.Concat(localMigrations).ToList()
+	else:
+		migrations.AddRange(Directory.GetFiles(".", "*.sql"))
+		migrations.AddRange(Directory.GetFiles(".", "*.boo"))
+	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /\d_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
+	return migrations
+
+def StartEditor(fileName as string):
+	Process.Start(Globals.Editor, fileName)
+
+task @OnlyInProject:
+	raise "Задучу имеет смысл запускать только в проекте" if not ImInProject()
+		
+#Нужно обновить common т.к. может быть ссылка на миграцию а в локальной копии ее нет
+task @UpdateCommon:
+	SvnTool.Update(Globals.MigrationsPath)
+
+task @Migrate, [@UpdateCommon]:
+	migrations as List[of string]
+	if Configuration.Maybe.id:
+		migrations = List[of string]()
+		migrations.Add(Configuration.id.ToString())
+	elif Globals.Environment == @Development or ImInProject():
+		migrations = GetMigrations()
+	else:
+		raise "You must set migration id. Example: 'bake id=12'"
+	Migrate(migrations)
+
+task @Waiting:
+	migrations = GetMigrations()
+	migrated = GetMigrated()
+	for migration in migrations:
+		if Configuration.Maybe.full:
+			PrintMigration(migration, FindMigration(migration)) if not migrated.Contains(migration)
+		else:
+			print migration if not migrated.Contains(migration)
+Desc """
+создает новую миграцию
+"""
+task @New:
+	if ImInProject():
+		filename = GetMigrationFileNameByRequest()
+		filename = Path.Combine("migrations", filename) 
+		MkDir("migrations") if not Exist("migrations")
+		File.WriteAllText(filename, "")
+		print "saved to ${filename}"
+		StartEditor(filename)
+	else:
+		SvnTool.Update()
+		id = GetMigrations().Where({m|m =~ /^\d+$/}).Select({m| Convert.ToInt32(m)}).Max() + 1
+		migration = "${id}.sql"
+		File.WriteAllText(migration, "")
+		SvnTool.Command("add ${migration}")
+		SvnTool.Command("commit -m\"Забил местечко\" ${migration}")
+		print "migration ${migration}"
+	
+task @Repeat, [@Rollback, @Migrate]
+
+task @Rollback:
+	id = Configuration.id
+	if not Exist("${id}_rollback.sql"):
+		raise "Не могу найти фал отката миграции"
+
+	print "Rollback ${id}"
+	print "------------------------------------------------------------"
+	sql = File.ReadAllText("${id}_rollback.sql")
+	print sql
+	print "------------------------------------------------------------"
+	Db.Execute(sql)
+	Db.Execute("delete from logs.SchemaMigrations where Version = ${id}")
+
+task @CancelLastMigration:
+	migration = GetMigratedMigrations().Last()
+	migration.Cancel()
+	print "canceled $migration"
+
+task @GenerateMigrations, [@OnlyInProject]:
+	configuration = GetConfiguration()
+	if not configuration.ClassMappings.Count:
+		raise "Can`t find any class mapping check active record version and assemblies list"
+	mapping = configuration.BuildMapping()
+	dialect = NHibernate.Dialect.Dialect.GetDialect(configuration.Properties)
+
+	formatter = DdlFormatter()
+	
+	cfgProperties = Dictionary[of string, string](dialect.DefaultProperties)
+	for pair in configuration.Properties:
+		cfgProperties[pair.Key] = pair.Value
+	connectionHelper = ManagedProviderConnectionHelper(cfgProperties)
+	connectionHelper.Prepare()
+	connection = connectionHelper.Connection
+
+	commands = List[of string]()
+
+	metadata = DatabaseMetadata(connection, dialect)
+	for table in configuration.CreateMappings(dialect).IterateTables:
+		if table.SchemaActions == SchemaAction.None or table.Schema == "logs":
+			continue
+		tableMetadata = metadata.GetTableMetadata(table.Name, table.Schema, table.Catalog, table.IsQuoted);
+		if tableMetadata:
+			sqls = table.SqlAlterStrings(dialect, mapping, tableMetadata, null, null)
+			for sql in sqls:
+				commands.Add(sql) if sql
+
+/*
+			for key in table.ForeignKeyIterator:
+				if not key:
+					continue
+				print key
+				print "col count" + key.ReferencedColumns.Count
+				for c in key.ReferencedColumns:
+					print "column = " + c
+				print "ref = " + key.ReferencedTable
+				print "table = " + key.Table
+				if not key.ReferencedTable:
+					continue
+				if not tableMetadata.GetForeignKeyMetadata(key.Name) and \
+					not tableMetadata.GetIndexMetadata(key.Name):
+					print key.SqlCreateString(dialect, mapping, "usersettings", "usersettings")
+					#commands.Add(key.SqlCreateString(dialect, mapping, null, null));
+*/
+		else:
+			sql = formatter.Format(table.SqlCreateString(dialect, mapping, null, null))
+			commands.Add(sql) if sql
+
+	if not commands.Count:
+		raise "no changes find"
+	
+	for command in commands:
+		print command
+	
+	Console.Write("what should I do [s]ave migration or [a]ply and save?")
+	match Console.ReadLine():
+		case "a":
+			Apply(Save(null, commands))
+		case "s":
+			Save(null, commands)
+		otherwise:
+			return
+
+Desc """
+генерирует миграцю для обновления тригеров и таблицы логирования
+Пример bake UpdateLogMigration Table=Catalog Database=Catalogs
+"""
+task @UpdateLogMigration, [@OnlyInProject]:
+	table = Configuration.Table
+	database = Configuration.Database
+
+	updateTable = GetUpdateLogTableCommand(database, table)
+	deleteTrigger = GetLogTriggerCommand("DELETE", database, table)
+	updateTrigger = GetLogTriggerCommand("UPDATE", database, table)
+	insertTrigger = GetLogTriggerCommand("INSERT", database, table)
+	filename = Path.Combine("migrations",  GetMigrationFileName("${database}${table}UpdateLogging"))
+	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
+	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
+
+Desc """
+генерирует миграцю только для тригеров
+Пример bake UpdateLogTriggersMigration Table=Catalog Database=Catalogs
+"""
+task @UpdateLogTriggersMigration, [@OnlyInProject]:
+	table = Configuration.Table
+	database = Configuration.Database
+
+	deleteTrigger = GetLogTriggerCommand("DELETE", database, table)
+	updateTrigger = GetLogTriggerCommand("UPDATE", database, table)
+	insertTrigger = GetLogTriggerCommand("INSERT", database, table)
+	filename = Path.Combine("migrations",  GetMigrationFileName("${database}${table}UpdateLoggingTriggers"))
+	File.WriteAllLines(filename, (deleteTrigger, updateTrigger, insertTrigger))
+	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
+
+task @CreateLogMigration, [@OnlyInProject]:
+	table = Configuration.Table
+	database = Configuration.Database
+
+	updateTable = GetCreateLogTableCommand(database, table)
+	deleteTrigger = GetLogTriggerCommand("DELETE", database, table)
+	updateTrigger = GetLogTriggerCommand("UPDATE", database, table)
+	insertTrigger = GetLogTriggerCommand("INSERT", database, table)
+	filename = Path.Combine("migrations", GetMigrationFileName("${database}${table}CreateLogging"))
+	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
+	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)

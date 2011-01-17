@@ -1,0 +1,40 @@
+import System.IO
+import file from Config.bake
+
+buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project.ToString()))
+projectPath = Path.GetFullPath("src/${Globals.Project}")
+projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
+
+task @BuildWebSite, [@CleanWebSite]:
+	MkDir(buildTo) if not Exist(buildTo)
+	MsBuild(projectFile,
+			Target : "build",
+			Parameters : { "OutDir" : "${buildTo}\\bin\\",
+						   "OutputPath" : "${buildTo}\\bin\\",
+						   "Configuration" : "Release" },
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	Rm("${buildTo}/bin/*.xml")
+	Cp(FileSet(["**/*.as?x", 
+				"**/*.brail",
+				"**/*.brailjs",
+				"**/*.swf",
+				"**/*.gif",
+				"**/*.png",
+				"**/*.jpg",
+				"**/*.js",
+				"**/*.zip",
+				"**/*.css",
+				"**/*.skin",
+				"**/*.sitemap",
+				"**/*.master"], 
+				BaseDirectory: projectPath), 
+		buildTo, true)
+	Cp("${projectPath}/Web.release.config", "${buildTo}/Web.config")
+
+task @CleanWebSite:
+	MsBuild(projectFile,
+			Target : "clean",
+			Parameters : { "OutDir" : "${buildTo}\\bin\\",
+						   "Configuration" : "release" },
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	Rm("${buildTo}/*", true) if Exist(buildTo)

@@ -1,0 +1,44 @@
+﻿import System.IO
+import System.Diagnostics
+import System.Xml.Linq
+import System.Xml.XPath.Extensions
+import System.Linq.Enumerable from System.Core
+import System.Collections.Generic
+import file from Svn.boo
+import file from Tools.boo
+
+version = GetVersion()
+excludes = ["Unit", "Integration", "Functional", ".svn"]
+
+def UnderSourceControl(path as string):
+	dir = Path.GetDirectoryName(path)
+	filename = Path.GetFileName(path)
+	return false if not Exist(dir)
+	output = ExecuteProcess("git", "ls-files", dir)
+	lines = output.Split(char('\n'))
+	return lines.Any({l| l.ToLower() == path.ToLower()})
+
+def GetProjects():
+	for dir in Directory.GetDirectories("src"):
+		if not excludes.Any({e| e.ToLower() == Path.GetFileName(dir).ToLower()}) \
+			and not Path.GetFileName(dir).ToLower().Contains("test"):
+			yield Path.GetFileName(dir)
+
+Task @GenerateAssemblyInfo:
+	for project in GetProjects():
+		path = "src/${project}"
+		assemblyInfo = "${path}/Properties/AssemblyInfo.cs"
+		if not UnderSourceControl(assemblyInfo) and Exist("src/$project/$project.csproj"):
+			dir = Path.GetDirectoryName(assemblyInfo)
+			MkDir(dir) if not Exist(dir)
+			File.WriteAllText(assemblyInfo, """
+using System.Reflection;
+
+[assembly: AssemblyTitle("${project}")]
+[assembly: AssemblyProduct("${project}")]
+[assembly: AssemblyCompany("Инфорум")]
+[assembly: AssemblyVersion("${version}")]
+[assembly: AssemblyFileVersion("${version}")]
+[assembly: AssemblyInformationalVersion("${version}")]
+""")
+			print "created ${assemblyInfo}"

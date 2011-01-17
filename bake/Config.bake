@@ -1,0 +1,42 @@
+﻿import System
+import System.IO
+import file from Db.boo
+import file from Tools.boo
+
+def GetMigrationPath():
+	baseDirectory = AppDomain.CurrentDomain.BaseDirectory
+	raise "AppDomain.CurrentDomain.BaseDirectory вернул пустую строку" if String.IsNullOrEmpty(baseDirectory)
+	parent = Directory.GetParent(Path.GetDirectoryName(baseDirectory))
+	baseDirectory = Path.Combine(parent.FullName, "Migrations")
+	raise "Не найдена директория с миграциями ${baseDirectory}" if not Directory.Exists(baseDirectory)
+	return baseDirectory + "\\"
+
+Global(
+	Editor : "vim-nox",
+	MigrationsPath : GetMigrationPath(),
+	FrameworkVersion : "4.0.30319",
+	DeployRoot : """\\acdcserv.adc.analit.net\WebApps\""",
+	BuildRoot : "output",
+	PublishRoot : """\\acdcserv.adc.analit.net\WebPublish\""",
+	Environment : @Development,
+	Environments : {
+		@Production2 : """Data Source=sql.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""", 
+		@Production : """Data Source=sql2.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""", 
+		@Development : """Data Source=testsql.analit.net;Database=Usersettings;User ID=system;Password=newpass;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=300;Allow User Variables=true;"""
+	}
+)
+
+if Configuration.Maybe.env:
+	Globals.Environment = ToPascal(Configuration.env)
+
+Db.GetConnectionString = def():
+	connectionString = Globals.Environments[Globals.Environment]
+	if not connectionString.ToLower().Contains("password"):
+		Console.Write("user for sql2.analit.net:")
+		user = Console.ReadLine()
+		Console.Write("password:")
+		password = GetPassword()
+		h = Globals.Environments
+		h[Globals.Environment] = connectionString + "user=${user};password=${password};"
+		connectionString = Globals.Environments[Globals.Environment]
+	return connectionString

@@ -1,0 +1,35 @@
+import file from common.bake
+import System
+import System.Threading
+import System.Linq.Enumerable from System.Core
+import System.IO
+import System.ServiceProcess
+import System.ComponentModel
+import System.Security.Principal
+import System.Runtime.InteropServices
+
+Task @BuildApp, [@CleanApp]:
+	project = Globals.Project
+	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot, project))
+	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
+
+	MsBuild(projectFile,
+			Target : "build",
+			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	Rm("${buildTo}/*.xml")
+	Cp("src/${project}/App.release.config", "${buildTo}/${project}.exe.config", true)
+
+Task @CleanApp:
+	project = Globals.Project
+	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot, project))
+	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
+
+	MsBuild(projectFile,
+			Target : "clean",
+			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	if Exist(buildTo):
+		Rm("${buildTo}/*", true)
+	else:
+		MkDir(buildTo)

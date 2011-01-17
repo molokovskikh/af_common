@@ -1,0 +1,80 @@
+﻿import System
+import System.IO
+import System.Linq.Enumerable
+import System.Xml from System.Xml
+import System.Xml.Linq
+import System.Xml.XPath.Extensions from System.Xml.Linq
+import Bake.Win32.Helper
+import System.Linq.Enumerable
+
+desc """
+Заменяет TargetFramework во всех проектах на параметер указанный в Version
+"""
+task @UpdateTargetFramework:
+	version = Configuration.Version
+	for project in FileSet("src/**.*proj").Files:
+		doc = XDocument.Load(project)
+		manager = XmlNamespaceManager(NameTable())
+		manager.AddNamespace("p", "http://schemas.microsoft.com/developer/msbuild/2003")
+		element = doc.XPathSelectElement("//p:TargetFrameworkVersion", manager)
+		if element.Value == "v" + version:
+			continue
+		element.Value = "v" + version
+		doc.Save(project)
+		print "${project} patched"
+
+task @Production:
+	Configuration.Environment = @Production
+	Globals.Environment = @Production
+
+desc """
+Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
+"""
+task @ImportLibs:
+	for lib in Configuration.libs.ToString().Split(char(',')):
+		Sh("git submodule add ssh://kvasov@git.analit.net/var/www/git/${lib} src/${lib}") if not Exist("src/${lib}")
+
+def PatchProject(project as string):
+	doc = XDocument.Load(project)
+	rootNamespace = doc.Root.Name.NamespaceName
+	manager = XmlNamespaceManager(NameTable())
+	manager.AddNamespace("p", "http://schemas.microsoft.com/developer/msbuild/2003")
+	#!BUG doc.XPathSelectElements("//p:Reference", manager):
+	#print doc.XPathSelectElement("//p:TargetFrameworkVersion", manager)
+	for node in doc.XPathSelectElements("//p:Reference", manager):
+		lib = node.Attribute("Include").Value
+		lib = lib.Split(char(','))[0]
+		continue if not Exist("lib/${lib}.dll")
+		libPath = "..\\..\\lib\\${lib}.dll"
+		path = node.XPathSelectElement("p:HintPath", manager)
+		if not path:
+			print "add ${libPath}"
+			node.Add(XElement(XName.Get("HintPath", rootNamespace), libPath))
+			continue
+		else:
+			currentLibPath = Path.Combine(Path.GetDirectoryName(project), path.Value)
+			if not Exist(currentLibPath):
+				print "fixed path from $currentLibPath to $libPath"
+				path.Value = libPath
+	doc.Save(project)
+
+desc """
+Правит путь к библиотекам, почему то иногда библиотеки создаются по не правильным путям
+хотя я уверен что буть был верен, может быть resharper косячит, пример bake PatchLibs project=src/Common.Models/Common.Models.Tests/Common.Models.Tests.csproj
+"""
+task @PatchLibs:
+	for dir in Directory.GetDirectories("src"):
+		dir = Path.GetFileName(dir)
+		project = "src/$dir/$dir.csproj"
+		continue if not Exist(project)
+		PatchProject(project)
+
+desc """
+добавляет в path путь к sdk и .net framework
+"""
+task @UpdatePath:
+	path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)
+	sdkPath = MicrosoftSdk.Path()
+	frameworkPath = FrameworkInformation.Actual.FullPath
+	path = "$path;$sdkPath;$frameworkPath"
+	Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)

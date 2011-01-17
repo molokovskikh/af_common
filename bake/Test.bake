@@ -1,0 +1,167 @@
+﻿import System
+import System.Globalization
+import System.Diagnostics
+import System.Collections.Generic
+import System.Linq.Enumerable from System.Core
+import System.Xml.Linq
+import System.Xml.XPath.Extensions from System.Xml.Linq
+import System.IO
+import System.Net.Mail
+import file from Config.bake
+import file from Svn.boo
+
+class Project:
+	_project as string
+	_projectFile as string
+	_isX86 as bool
+	_frameworkVersion as string
+
+	def constructor(projectFile as string, project as string, isX86 as bool, frameworkVersion as string):
+		_projectFile = projectFile
+		_project = project
+		_isX86 = isX86
+		_frameworkVersion = frameworkVersion
+
+	def Build():
+		output = Path.GetFullPath("build/test/${_project}/bin/debug/")
+		MsBuild(_projectFile,
+			Target : "clean",
+			Parameters : { "OutDir" : output, "Configuration" : "debug" },
+			FrameworkVersion : _frameworkVersion).Execute()
+		MsBuild(_projectFile,
+			Target : "build",
+			Parameters : { "OutDir" : output, "Configuration" : "debug" },
+			FrameworkVersion : _frameworkVersion).Execute()
+
+		projectPath = Path.GetDirectoryName(_projectFile)
+		if Exist("${projectPath}/data"):
+			Cp(FileSet("**/*.*", Excludes : ["**/.svn/**"], BaseDirectory : "${projectPath}/data/"), "build/test/${_project}/data", true)
+
+	def RunTests():
+		nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console.exe"""
+		if _isX86:
+			nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console-x86.exe"""
+
+		NUnit(Path.GetFullPath("build/test/${_project}/bin/debug/${_project}.dll"),
+			ExecutablePath : nunitPath).Execute()
+
+	override def ToString():
+		return _project
+
+class TestResults:
+	successCount = 0
+	failCount = 0
+	ignoredCount = 0
+	brokenTests = List of XElement()
+	totalTime as TimeSpan
+	[property(RealTotalTime)]
+	realTotalTime as TimeSpan
+	
+	def Parse(filename as string):
+		doc = XDocument.Load(filename)
+
+		total as decimal
+		for element in doc.XPathSelectElements("//test-suite"):
+			total += Convert.ToDecimal(element.Attribute("time").Value, CultureInfo.InvariantCulture)
+		totalTime += TimeSpan.FromSeconds(total)
+		
+		successCount += doc.XPathSelectElements("//test-case[@result='Success']").Count()
+		ignoredCount += doc.XPathSelectElements("//test-case[@result='Ignored']").Count()
+		
+		failures = doc.XPathSelectElements("//test-case[@result='Failure']")
+		failCount += failures.Count()
+		brokenTests.AddRange(failures)
+		failures = doc.XPathSelectElements("//test-case[@result='Error']")
+		failCount += failures.Count()
+		brokenTests.AddRange(failures)
+
+	def Message():
+		totalCount = successCount + failCount + ignoredCount
+		message = "Всего тестов ${totalCount} прошли ${successCount} сломаны ${failCount} в игноре ${ignoredCount}\r\n"
+		message += "Общее время запуска тестов по мнению nunit $totalTime на самом деле $realTotalTime"
+		if not failCount:
+			message += "Все тесты прошли успешно"
+		else:
+			message += "Сломанные тесты:\r\n"
+			for test in brokenTests:
+				name = test.Attribute("name").Value
+				reason = test.XPathSelectElement(".//message").Value
+				stack = test.XPathSelectElement(".//stack-trace").Value
+				message += "${name}\r\n${reason}\r\n${stack}\r\n"
+		return message
+
+frameworkVersion = Globals.FrameworkVersion
+	
+def GetProjects():
+	projects = List[of Project]()
+	dirs = Directory.GetDirectories("src")
+	for dir in dirs:
+		dir = dir
+		project = Path.GetFileName(dir).ToLower()
+		if project.EndsWith(".tests")\
+			or project.EndsWith(".test")\
+			or project == "fuctional"\
+			or project == "integration"\
+			or project == "unit":
+			projects.Add(Project(Path.Combine(dir, project) + ".csproj", project, Globals.IsDefined("platform") and Globals.platform == "x86", frameworkVersion))
+	return projects
+
+task @test, [@RunTests]
+
+task @BuildTests:
+	projects = GetProjects()
+	for project in projects:
+		project.Build()
+
+task @RunTests, [@BuildTests]:
+	for project in GetProjects():
+		try:
+			project.RunTests()
+		except e as BuildException:
+			if not e.Message.Contains("Command faild with status"):
+				raise
+def GetProjectName():
+	return Path.GetFileName(Environment.CurrentDirectory)
+	//return Uri(SvnTool.Info().XPathSelectElement("//url").Value).Segments[1]
+
+def GetBranchName():
+	return "master"
+	uri = Uri(SvnTool.Info().XPathSelectElement("//url").Value)
+	if uri.Segments[2].ToLower() == "trunk":
+		return uri.Segments[2]
+	else:
+		return uri.Segments[3]
+
+def Notify(body as string):
+	project = GetProjectName()
+	branch = GetBranchName()
+	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
+		message.Subject = "Сборка ${project} ветка ${branch}"
+		message.Body = body
+		smtpClient = SmtpClient("box.analit.net")
+		smtpClient.Send(message)
+
+task @integration:
+	try:
+		projects = GetProjects()
+		result = TestResults()
+		try:
+			for project in projects:
+				project.Build()
+		except:
+			Notify("Сборка завершилась с ошибкой")
+			return
+
+		for project in projects:
+			begin = DateTime.Now
+			try:
+				project.RunTests()
+			except e as BuildException:
+				if not e.Message.Contains("Command faild with status"):
+					raise
+			result.RealTotalTime += DateTime.Now - begin
+			result.Parse("TestResult.xml")
+
+		Notify(result.Message())
+	except e as Exception:
+		Notify(e.ToString())

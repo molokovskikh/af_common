@@ -1,0 +1,43 @@
+import System
+import System.IO
+
+ProjectName = ""
+
+def GetTemplate(filename as string):
+	name = Path.GetFileName(filename)
+	templateRoot = """C:\Projects\Production\Common\trunk\Tasks\Resources\templates\"""
+	if Exist(Path.Combine(templateRoot, name)):
+		return Path.Combine(templateRoot, name)
+	extension = Path.GetExtension(filename)
+	files = Directory.GetFiles(templateRoot, "*${extension}")
+	if files.Length:
+		return files[0]
+	raise "can`t find template for ${filename}"
+
+def FromTemplate(filename as string):
+	templateName = GetTemplate(filename)
+	text = File.ReadAllText(templateName)
+	result = text.Replace("{name}", ProjectName).Replace("{projectGuid}", Guid.NewGuid().ToString()).Replace("{solutionGuid}", Guid.NewGuid().ToString())
+	File.WriteAllText(filename, result)
+
+def FromTemplateList(root as string, files as List):
+	for file in files:
+		file = Path.Combine(root, file)
+		FromTemplate(file)
+
+task @Generate:
+	ProjectName = Configuration.name
+	MkDir("src")
+	MkDir("lib")
+	FromTemplate("src/${ProjectName}.sln")
+	MkDir("src/test")
+	FromTemplate("src/test/test.csproj")
+	MkDir("src/test/integration")
+	MkDir("src/test/functional")
+	MkDir("src/test/unit")
+	MkDir("src/${ProjectName}")
+	FromTemplateList("src/${ProjectName}/", 
+		["global.asax", "global.asax.cs", "web.config", "web.release.config", "${ProjectName}.csproj"])
+	MkDir("src/${ProjectName}/Controllers")
+	MkDir("src/${ProjectName}/Views")
+	MkDir("src/${ProjectName}/Models")
