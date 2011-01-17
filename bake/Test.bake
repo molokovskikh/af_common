@@ -78,7 +78,7 @@ class TestResults:
 	def Message():
 		totalCount = successCount + failCount + ignoredCount
 		message = "Всего тестов ${totalCount} прошли ${successCount} сломаны ${failCount} в игноре ${ignoredCount}\r\n"
-		message += "Общее время запуска тестов по мнению nunit $totalTime на самом деле $realTotalTime"
+		message += "Общее время запуска тестов по мнению nunit $totalTime на самом деле $realTotalTime\r\n"
 		if not failCount:
 			message += "Все тесты прошли успешно"
 		else:
