@@ -1,0 +1,1 @@
+﻿ALTER TABLE `farm`.`Excludes` MODIFY COLUMN `CreatedOn` TIMESTAMP NOT NULL;

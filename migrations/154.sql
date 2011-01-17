@@ -1,0 +1,5 @@
+﻿ALTER TABLE `catalogs`.`CatalogNames` ADD COLUMN `MnnId` INT(10) UNSIGNED DEFAULT NULL AFTER `Name`,
+ ADD CONSTRAINT `FK_CatalogNames_MnnId` FOREIGN KEY `FK_CatalogNames_MnnId` (`MnnId`)
+    REFERENCES `Mnn` (`Id`)
+    ON DELETE RESTRICT
+    ON UPDATE RESTRICT;

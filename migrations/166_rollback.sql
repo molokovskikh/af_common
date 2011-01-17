@@ -1,0 +1,10 @@
+﻿ALTER TABLE `catalogs`.`Descriptions` DROP COLUMN `Interaction`,
+ DROP COLUMN `SideEffect`,
+ DROP COLUMN `IndicationsForUse`,
+ DROP COLUMN `Dosing`,
+ DROP COLUMN `Warnings`,
+ DROP COLUMN `ProductForm`,
+ DROP COLUMN `PharmacologicalAction`,
+ DROP COLUMN `Storage`,
+ DROP COLUMN `Expiration`,
+ DROP COLUMN `Composition`;

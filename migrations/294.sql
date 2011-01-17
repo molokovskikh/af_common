@@ -1,0 +1,1 @@
+﻿delete from farm.excludes where originalsynonymid is null;

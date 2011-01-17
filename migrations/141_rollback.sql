@@ -1,0 +1,1 @@
+﻿ALTER TABLE `logs`.`downlogs` DROP COLUMN `ShortErrorMessage`;

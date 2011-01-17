@@ -1,0 +1,1 @@
+﻿ALTER TABLE usersettings.RetClientsSet DROP ShowNewDefecture;

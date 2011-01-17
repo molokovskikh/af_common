@@ -1,0 +1,1 @@
+﻿alter table reports.general_reports add Format ENUM('Excel', 'DBF') not null default 'Excel'

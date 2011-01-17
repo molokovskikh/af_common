@@ -1,0 +1,20 @@
+create database Security;
+drop trigger accessright.AdminsPermissionsLogDelete;
+drop trigger accessright.AdminsPermissionsLogInsert;
+alter table usersettings.ret_save_grids rename to Security.ret_save_grids;
+alter table usersettings.save_grids rename to Security.save_grids;
+alter table usersettings.UserPermissions rename to Security.UserPermissions;
+alter table usersettings.AssignedPermissions rename to Security.AssignedPermissions;
+alter table accessright.Permissions rename to Security.Permissions;
+alter table accessright.regionaladmins rename to Security.regionaladmins;
+alter table accessright.AdminsPermissions rename to Security.AdminsPermissions;
+drop database accessright;
+
+create database accessright;
+alter table Security.ret_save_grids rename to usersettings.ret_save_grids;
+alter table Security.save_grids rename to usersettings.save_grids;
+alter table Security.UserPermissions rename to usersettings.UserPermissions;
+alter table Security.AssignedPermissions rename to usersettings.AssignedPermissions;
+alter table Security.Permissions rename to accessright.Permissions;
+alter table Security.regionaladmins rename to accessright.regionaladmins;
+alter table Security.AdminsPermissions rename to accessright.AdminsPermissions;

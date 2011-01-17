@@ -1,0 +1,1 @@
+﻿ALTER TABLE `documents`.`DocumentBodies` ADD COLUMN `SerialNumber` VARCHAR(50) CHARACTER SET cp1251 COLLATE cp1251_general_ci DEFAULT NULL COMMENT 'номер серии' AFTER `NDS`;

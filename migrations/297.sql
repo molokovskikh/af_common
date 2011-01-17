@@ -1,0 +1,2 @@
+﻿ALTER TABLE `usersettings`.`OsUserAccessRight` ADD COLUMN `VendorAllowSourceOrders` BIT(1) NOT NULL DEFAULT b'1' COMMENT '1 - Разрешить доступ к пункту "Доставка заказов" в кл. интерфейсе
+0 - Запретить доступ к пункту "Доставка заказов" в кл. интерфейсе' AFTER `VendorAllowDocumentLogs`;

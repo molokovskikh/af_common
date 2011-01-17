@@ -1,0 +1,1 @@
+ALTER TABLE `future`.`Addresses` ADD COLUMN `LegalEntityId` INT(10) UNSIGNED NOT NULL AFTER `ClientId`;

@@ -1,0 +1,1 @@
+﻿ALTER TABLE `accessright`.`regionaladmins` ADD COLUMN `InternalPhone` VARCHAR(5) CHARACTER SET cp1251 COLLATE cp1251_general_ci COMMENT 'Внутренний номер телефона' AFTER `PhoneSupport`;

@@ -1,0 +1,2 @@
+﻿ALTER TABLE `logs`.`RecordCalls` ADD COLUMN `NameFrom` VARCHAR(255) CHARACTER SET cp1251 COLLATE cp1251_general_ci DEFAULT NULL COMMENT 'Имя. Кто звонил' AFTER `To`,
+ ADD COLUMN `NameTo` VARCHAR(255) CHARACTER SET cp1251 COLLATE cp1251_general_ci DEFAULT NULL COMMENT 'Имя. Куда звонил' AFTER `NameFrom`;

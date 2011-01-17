@@ -1,0 +1,4 @@
+﻿ALTER TABLE `future`.`Users` MODIFY COLUMN `Enabled` TINYINT(3) UNSIGNED NOT NULL DEFAULT 1 COMMENT '0 - Выкл.
+1 - Вкл.';
+ALTER TABLE `future`.`Addresses` MODIFY COLUMN `Enabled` TINYINT(3) UNSIGNED NOT NULL DEFAULT 1 COMMENT '0 - Выкл.
+1 - Вкл.';

@@ -1,0 +1,1 @@
+﻿ALTER TABLE `logs`.`downlogs` ADD COLUMN `ShortErrorMessage` MEDIUMTEXT CHARACTER SET cp1251 COLLATE cp1251_general_ci DEFAULT NULL AFTER `Addition`;

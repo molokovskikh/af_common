@@ -1,0 +1,1 @@
+ALTER TABLE `contacts`.`contact_groups` DROP COLUMN `Specialized`;

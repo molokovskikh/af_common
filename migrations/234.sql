@@ -1,0 +1,1 @@
+﻿ALTER TABLE `documents`.`DocumentHeaders` ADD COLUMN `DocumentDate` DATETIME DEFAULT NULL COMMENT 'Дата документа' AFTER `WriteTime`;

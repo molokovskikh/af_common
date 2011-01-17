@@ -1,0 +1,1 @@
+﻿ALTER TABLE `farm`.`sources` ADD COLUMN `RequestInterval` INT(10) UNSIGNED DEFAULT NULL COMMENT 'Интервал в секундах, через который производится обращение к источнику' AFTER `HTTPPassword`;

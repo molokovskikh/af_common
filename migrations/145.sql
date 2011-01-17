@@ -1,0 +1,1 @@
+﻿alter table reports.General_Reports drop FOREIGN KEY general_reports_FK_FirmCode;

@@ -1,0 +1,1 @@
+﻿ALTER TABLE logs.ClientsInfo ADD UserId INT UNSIGNED REFERENCES future.Users(Id) on delete cascade on update cascade;

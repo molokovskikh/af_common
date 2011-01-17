@@ -1,0 +1,1 @@
+﻿insert into accessright.Permissions(Name, `Type`, Shortcut) values ("Разрешить доступ к истории звонков", 20, "VCH")
