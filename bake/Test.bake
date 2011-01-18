@@ -62,7 +62,8 @@ class TestResults:
 
 		total as decimal
 		for element in doc.XPathSelectElements("//test-suite"):
-			total += Convert.ToDecimal(element.Attribute("time").Value, CultureInfo.InvariantCulture)
+			if attribute = element.Attribute("time"):
+				total += Convert.ToDecimal(attribute.Value, CultureInfo.InvariantCulture)
 		totalTime += TimeSpan.FromSeconds(total)
 		
 		successCount += doc.XPathSelectElements("//test-case[@result='Success']").Count()
