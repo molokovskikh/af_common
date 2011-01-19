@@ -1,4 +1,5 @@
-﻿import System.IO
+﻿import System
+import System.IO
 import System.Diagnostics
 import System.Xml.Linq
 import System.Xml.XPath.Extensions
@@ -24,7 +25,27 @@ def GetProjects():
 			and not Path.GetFileName(dir).ToLower().Contains("test"):
 			yield Path.GetFileName(dir)
 
-Task @GenerateAssemblyInfo:
+task @UpdateRevision:
+	output = ExecuteProcess("git", "status")
+	if not output.Contains("nothing to commit (working directory clean)"):
+		raise "bake deploy можно делать только если все закомичено\r\n" \
+			+ "проверь что git status говорит nothing to commit (working directory clean)\r\n" \
+			+ "а затем попробуй еше раз"
+
+	output = ExecuteProcess("git", "log -1 --pretty=oneline")
+	if output.Contains("Релиз версии"):
+		print "Последний коммит был релизом, не буду обновлять номер версии тк похоже что это на повторный деплой"
+		return
+
+	currentVersion = Version(version)
+	revision = currentVersion.Revision
+	revision++
+	newVersion = Version(currentVersion.Major, currentVersion.Minor, currentVersion.Build, revision)
+	File.WriteAllText("build/version.txt", newVersion.ToString())
+	Sh("git add -- build/version.txt")
+	Sh("git commit -m \"Релиз версии $newVersion\"")
+
+task @GenerateAssemblyInfo:
 	for project in GetProjects():
 		path = "src/${project}"
 		assemblyInfo = "${path}/Properties/AssemblyInfo.cs"
@@ -41,4 +62,4 @@ using System.Reflection;
 [assembly: AssemblyFileVersion("${version}")]
 [assembly: AssemblyInformationalVersion("${version}")]
 """)
-			print "created ${assemblyInfo}"
+			print "generated ${assemblyInfo}"

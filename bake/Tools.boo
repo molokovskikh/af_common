@@ -1,4 +1,5 @@
 ﻿import System
+import System.Text
 import System.IO
 import System.Diagnostics
 
@@ -6,7 +7,16 @@ def ExecuteProcess(exe as string, command as string):
 	return ExecuteProcess(exe, command, null)
 
 def ExecuteProcess(exe as string, command as string, baseDirectory as string):
+
+	encoding as Encoding
+	if exe.StartsWith("git"):
+		encoding = Encoding.UTF8
+	else:
+		encoding = Encoding.GetEncoding(866)
+
 	startInfo = ProcessStartInfo(exe, command,
+		StandardOutputEncoding : encoding,
+		StandardErrorEncoding : encoding,
 		RedirectStandardOutput : true,
 		RedirectStandardError : true,
 		CreateNoWindow : true,

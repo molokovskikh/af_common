@@ -106,12 +106,12 @@ Task "build publish package", ["build", "clean publish package"]:
 							"PublishDir" : buildTo, 
 							"SigningCert" : certPath,                                                        
 							"Password" : password, 
-							"SdkPath" : Sdk().Path(),
+							"SdkPath" : MicrosoftSdk.Path(),
 							"BootstrapperSdkPath" : BootstrapperSdkPath()},
 			FrameworkVersion : "3.5").Execute()
 	CopyWithDeploy(FileSet("**\\*.*", BaseDirectory : buildTo), buildPublishTo)
 	cert = X509Certificate2(File.ReadAllBytes(certPath), password)
-	Exec("\"${Sdk().Path()}\\signtool.exe\"",
+	Exec("\"${MicrosoftSdk.Path()}\\signtool.exe\"",
 		 "sign /sha1 ${cert.Thumbprint} ${buildPublishTo}setup.exe").Execute()
 	Rm("${buildPublishTo}/publish.build")
 	Rm("${buildPublishTo}/Microsoft.Sdc.Common.tasks")
