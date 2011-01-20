@@ -8,6 +8,7 @@ import Microsoft.Win32
 import Microsoft.Build.Tasks.Deployment.ManifestUtilities
 import file from Deploy.bake
 import file from AssemblyInfo.bake
+import file from Migration.bake
 
 def Copy(fileSet as FileSet, destination as string):
 	for file in fileSet.Files:
@@ -67,13 +68,13 @@ buildRoot = "output"
 buildTo = Path.GetFullPath("${buildRoot}/${projectName}/")
 buildPublishTo = Path.GetFullPath("${buildRoot}/${projectName}Publish/")
 
-Task "default", ["build"]
-
 params = { "OutDir" : "${buildTo}", "Configuration" : "release" }
 if Globals.IsDefined("Platform"):
 	params.Add("Platform", Globals.Platform)
 
-Task "build", ["clean", @GenerateAssemblyInfo]:
+task @ClickOnceDeploy, [@UpdateRevision, @build, @Production, @Migrate, @publish]
+
+task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 	MsBuild(projectFile,
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
@@ -84,7 +85,7 @@ Task "build", ["clean", @GenerateAssemblyInfo]:
 			   Excludes : ["*.dll", "*.exe", "*.config"]))
 	publishVersion = GetAssemblyVersion("${buildTo}${projectName}.exe")
 				
-Task "clean":
+task @clean:
 	MsBuild(projectFile,
 			Target : "clean",
 			Parameters : { "Configuration" : "release" },
@@ -92,7 +93,7 @@ Task "clean":
 	RmDir(buildTo, true) if Exist(buildTo)
 	MkDir(buildTo)
 			
-Task "build publish package", ["build", "clean publish package"]:
+task "build publish package", [@ClickOnceBuild, "clean publish package"]:
 	certPath = GetResource("inforoomCS.pfx")
 	password = "password"
 	Cp(GetResource("publish.build"), buildPublishTo)
@@ -117,11 +118,11 @@ Task "build publish package", ["build", "clean publish package"]:
 	Rm("${buildPublishTo}/Microsoft.Sdc.Common.tasks")
 	GeneratePublishPage("${buildPublishTo}publish.htm", publishVersion, productName)
 
-Task "clean publish package":
+task "clean publish package":
 	RmDir(buildPublishTo, true) if Exist(buildPublishTo)
 	MkDir(buildPublishTo)
 
-Task "publish", ["build publish package", "clean publish dir", @SendDeployNotification]:
+task "publish", ["build publish package", "clean publish dir", @SendDeployNotification]:
 	Copy(FileSet("**\\*.*", BaseDirectory : buildPublishTo), publishTo)
 
 Task "clean publish dir":
