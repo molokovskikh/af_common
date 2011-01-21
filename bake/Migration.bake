@@ -121,6 +121,11 @@ def FindMigration(migration as string):
 	fileName = "migrations/${migration}.boo" if not Exist(fileName)
 	return fileName
 
+def FindRollbackMigration(migration as string):
+	fileName = "${Globals.MigrationsPath}/${migration}_rollback.sql"
+	fileName = "migrations/${migration}_rollback.sql" if not Exist(fileName)
+	return fileName
+
 def Apply(fileName as string):
 	begin = DateTime.Now
 	migration = Path.GetFileNameWithoutExtension(fileName)
@@ -291,16 +296,17 @@ task @Repeat, [@Rollback, @Migrate]
 
 task @Rollback:
 	id = Configuration.id
-	if not Exist("${id}_rollback.sql"):
-		raise "Не могу найти фал отката миграции"
+	fileName = FindRollbackMigration(id)
+	if not Exist(fileName):
+		raise "Не могу найти файл отката миграции"
 
 	print "Rollback ${id}"
 	print "------------------------------------------------------------"
-	sql = File.ReadAllText("${id}_rollback.sql")
+	sql = File.ReadAllText(fileName)
 	print sql
 	print "------------------------------------------------------------"
 	Db.Execute(sql)
-	Db.Execute("delete from logs.SchemaMigrations where Version = ${id}")
+	Db.Execute("delete from logs.SchemaMigrations where Version = '${id}'")
 
 task @CancelLastMigration:
 	migration = GetMigratedMigrations().Last()
