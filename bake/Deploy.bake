@@ -46,6 +46,8 @@ def GetDeployTo(project as string):
 	либо название проекта Globals.Project тогда он будет выложен на Globals.DeployRoot по умолчанию это \\acdcserv.adc.analit.net\WebApps\"""
 	return deployTo
 
+if Environment.UserName != "kvasov":
+        Globals.Editor = "notepad"
 editor = Globals.Editor
 humanReadableName = ""
 if Globals.IsDefined(@humanReadableName):
