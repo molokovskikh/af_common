@@ -241,7 +241,12 @@ task @OnlyInProject:
 		
 #Нужно обновить common т.к. может быть ссылка на миграцию а в локальной копии ее нет
 task @UpdateCommon:
-	SvnTool.Update(Globals.MigrationsPath)
+	print "Update Common"
+	startInfo = ProcessStartInfo("git", "pull origin", UseShellExecute : false)
+	startInfo.WorkingDirectory = Globals.MigrationsPath
+	process = Process.Start(startInfo)
+	process.WaitForExit()
+	print "End Update Common"
 
 task @Migrate, [@UpdateCommon]:
 	migrations as List[of string]
