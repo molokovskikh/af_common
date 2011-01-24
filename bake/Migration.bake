@@ -198,7 +198,7 @@ def GetMigrationFileName(filename as string) as string:
 	filename = Path.GetFileNameWithoutExtension(filename)
 	if not extension:
 		extension = ".sql"
-	mark = DateTime.Now.ToString("ssmmHHMMddyyyy")
+	mark = Convert.ToInt32(DateTime.Now.Subtract(DateTime(2011, 1, 1)).TotalDays)
 	return "${mark}_${filename}${extension}"
 	#return "${filename}_${mark}${extension}"
 
