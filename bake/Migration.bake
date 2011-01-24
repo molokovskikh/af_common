@@ -235,7 +235,7 @@ def GetMigrations():
 	else:
 		migrations.AddRange(Directory.GetFiles(".", "*.sql"))
 		migrations.AddRange(Directory.GetFiles(".", "*.boo"))
-	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /\d_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
+	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
 	return migrations
 
 def StartEditor(fileName as string):
