@@ -317,7 +317,7 @@ task @CancelLastMigration:
 task @GenerateMigrations, [@OnlyInProject]:
 	configuration = GetConfiguration()
 	if not configuration.ClassMappings.Count:
-		raise "Can`t find any class mapping check active record version and assemblies list"
+		raise "Can`t find any class mapping, check active record version and assemblies list"
 	mapping = configuration.BuildMapping()
 	dialect = NHibernate.Dialect.Dialect.GetDialect(configuration.Properties)
 
