@@ -246,12 +246,13 @@ task @OnlyInProject:
 		
 #Нужно обновить common т.к. может быть ссылка на миграцию а в локальной копии ее нет
 task @UpdateCommon:
-	print "Update Common"
+	print "Введите учетные данные для обновления Common"
 	startInfo = ProcessStartInfo("git", "pull origin", UseShellExecute : false)
 	startInfo.WorkingDirectory = Globals.MigrationsPath
 	process = Process.Start(startInfo)
-	process.WaitForExit()
-	print "End Update Common"
+	process.WaitForExit(TimeSpan.FromMinutes(2).TotalMilliseconds)
+	if process.ExitCode !=0:
+		raise "При обновлении Common возникла ошибка с кодом ${process.ExitCode}"
 
 task @Migrate, [@UpdateCommon]:
 	migrations as List[of string]
