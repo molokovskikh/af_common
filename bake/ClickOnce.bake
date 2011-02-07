@@ -34,12 +34,12 @@ def GeneratePublishPage(file as string, version as string, productName as string
 	File.AppendAllText(file, result)
 
 def BootstrapperSdkPath() as string:
-	key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\GenericBootstrapper\\3.5")
+	key = Registry.CurrentUser.OpenSubKey("SOFTWARE\\Microsoft\\GenericBootstrapper\\4.0")
 	if key:
 		path = key.GetValue("Path", "").ToString()
 		key.Close()
 		return path
-	key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Wow6432Node\\Microsoft\\GenericBootstrapper\\3.5")
+	key = Registry.LocalMachine.OpenSubKey("SOFTWARE\\Wow6432Node\\Microsoft\\GenericBootstrapper\\4.0")
 	if key:
 		path = key.GetValue("Path", "").ToString()
 		key.Close()
@@ -72,7 +72,7 @@ params = { "OutDir" : "${buildTo}", "Configuration" : "release" }
 if Globals.IsDefined("Platform"):
 	params.Add("Platform", Globals.Platform)
 
-task @ClickOnceDeploy, [@UpdateRevision, @build, @Production, @Migrate, @publish]
+task @ClickOnceDeploy, [@UpdateRevision, @ClickOnceBuild, @Production, @Migrate, @publish]
 
 task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 	MsBuild(projectFile,
@@ -88,7 +88,7 @@ task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 task @clean:
 	MsBuild(projectFile,
 			Target : "clean",
-			Parameters : { "Configuration" : "release" },
+			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	RmDir(buildTo, true) if Exist(buildTo)
 	MkDir(buildTo)
