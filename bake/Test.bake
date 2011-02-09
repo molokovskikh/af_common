@@ -23,26 +23,23 @@ class Project:
 		_frameworkVersion = frameworkVersion
 
 	def Build():
-		output = Path.GetFullPath("build/test/${_project}/bin/debug/")
 		MsBuild(_projectFile,
 			Target : "clean",
-			Parameters : { "OutDir" : output, "Configuration" : "debug" },
+			Parameters : { "Configuration" : "debug" },
 			FrameworkVersion : _frameworkVersion).Execute()
 		MsBuild(_projectFile,
 			Target : "build",
-			Parameters : { "OutDir" : output, "Configuration" : "debug" },
+			Parameters : { "Configuration" : "debug" },
 			FrameworkVersion : _frameworkVersion).Execute()
 
 		projectPath = Path.GetDirectoryName(_projectFile)
-		if Exist("${projectPath}/data"):
-			Cp(FileSet("**/*.*", Excludes : ["**/.svn/**"], BaseDirectory : "${projectPath}/data/"), "build/test/${_project}/data", true)
 
 	def RunTests():
 		nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console.exe"""
 		if _isX86:
 			nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console-x86.exe"""
 
-		NUnit(Path.GetFullPath("build/test/${_project}/bin/debug/${_project}.dll"),
+		NUnit(Path.GetFullPath("src/${_project}/bin/debug/${_project}.dll"),
 			ExecutablePath : nunitPath).Execute()
 
 	override def ToString():
