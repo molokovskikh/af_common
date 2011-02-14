@@ -53,9 +53,24 @@ installed = List of string()
 libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
 def InstallLib(lib as string):
+	if lib.Contains(" "):
+		lib.Replace(" ", "/")
+
 	libPath = Path.Combine(libRoot, lib)
 	if not Exist(libPath):
 		raise "Library ${libPath} not exists"
+
+	if not Directory.GetFiles(libPath).Length:
+		maxDir as string
+		for d in Directory.GetDirectories(libPath):
+			name = Path.GetFileName(d)
+			version = Version(name)
+			if not maxDir:
+				maxDir = name
+			elif Version(maxDir) < version:
+				maxDir = name
+		lib += "/$maxDir"
+
 	Cp(FileSet("**.*", BaseDirectory : libPath, Excludes : ["**/.svn/**", "deps"]), "lib", true)
 	print "Library ${lib} installed into ${Path.GetFullPath('lib')}"
 	installed.Add(lib)
