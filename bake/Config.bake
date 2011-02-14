@@ -20,8 +20,8 @@ Global(
 	PublishRoot : """\\acdcserv.adc.analit.net\WebPublish\""",
 	Environment : @Development,
 	Environments : {
-		@Production2 : """Data Source=sql.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""", 
-		@Production : """Data Source=sql2.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""", 
+		@Production2 : """Data Source=dbms.adc.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""", 
+		@Production : """Data Source=dbms2.adc.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""", 
 		@Development : """Data Source=testsql.analit.net;Database=Usersettings;User ID=system;Password=newpass;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=300;Allow User Variables=true;"""
 	}
 )
