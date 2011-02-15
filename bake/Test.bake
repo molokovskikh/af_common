@@ -91,6 +91,7 @@ class TestResults:
 frameworkVersion = Globals.FrameworkVersion
 	
 def GetProjects():
+	isx86 = Globals.Maybe.platform == "x86" or Globals.Maybe.Platform == "x86"
 	projects = List[of Project]()
 	dirs = Directory.GetDirectories("src")
 	for dir in dirs:
@@ -101,7 +102,7 @@ def GetProjects():
 			or project == "fuctional"\
 			or project == "integration"\
 			or project == "unit":
-			projects.Add(Project(Path.Combine(dir, project) + ".csproj", project, Globals.IsDefined("platform") and Globals.platform == "x86", frameworkVersion))
+			projects.Add(Project(Path.Combine(dir, project) + ".csproj", project, isx86, frameworkVersion))
 	return projects
 
 task @test, [@RunTests]
