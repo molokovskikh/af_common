@@ -54,9 +54,9 @@ libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
 def InstallLib(lib as string):
 	if lib.Contains(" "):
-		lib.Replace(" ", "/")
+		lib = lib.Replace(" ", "/")
 
-	libPath = Path.Combine(libRoot, lib)
+	libPath = Path.GetFullPath(Path.Combine(libRoot, lib))
 	if not Exist(libPath):
 		raise "Library ${libPath} not exists"
 
@@ -70,14 +70,18 @@ def InstallLib(lib as string):
 			elif Version(maxDir) < version:
 				maxDir = name
 		lib += "/$maxDir"
+	libPath = Path.Combine(libRoot, lib)
+
+	if installed.Contains(lib):
+		return
 
 	Cp(FileSet("**.*", BaseDirectory : libPath, Excludes : ["**/.svn/**", "deps"]), "lib", true)
-	print "Library ${lib} installed into ${Path.GetFullPath('lib')}"
 	installed.Add(lib)
+	print "Library ${lib} installed into ${Path.GetFullPath('lib')}"
 	if Exist("${libPath}/deps"):
 		deps = System.IO.File.ReadAllLines("${libPath}/deps")
 		for dep in deps:
-			InstallLib(dep) unless installed.Contains(dep)
+			InstallLib(dep)
 Desc """
 Устанавливает библиотеку, пример bake lib name=NUnit
 """
