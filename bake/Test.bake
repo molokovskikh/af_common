@@ -58,7 +58,7 @@ class TestResults:
 		doc = XDocument.Load(filename)
 
 		total as decimal
-		for element in doc.XPathSelectElements("//test-suite"):
+		for element in doc.XPathSelectElements("//test-suite[@type='Assembly']"):
 			if attribute = element.Attribute("time"):
 				total += Convert.ToDecimal(attribute.Value, CultureInfo.InvariantCulture)
 		totalTime += TimeSpan.FromSeconds(total)
@@ -119,6 +119,7 @@ task @RunTests, [@BuildTests]:
 		except e as BuildException:
 			if not e.Message.Contains("Command faild with status"):
 				raise
+
 def GetProjectName():
 	return Path.GetFileName(Environment.CurrentDirectory)
 	//return Uri(SvnTool.Info().XPathSelectElement("//url").Value).Segments[1]
