@@ -15,6 +15,8 @@ class Project:
 	_projectFile as string
 	_isX86 as bool
 	_frameworkVersion as string
+	[property(NotInteractive)]
+	_notInteractive = true
 
 	def constructor(projectFile as string, project as string, isX86 as bool, frameworkVersion as string):
 		_projectFile = projectFile
@@ -34,13 +36,16 @@ class Project:
 
 		projectPath = Path.GetDirectoryName(_projectFile)
 
-	def RunTests():
+	def Test():
 		nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console.exe"""
 		if _isX86:
 			nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console-x86.exe"""
 
-		NUnit(Path.GetFullPath("src/${_project}/bin/debug/${_project}.dll"),
-			ExecutablePath : nunitPath).Execute()
+		nunit = NUnit("src/${_project}/bin/debug/${_project}.dll",
+			ExecutablePath : nunitPath,
+			GrubOutput : _notInteractive)
+		nunit.Execute()
+		return nunit.Output.ToString()
 
 	override def ToString():
 		return _project
@@ -50,6 +55,7 @@ class TestResults:
 	failCount = 0
 	ignoredCount = 0
 	brokenTests = List of XElement()
+	outputs = List of string()
 	totalTime as TimeSpan
 	[property(RealTotalTime)]
 	realTotalTime as TimeSpan
@@ -75,18 +81,28 @@ class TestResults:
 
 	def Message():
 		totalCount = successCount + failCount + ignoredCount
-		message = "Всего тестов ${totalCount} прошли ${successCount} сломаны ${failCount} в игноре ${ignoredCount}\r\n"
-		message += "Общее время запуска тестов по мнению nunit $totalTime на самом деле $realTotalTime\r\n"
+		message = StringWriter()
+		message.WriteLine("Всего тестов ${totalCount} прошли ${successCount} сломаны ${failCount} в игноре ${ignoredCount}")
+		message.WriteLine("Общее время запуска тестов по мнению nunit $totalTime на самом деле $realTotalTime")
+		for output in outputs:
+			message.WriteLine(output)
+
 		if not failCount:
-			message += "Все тесты прошли успешно"
+			message.WriteLine("Все тесты прошли успешно")
 		else:
-			message += "Сломанные тесты:\r\n"
+			message.WriteLine("Сломанные тесты:")
 			for test in brokenTests:
 				name = test.Attribute("name").Value
 				reason = test.XPathSelectElement(".//message").Value
 				stack = test.XPathSelectElement(".//stack-trace").Value
-				message += "${name}\r\n${reason}\r\n${stack}\r\n"
-		return message
+				message.WriteLine(name.Trim())
+				message.WriteLine(reason.Trim())
+				message.WriteLine(stack.Trim())
+				message.WriteLine()
+		return message.ToString()
+
+	def Output(output as string):
+		outputs.Add(output)
 
 frameworkVersion = Globals.FrameworkVersion
 	
@@ -115,7 +131,7 @@ task @BuildTests:
 task @RunTests, [@BuildTests]:
 	for project in GetProjects():
 		try:
-			project.RunTests()
+			project.Test()
 		except e as BuildException:
 			if not e.Message.Contains("Command faild with status"):
 				raise
@@ -142,6 +158,7 @@ def Notify(body as string):
 		smtpClient.Send(message)
 
 task @integration:
+	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
 		projects = GetProjects()
 		result = TestResults()
@@ -154,13 +171,18 @@ task @integration:
 
 		for project in projects:
 			begin = DateTime.Now
+			output as string
 			try:
-				project.RunTests()
+				project.NotInteractive = notInteractive
+				output = project.Test()
 			except e as BuildException:
 				if not e.Message.Contains("Command faild with status"):
 					raise
 			result.RealTotalTime += DateTime.Now - begin
-			result.Parse("TestResult.xml")
+			if Exist("TestResult.xml"):
+				result.Parse("TestResult.xml")
+			else:
+				result.Output(output)
 
 		Notify(result.Message())
 	except e as Exception:
