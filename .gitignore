@@ -1,0 +1,9 @@
+build/
+bin
+output
+obj
+*.user
+*.suo
+_ReShar*/
+*.log
+*.stackdump
