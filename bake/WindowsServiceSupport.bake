@@ -1,4 +1,4 @@
-import System
+п»їimport System
 import System.Collections.Generic
 import System.Linq.Enumerable
 import System.Threading
@@ -67,10 +67,10 @@ Task @DeployService, [@BuildService]:
 	LOGON32_PROVIDER_DEFAULT = 0;
 	LOGON32_LOGON_INTERACTIVE = 2;
 	tokenHandle = IntPtr.Zero;
-	
+
 	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
 		raise Win32Exception()
-	
+
 	try:
 		using WindowsIdentity.Impersonate(tokenHandle):
 			services = List of ServiceController()
@@ -90,8 +90,7 @@ Task @DeployService, [@BuildService]:
 						service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20))
 						done = service.Status == ServiceControllerStatus.Stopped or iteration > 3
 						if not done:
-							print "служба не остановилась за 20 секунд, буду ждать, всего жду 3 раза по 20 секунд"
-
+							print "СЃР»СѓР¶Р±Р° РЅРµ РѕСЃС‚Р°РЅРѕРІРёР»Р°СЃСЊ Р·Р° 20 СЃРµРєСѓРЅРґ, Р±СѓРґСѓ Р¶РґР°С‚СЊ, РІСЃРµРіРѕ Р¶РґСѓ 3 СЂР°Р·Р° РїРѕ 20 СЃРµРєСѓРЅРґ"
 			fin = false
 			interation = 0
 			while not fin:

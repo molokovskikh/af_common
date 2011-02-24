@@ -60,7 +60,7 @@ def PatchProject(project as string):
 
 desc """
 Правит путь к библиотекам, почему то иногда библиотеки создаются по не правильным путям
-хотя я уверен что буть был верен, может быть resharper косячит, пример bake PatchLibs project=src/Common.Models/Common.Models.Tests/Common.Models.Tests.csproj
+хотя я уверен что буть был верен, может быть resharper косячит, пример bake PatchLibs
 """
 task @PatchLibs:
 	for dir in Directory.GetDirectories("src"):
