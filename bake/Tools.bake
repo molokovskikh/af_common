@@ -81,6 +81,9 @@ task @UpdatePath:
 	path = "$path;$sdkPath;$frameworkPath"
 	Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
 
+desc """
+Устанавливает mysql в папку текущего пользователя
+"""
 task @InstallMySql:
 	zipFilePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 	Console.Write("Вы хотите начать скачивание MySql? (132.8Mb) Y/N:")
