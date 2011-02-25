@@ -100,6 +100,7 @@ task @InstallMySql:
 		Console.WriteLine("Скачивание прошло успешно")
 
 		extractPath = Path.Combine(zipFilePath, "MySQL")
+		MkDir(extractPath) unless Exist(extractPath)
 		Cp(downloadFile, Path.Combine(extractPath, "mysql-5.5.9-win32.zip"), true)
 
 		using zip = ZipFile.Read(downloadFile):
@@ -111,7 +112,7 @@ task @InstallMySql:
 		path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)
 		unless path.Length > 0 and path.Trim() == ";":
 			path += ";"
-		binPath = Path.Combine(extractPath, "bin")
+		binPath = Path.Combine(extractPath, "mysql-5.5.9-win32", "bin")
 		path += binPath
 		Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
 
