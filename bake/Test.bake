@@ -115,6 +115,7 @@ def GetProjects():
 		project = Path.GetFileName(dir).ToLower()
 		if project.EndsWith(".tests")\
 			or project.EndsWith(".test")\
+			or project == "test"\
 			or project == "fuctional"\
 			or project == "integration"\
 			or project == "unit":
