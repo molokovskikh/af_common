@@ -178,9 +178,9 @@ def Apply(fileName as string):
 
 def ToTimeStamp(m as string):
 	chars = m[:m.IndexOf("_")].ToCharArray()
-	System.Array.Reverse(chars)
 	return Convert.ToUInt64(string(chars))
 
+	
 def Migrate(migrations as string*):
 	migrated = GetMigrated()
 	needToMigrate = migrations.Where({m| migrated.All({mg| mg != m})}).ToList()
@@ -271,6 +271,7 @@ task @Migrate, [@UpdateCommon]:
 task @Waiting:
 	migrations = GetMigrations()
 	migrated = GetMigrated()
+	migrations = migrations.OrderBy({s| ToTimeStamp(s)}).ToList()
 	for migration in migrations:
 		if Configuration.Maybe.full:
 			PrintMigration(migration, FindMigration(migration)) if not migrated.Contains(migration)
