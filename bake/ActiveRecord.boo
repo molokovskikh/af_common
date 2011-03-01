@@ -1,4 +1,8 @@
 #import System
+import System.Reflection
+import System.Collections.Generic
+import System.Linq.Enumerable
+
 import NHibernate.Tool.hbm2ddl
 import NHibernate.AdoNet.Util
 import NHibernate.Dialect
@@ -6,8 +10,6 @@ import NHibernate.Mapping
 import NHibernate.Cfg
 
 import Castle.Core
-import System.Collections.Generic
-import System.Reflection
 import Castle.ActiveRecord
 import Castle.ActiveRecord.Framework
 import Castle.ActiveRecord.Framework.Config
@@ -27,12 +29,20 @@ def GetActiveRecordConfiguration(assemblyPaths as (string)):
 	dict.Add(Environment.ProxyFactoryFactoryClass, "NHibernate.ByteCode.Castle.ProxyFactoryFactory, NHibernate.ByteCode.Castle")
 	dict.Add(Environment.Hbm2ddlKeyWords, "none")
 	config.Add(ActiveRecordBase, dict)
-	
-	holder as ISessionFactoryHolder;
-	ActiveRecordStarter.SessionFactoryHolderCreated += {h| holder = h}
-	
-	assemblies = List of Assembly()
-	for path in assemblyPaths:
-		assemblies.Add(Assembly.LoadFrom(path))
-	ActiveRecordStarter.Initialize(assemblies.ToArray(), config)
-	return holder.GetAllConfigurations()[0]
+
+	assemblies = assemblyPaths.Select({a| Assembly.LoadFrom(a)}).ToArray()
+
+	DefaultInitializer(config, assemblies) unless BuiltinInitializer(config, assemblies.First())
+
+	return ActiveRecordMediator.GetSessionFactoryHolder().GetAllConfigurations()[0]
+
+def BuiltinInitializer(config as IConfigurationSource, assembly as Assembly):
+	for type in assembly.GetTypes():
+		continue unless type.Namespace and type.Namespace.EndsWith(".Initializers")
+		continue unless type.GetMethod("Initialize")
+		System.Activator.CreateInstance(type).Initialize(config)
+		return true
+	return false
+
+def DefaultInitializer(config as IConfigurationSource, assemblies as (Assembly)):
+	ActiveRecordStarter.Initialize(assemblies, config)

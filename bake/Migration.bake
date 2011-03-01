@@ -16,6 +16,7 @@ import Bake.Engine.Runner
 import NHibernate.Mapping
 import NHibernate.AdoNet.Util
 import NHibernate.Tool.hbm2ddl
+import NHibernate.Dialect.Schema
 
 import Castle.ActiveRecord
 
@@ -226,14 +227,13 @@ def Save(filename as string, commands as string*):
 	return migrationFile
 
 def GetMigrations():
-	migrations = List[of string]();
+	migrations = List[of string]()
 	if ImInProject():
 		if Exist("migration.txt"):
-			migrations.AddRange(List of string(File.ReadAllLines("migrations.txt")).Where({l| not String.IsNullOrEmpty(l)}))
+			migrations.AddRange(File.ReadAllLines("migrations.txt").Where({l| not String.IsNullOrEmpty(l)}))
 		if Exist("migrations"):
-			localMigrations = List[of string](Directory.GetFiles("migrations", "*.sql"))
-			localMigrations = localMigrations.Concat(List[of string](Directory.GetFiles("migrations", "*.boo"))).ToList()
-			migrations = migrations.Concat(localMigrations).ToList()
+			migrations.AddRange(Directory.GetFiles("migrations", "*.sql"))
+			migrations.AddRange(Directory.GetFiles("migrations", "*.boo"))
 	else:
 		migrations.AddRange(Directory.GetFiles(".", "*.sql"))
 		migrations.AddRange(Directory.GetFiles(".", "*.boo"))
@@ -257,7 +257,7 @@ task @UpdateCommon:
 	if process.ExitCode !=0:
 		raise "При обновлении Common возникла ошибка с кодом ${process.ExitCode}"
 
-task @Migrate, [@UpdateCommon]:
+task @Migrate:#, [@UpdateCommon]:
 	migrations as List[of string]
 	if Configuration.Maybe.id:
 		migrations = List[of string]()
@@ -318,10 +318,33 @@ task @CancelLastMigration:
 	migration.Cancel()
 	print "canceled $migration"
 
-task @GenerateMigrations, [@OnlyInProject]:
+def HasKey(metadata as ITableMetadata, key as ForeignKey):
+	field = typeof(AbstractTableMetadata).GetField("foreignKeys", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
+	metaKeys = field.GetValue(metadata)
+	if not metaKeys:
+		return false
+	print key
+	for keyMetadata as IForeignKeyMetadata in metaKeys.Values:
+		columns = keyMetadata.Columns
+		keyColumns = key.ColumnIterator.ToArray()
+		print "test $keyMetadata"
+		for c in keyMetadata.Columns:
+			print c
+		if columns.Length != keyColumns.Length:
+			continue
+		match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
+		if match:
+			print "finded"
+			return true
+	print "not finded"
+	return false
+
+task @GenerateMigration, [@OnlyInProject]:
 	configuration = GetConfiguration()
 	if not configuration.ClassMappings.Count:
 		raise "Can`t find any class mapping, check active record version and assemblies list"
+	#если нет этого вызова тогда меппинг будет не полным не будет многих внешних ключей
+	configuration.BuildSessionFactory()
 	mapping = configuration.BuildMapping()
 	dialect = NHibernate.Dialect.Dialect.GetDialect(configuration.Properties)
 
@@ -346,23 +369,11 @@ task @GenerateMigrations, [@OnlyInProject]:
 			for sql in sqls:
 				commands.Add(sql) if sql
 
-/*
-			for key in table.ForeignKeyIterator:
-				if not key:
-					continue
-				print key
-				print "col count" + key.ReferencedColumns.Count
-				for c in key.ReferencedColumns:
-					print "column = " + c
-				print "ref = " + key.ReferencedTable
-				print "table = " + key.Table
-				if not key.ReferencedTable:
-					continue
-				if not tableMetadata.GetForeignKeyMetadata(key.Name) and \
-					not tableMetadata.GetIndexMetadata(key.Name):
-					print key.SqlCreateString(dialect, mapping, "usersettings", "usersettings")
-					#commands.Add(key.SqlCreateString(dialect, mapping, null, null));
-*/
+#			for key in table.ForeignKeyIterator:
+#				column = key.Columns.First()
+#				key.Name = "FK_$(key.Table.Name)_$(column.Name)"
+#				if not HasKey(tableMetadata, key):
+#					commands.Add(key.SqlCreateString(dialect, mapping, null, null));
 		else:
 			sql = formatter.Format(table.SqlCreateString(dialect, mapping, null, null))
 			commands.Add(sql) if sql
