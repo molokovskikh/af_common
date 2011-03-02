@@ -34,7 +34,7 @@ desc """
 """
 task @ImportLibs:
 	for lib in Configuration.libs.ToString().Split(char(',')):
-		Sh("git submodule add ssh://kvasov@git.analit.net/var/www/git/${lib} src/${lib}") if not Exist("src/${lib}")
+		Sh("git submodule add ssh://git.analit.net/var/www/git/${lib} src/${lib}") if not Exist("src/${lib}")
 
 def PatchProject(project as string):
 	doc = XDocument.Load(project)
