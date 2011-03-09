@@ -176,10 +176,11 @@ def GetMigrationFileName(filename as string) as string:
 	if not extension:
 		extension = ".sql"
 	mark = Convert.ToInt32(DateTime.Now.Subtract(DateTime(2011, 1, 1)).TotalDays)
-	localMigrations = List[of string](Directory.GetFiles("migrations", "${mark}_*.*"))
-	countMigrationMark = localMigrations.Count.ToString("00")
+	countMigrationMark = "00"
+	if Exist(@migrations):
+		localMigrations = Directory.GetFiles("migrations", "${mark}_*.*")
+		countMigrationMark = localMigrations.Length.ToString("00")
 	return "${mark}_${countMigrationMark}_${filename}${extension}"
-	#return "${filename}_${mark}${extension}"
 
 def GetMigrationFileNameByRequest() as string:
 	Console.Write("enter file name:")
