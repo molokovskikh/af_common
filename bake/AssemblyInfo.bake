@@ -8,7 +8,6 @@ import System.Collections.Generic
 import file from Svn.boo
 import file from Tools.boo
 
-version = GetVersion()
 excludes = ["Unit", "Integration", "Functional", ".svn"]
 
 def UnderSourceControl(path as string):
@@ -26,6 +25,7 @@ def GetProjects():
 			yield Path.GetFileName(dir)
 
 task @UpdateRevision:
+	version = GetVersion()
 	output = ExecuteProcess("git", "status")
 	if not output.Contains("nothing to commit (working directory clean)"):
 		raise "bake deploy можно делать только если все закомичено\r\n" \
@@ -46,6 +46,7 @@ task @UpdateRevision:
 	Sh("git commit -m \"Релиз версии $newVersion\"")
 
 task @GenerateAssemblyInfo:
+	version = GetVersion()
 	for project in GetProjects():
 		path = "src/${project}"
 		assemblyInfo = "${path}/Properties/AssemblyInfo.cs"

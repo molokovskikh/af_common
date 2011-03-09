@@ -10,18 +10,10 @@ import file from Deploy.bake
 import file from AssemblyInfo.bake
 import file from Migration.bake
 
-def Copy(fileSet as FileSet, destination as string):
-	for file in fileSet.Files:
-		dir = Path.GetDirectoryName(file).Replace(fileSet.BaseDirectory, destination)
-		MkDir(dir) if not Exist(dir)
-		print "Copying file from ${file} to ${file.Replace(fileSet.BaseDirectory, destination)}"
-		Cp(file, file.Replace(fileSet.BaseDirectory, destination))
-		
 def CopyWithDeploy(fileSet as FileSet, destination as string):
 	for file in fileSet.Files:
 		dir = Path.GetDirectoryName(file).Replace(fileSet.BaseDirectory, destination)
 		MkDir(dir) if not Exist(dir)
-		print "Copying file from ${file} to ${file.Replace(fileSet.BaseDirectory, destination)}"
 		Cp(file, file.Replace(fileSet.BaseDirectory, destination) + ".deploy")
 
 def GetResource(resource as string):
@@ -72,7 +64,7 @@ params = { "OutDir" : "${buildTo}", "Configuration" : "release" }
 if Globals.IsDefined("Platform"):
 	params.Add("Platform", Globals.Platform)
 
-task @ClickOnceDeploy, [@UpdateRevision, @ClickOnceBuild, @Production, @Migrate, @publish]
+task @ClickOnceDeploy, [@UpdateRevision, @ClickOnceBuild, @Production, @Migrate, @publish, @SendDeployNotification]
 
 task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 	MsBuild(projectFile,
@@ -84,7 +76,7 @@ task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 			   BaseDirectory : buildTo,
 			   Excludes : ["*.dll", "*.exe", "*.config"]))
 	publishVersion = GetAssemblyVersion("${buildTo}${projectName}.exe")
-				
+
 task @clean:
 	MsBuild(projectFile,
 			Target : "clean",
@@ -92,7 +84,7 @@ task @clean:
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	RmDir(buildTo, true) if Exist(buildTo)
 	MkDir(buildTo)
-			
+
 task "build publish package", [@ClickOnceBuild, "clean publish package"]:
 	certPath = GetResource("inforoomCS.pfx")
 	password = "password"
@@ -122,8 +114,10 @@ task "clean publish package":
 	RmDir(buildPublishTo, true) if Exist(buildPublishTo)
 	MkDir(buildPublishTo)
 
-task "publish", ["build publish package", "clean publish dir", @SendDeployNotification]:
-	Copy(FileSet("**\\*.*", BaseDirectory : buildPublishTo), publishTo)
+task "publish", ["build publish package", "clean publish dir"]:
+	files = FileSet("**/*.*", BaseDirectory : buildPublishTo)
+	Cp(files, publishTo, true)
+	print "${files.Files.Count} files deployed to ${buildPublishTo}"
 
 Task "clean publish dir":
 	ClearDir(publishTo)
