@@ -15,8 +15,8 @@ class Project:
 	_projectFile as string
 	_isX86 as bool
 	_frameworkVersion as string
-	[property(NotInteractive)]
-	_notInteractive = true
+
+	property NotInteractive as bool
 
 	def constructor(projectFile as string, project as string, isX86 as bool, frameworkVersion as string):
 		_projectFile = projectFile
@@ -43,7 +43,7 @@ class Project:
 
 		nunit = NUnit("src/${_project}/bin/debug/${_project}.dll",
 			ExecutablePath : nunitPath,
-			GrubOutput : _notInteractive)
+			GrubOutput : NotInteractive)
 		nunit.Execute()
 		return nunit.Output.ToString()
 
@@ -111,7 +111,6 @@ def GetProjects():
 	projects = List[of Project]()
 	dirs = Directory.GetDirectories("src")
 	for dir in dirs:
-		dir = dir
 		project = Path.GetFileName(dir).ToLower()
 		if project.EndsWith(".tests")\
 			or project.EndsWith(".test")\
