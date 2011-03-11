@@ -116,7 +116,7 @@ def GetProjects():
 		if project.EndsWith(".tests")\
 			or project.EndsWith(".test")\
 			or project == "test"\
-			or project == "fuctional"\
+			or project == "functional"\
 			or project == "integration"\
 			or project == "unit":
 			projects.Add(Project(Path.Combine(dir, project) + ".csproj", project, isx86, frameworkVersion))
