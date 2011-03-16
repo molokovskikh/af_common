@@ -61,7 +61,7 @@ buildTo = Path.GetFullPath("${buildRoot}/${projectName}/")
 buildPublishTo = Path.GetFullPath("${buildRoot}/${projectName}Publish/")
 
 params = { "OutDir" : "${buildTo}", "Configuration" : "release" }
-if Globals.IsDefined("Platform"):
+if Globals.Maybe.Platform:
 	params.Add("Platform", Globals.Platform)
 
 task @ClickOnceDeploy, [@UpdateRevision, @ClickOnceBuild, @Production, @Migrate, @publish, @SendDeployNotification]
