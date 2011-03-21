@@ -16,8 +16,6 @@ class Project:
 	_isX86 as bool
 	_frameworkVersion as string
 
-	property NotInteractive as bool
-
 	def constructor(projectFile as string, project as string, isX86 as bool, frameworkVersion as string):
 		_projectFile = projectFile
 		_project = project
@@ -37,14 +35,22 @@ class Project:
 		projectPath = Path.GetDirectoryName(_projectFile)
 
 	def Test():
+		Test(false)
+
+	def Test(grubOutput as bool):
 		nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console.exe"""
 		if _isX86:
 			nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console-x86.exe"""
 
 		nunit = NUnit("src/${_project}/bin/debug/${_project}.dll",
 			ExecutablePath : nunitPath,
-			GrubOutput : NotInteractive)
-		nunit.Execute()
+			GrubOutput : grubOutput)
+
+		try:
+			nunit.Execute()
+		except e as BuildException:
+			raise unless e.Message.Contains("Command faild with status")
+
 		return nunit.Output.ToString()
 
 	override def ToString():
@@ -171,16 +177,11 @@ task @integration:
 
 		for project in projects:
 			begin = DateTime.Now
-			output as string
-			try:
-				project.NotInteractive = notInteractive
-				output = project.Test()
-			except e as BuildException:
-				if not e.Message.Contains("Command faild with status"):
-					raise
+			output = project.Test(notInteractive)
 			result.RealTotalTime += DateTime.Now - begin
 			if Exist("TestResult.xml"):
 				result.Parse("TestResult.xml")
+				Rm("TestResult.xml")
 			else:
 				result.Output(output)
 
