@@ -29,9 +29,52 @@ import file from Svn.boo
 class Migration:
 	property Version as string
 	property MigratedOn as DateTime?
+	property Name as string
+	property FileName as string
+
+	property Commands = List of string()
+	property Rollback = List of string()
+
+	IsEmpty as bool:
+		get:
+			return Commands.Count == 0
 
 	def Cancel():
 		Db.Execute("delete from logs.SchemaMigrations where Version = '$Version'")
+
+	def Save():
+		if not Exist("migrations"):
+			MkDir("migrations")
+
+		Name = Path.GetFileNameWithoutExtension(FileName)
+		FileName = Path.Combine("migrations", FileName)
+
+		using stream = StreamWriter(File.OpenWrite(FileName)):
+			for sql in Commands:
+				stream.Write(sql)
+				stream.WriteLine(";")
+
+		rollbackFile = Path.Combine("migrations", "${Name}_rollback.sql")
+		using stream = StreamWriter(File.OpenWrite(rollbackFile)):
+			for sql in Rollback:
+				stream.Write(sql)
+				stream.WriteLine(";")
+
+		print "saved to $FileName"
+
+	def Print():
+		print "Migration $Name"
+		print "------------------------------------------------------------"
+		for sql in Commands:
+			print sql
+		print "------------------------------------------------------------"
+
+		if Rollback.Count:
+			print "Rollback $Name"
+			print "------------------------------------------------------------"
+			for sql in Rollback:
+				print sql
+			print "------------------------------------------------------------"
 
 	override def ToString():
 		return Version
@@ -99,9 +142,9 @@ def FindMigration(migration as string):
 	return fileName
 
 def FindRollbackMigration(migration as string):
-	fileName = "${Globals.MigrationsPath}/${migration}_rollback.sql"
-	fileName = "migrations/${migration}_rollback.sql" if not Exist(fileName)
-	return fileName
+	files = Directory.GetFiles("migrations", "*$migration*_rollback.sql")
+	raise "не могу найти миграцию для отката $migration" unless files.Length
+	return files[0]
 
 def Apply(fileName as string):
 	begin = DateTime.Now
@@ -276,12 +319,17 @@ task @New:
 	
 task @Repeat, [@Rollback, @Migrate]
 
+desc """
+откатывает миграцию с помощью файла отката миграции, пример bake Rollback id=77_01_test
+id - может быть как и полным именем миграции так и его частью
+"""
 task @Rollback:
 	id = Configuration.id
 	fileName = FindRollbackMigration(id)
 	if not Exist(fileName):
 		raise "Не могу найти файл отката миграции"
 
+	id = Path.GetFileNameWithoutExtension(fileName).Replace("_rollback", "")
 	print "Rollback ${id}"
 	print "------------------------------------------------------------"
 	sql = File.ReadAllText(fileName)
@@ -316,6 +364,9 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 	print "not finded"
 	return false
 
+desc """
+Генерирует миграция на основи разницы между мапингом active record и базы данных, пример bake GenerateMigration
+"""
 task @GenerateMigration, [@OnlyInProject]:
 	configuration = GetConfiguration()
 	if not configuration.ClassMappings.Count:
@@ -334,9 +385,8 @@ task @GenerateMigration, [@OnlyInProject]:
 	connectionHelper.Prepare()
 	connection = connectionHelper.Connection
 
-	commands = List[of string]()
-
 	metadata = DatabaseMetadata(connection, dialect)
+	migration = Migration()
 	for table in configuration.CreateMappings(dialect).IterateTables:
 		if table.SchemaActions == SchemaAction.None or table.Schema == "logs":
 			continue
@@ -344,7 +394,7 @@ task @GenerateMigration, [@OnlyInProject]:
 		if tableMetadata:
 			sqls = table.SqlAlterStrings(dialect, mapping, tableMetadata, null, null)
 			for sql in sqls:
-				commands.Add(sql) if sql
+				migration.Commands.Add(sql) if sql
 
 #			for key in table.ForeignKeyIterator:
 #				column = key.Columns.First()
@@ -353,20 +403,22 @@ task @GenerateMigration, [@OnlyInProject]:
 #					commands.Add(key.SqlCreateString(dialect, mapping, null, null));
 		else:
 			sql = formatter.Format(table.SqlCreateString(dialect, mapping, null, null))
-			commands.Add(sql) if sql
+			migration.Commands.Add(sql)
+			migration.Rollback.Add("drop table if exists ${table.Schema}.${table.Name}")
 
-	if not commands.Count:
+	if migration.IsEmpty:
 		raise "no changes find"
-	
-	for command in commands:
-		print command
-	
+
+	migration.Print()
+	migration.FileName = GetMigrationFileNameByRequest()
+
 	Console.Write("what should I do [s]ave migration or [a]ply and save?")
 	match Console.ReadLine():
 		case "a":
-			Apply(Save(null, commands))
+			migration.Save()
+			Apply(migration.FileName)
 		case "s":
-			Save(null, commands)
+			migration.Save()
 		otherwise:
 			return
 
