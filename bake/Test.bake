@@ -16,6 +16,9 @@ class Project:
 	_isX86 as bool
 	_frameworkVersion as string
 
+	property BuildOutput as string
+	property TestOutput as string
+
 	def constructor(projectFile as string, project as string, isX86 as bool, frameworkVersion as string):
 		_projectFile = projectFile
 		_project = project
@@ -23,19 +26,36 @@ class Project:
 		_frameworkVersion = frameworkVersion
 
 	def Build():
-		MsBuild(_projectFile,
+		return Build(false)
+
+	def Build(grubOutput as bool):
+		success = true
+		clean = MsBuild(_projectFile,
 			Target : "clean",
 			Parameters : { "Configuration" : "debug" },
-			FrameworkVersion : _frameworkVersion).Execute()
-		MsBuild(_projectFile,
+			FrameworkVersion : _frameworkVersion,
+			GrubOutput : grubOutput)
+		clean.Arguments.Add("/verbosity:minimal")
+		
+		build = MsBuild(_projectFile,
 			Target : "build",
 			Parameters : { "Configuration" : "debug" },
-			FrameworkVersion : _frameworkVersion).Execute()
+			FrameworkVersion : _frameworkVersion,
+			GrubOutput : grubOutput)
+		build.Arguments.Add("/verbosity:minimal")
 
-		projectPath = Path.GetDirectoryName(_projectFile)
+		try:
+			clean.Execute()
+			build.Execute()
+		except e as BuildException:
+			success = false
+			raise unless e.Message.Contains("Command faild with status")
+
+		BuildOutput = clean.Output.ToString() + "\r\n" + build.Output.ToString()
+		return success
 
 	def Test():
-		Test(false)
+		return Test(false)
 
 	def Test(grubOutput as bool):
 		nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console.exe"""
@@ -46,12 +66,15 @@ class Project:
 			ExecutablePath : nunitPath,
 			GrubOutput : grubOutput)
 
+		success = true
 		try:
 			nunit.Execute()
 		except e as BuildException:
+			success = false
 			raise unless e.Message.Contains("Command faild with status")
 
-		return nunit.Output.ToString()
+		TestOutput = nunit.Output.ToString()
+		return success
 
 	override def ToString():
 		return _project
@@ -65,7 +88,7 @@ class TestResults:
 	totalTime as TimeSpan
 	[property(RealTotalTime)]
 	realTotalTime as TimeSpan
-	
+
 	def Parse(filename as string):
 		doc = XDocument.Load(filename)
 
@@ -132,15 +155,11 @@ task @test, [@RunTests]
 task @BuildTests:
 	projects = GetProjects()
 	for project in projects:
-		project.Build()
+		raise "Сборка проекта $project завершилась ошибкой" unless project.Build()
 
 task @RunTests, [@BuildTests]:
 	for project in GetProjects():
-		try:
-			project.Test()
-		except e as BuildException:
-			if not e.Message.Contains("Command faild with status"):
-				raise
+		project.Test()
 
 def GetProjectName():
 	return Path.GetFileName(Environment.CurrentDirectory)
@@ -168,22 +187,20 @@ task @integration:
 	try:
 		projects = GetProjects()
 		result = TestResults()
-		try:
-			for project in projects:
-				project.Build()
-		except:
-			Notify("Сборка завершилась с ошибкой")
-			return
+		for project in projects:
+			unless project.Build(notInteractive):
+				Notify("Сборка завершилась с ошибкой\r\n" + project.BuildOutput)
+				return
 
 		for project in projects:
 			begin = DateTime.Now
-			output = project.Test(notInteractive)
+			project.Test(notInteractive)
 			result.RealTotalTime += DateTime.Now - begin
 			if Exist("TestResult.xml"):
 				result.Parse("TestResult.xml")
 				Rm("TestResult.xml")
 			else:
-				result.Output(output)
+				result.Output(project.TestOutput)
 
 		Notify(result.Message())
 	except e as Exception:
