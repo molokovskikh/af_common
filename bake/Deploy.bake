@@ -167,7 +167,7 @@ task @RollbackDeploy, [@WebClean]:
 	Cp(FileSet("**/*.*", Excludes : ["*.log"], BaseDirectory : backup), deployTo)
 	backupDate = DateTime.ParseExact(backup[backup.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)
 	print "rollback to $project at $backupDate"
-	Rm(backup)
+	Rm(backup, true)
 
 task @WebDeploy, [@WebClean]:
 	deployTo = GetDeployTo(Globals.Project.ToString())
