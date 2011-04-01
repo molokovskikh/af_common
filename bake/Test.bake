@@ -7,6 +7,7 @@ import System.Xml.Linq
 import System.Xml.XPath.Extensions from System.Xml.Linq
 import System.IO
 import System.Net.Mail
+import Mono.Cecil
 import file from Config.bake
 import file from Svn.boo
 
@@ -58,11 +59,14 @@ class Project:
 		return Test(false)
 
 	def Test(grubOutput as bool):
+		assembly = "src/${_project}/bin/debug/${_project}.dll"
+		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
+		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
+
 		nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console.exe"""
 		if _isX86:
 			nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console-x86.exe"""
-
-		nunit = NUnit("src/${_project}/bin/debug/${_project}.dll",
+		nunit = NUnit(assembly,
 			ExecutablePath : nunitPath,
 			GrubOutput : grubOutput)
 
