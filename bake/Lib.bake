@@ -7,48 +7,6 @@ import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
 import file from Svn.boo
 
-class Lib:
-
-	public Name as string
-	public Revision as int
-	public Uri as string
-	public LocalPath as string
-
-	def constructor(lib as object):
-		if lib isa Array:
-			libInfo = cast(Array, lib)
-			Name = libInfo[0]
-			if libInfo.Length == 2:
-				Uri = libInfo[1]
-			else:
-				Revision = libInfo[1]
-				Uri = libInfo[2] if libInfo.Length > 2
-		else:
-			Name = lib.ToString()
-		LocalPath = Path.GetFullPath("src/${Name}")
-
-	def IsValidUri(uri as string):
-		return SvnTool.InfoEntry(uri) != null
-
-	def Fetch():
-		Uri = "http://svn.analit.net/Common/trunk/${Name}/src" if not Uri and IsValidUri("http://svn.analit.net/Common/trunk/${Name}/src")
-		Uri = "http://svn.analit.net/Common/trunk/${Name}" if not Uri and IsValidUri("http://svn.analit.net/Common/trunk/${Name}")
-		if not Uri:
-			raise "Не знаю откуда загружать библиотеку пробовал искать http://svn.analit.net/Common/trunk/${Name} и http://svn.analit.net/Common/trunk/${Name}/src но там ничего нет"
-		if Revision == 0:
-			Sh("git svn clone ${Uri} ${LocalPath}")
-		else:
-			Sh("git svn clone -rBASE:${Revision} ${Uri} ${LocalPath}")
-
-	def Update():
-		originalPath = Environment.CurrentDirectory
-		Environment.CurrentDirectory = LocalPath
-		Sh("git svn rebase")
-		Environment.CurrentDirectory = originalPath
-
-	override def ToString() as string:
-		return Name
-
 installed = List of string()
 libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
@@ -82,49 +40,23 @@ def InstallLib(lib as string):
 		deps = System.IO.File.ReadAllLines("${libPath}/deps")
 		for dep in deps:
 			InstallLib(dep)
-Desc """
+desc """
 Устанавливает библиотеку, пример bake lib name=NUnit
 """
-Task @lib:
+task @lib:
 	lib = Configuration.name
 	InstallLib(lib)
 
-Desc """
+desc """
 Выводит список доступных библиотек
 """
-Task @list:
+task @list:
 	for lib in Directory.GetDirectories(libRoot):
 		print Path.GetFileName(lib) unless Path.GetFileName(lib) == ".svn"
 
-Task @InstallSourceLib:
-	pass
-	#"svn propget svn:externals src"
-
-Desc """
-обновляет библиотеки из исходников. работает только для git
+desc """
+Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
 """
-task @UpdateLibs:
-	libs = (Lib(l) for l in Globals.libs)
-	for lib in libs:
-		lib.Update()
-
-Task @FetchLibs:
-	libs = (Lib(l) for l in Globals.libs)
-	for lib in libs:
-		if Directory.Exists("src/${lib}"):
-			continue
-		print "Loading lib ${lib}"
-		lib.Fetch()
-
-	ignores = List[of string]()
-	if Exist(".gitignore"):
-		ignores.AddRange(System.IO.File.ReadAllLines(".gitignore"))
-	
-	for lib in libs:
-		if ignores.Any({i| i.ToLower() == "src/${lib.Name.ToLower()}/"}):
-			continue
-		ignores.Add("src/${lib}/")
-
-	using ignoresFile = StreamWriter(System.IO.File.Open(".gitignore", FileMode.OpenOrCreate)):
-		for ignore in ignores:
-			ignoresFile.WriteLine(ignore)
+task @ImportLibs:
+	for lib in Configuration.libs.ToString().Split(char(',')):
+		Sh("git submodule add ssh://git.analit.net/var/www/git/${lib} src/${lib}") if not Exist("src/${lib}")
