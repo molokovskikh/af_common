@@ -7,7 +7,7 @@ import System.Xml.Linq
 import System.Xml.XPath.Extensions from System.Xml.Linq
 import System.IO
 import System.Net.Mail
-#import Mono.Cecil
+import Mono.Cecil
 import file from Config.bake
 import file from Svn.boo
 
