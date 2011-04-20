@@ -58,7 +58,9 @@ Task @DeployService, [@BuildService]:
 		servers.Add(Globals.server.ToString())
 
 	logServer = servers.First()
-
+	deployTo = "\\\\$logServer\\$project"
+	if Globals.Maybe.DeployTo:
+		deployTo = Globals.Maybe.DeployTo
 	Console.Write("user for $logServer: ")
 	user = Console.ReadLine()
 	Console.Write("password: ")
@@ -95,7 +97,7 @@ Task @DeployService, [@BuildService]:
 			interation = 0
 			while not fin:
 				try:
-					Cp(FileSet("**.*", BaseDirectory : buildTo), "\\\\$logServer\\$project", true)
+					Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
 					fin = true
 				except e:
 					raise if not e.Message.Contains("The process cannot access the file")

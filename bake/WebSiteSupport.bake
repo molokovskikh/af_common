@@ -25,6 +25,7 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.zip",
 				"**/*.css",
 				"**/*.skin",
+				"**/*.htm",
 				"**/*.sitemap",
 				"**/*.master"], 
 				BaseDirectory: projectPath), 
