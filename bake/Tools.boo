@@ -3,6 +3,10 @@ import System.Text
 import System.IO
 import System.Diagnostics
 
+def Ask(request as string):
+	Console.Write(request)
+	return Console.ReadLine()
+
 def ExecuteProcess(exe as string, command as string):
 	return ExecuteProcess(exe, command, null)
 
@@ -40,6 +44,10 @@ def GetVersion():
 	if not lines.Length or not lines[0].Trim():
 		raise "Файл 'build/version.txt' пустой, нужно указать номер версии"
 	return lines[0].Trim()
+
+def AskPassword(request as string):
+	Console.Write(request)
+	return GetPassword()
 
 def GetPassword():
 	password = "";

@@ -29,13 +29,6 @@ task @Production:
 	Configuration.Environment = @Production
 	Globals.Environment = @Production
 
-desc """
-Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
-"""
-task @ImportLibs:
-	for lib in Configuration.libs.ToString().Split(char(',')):
-		Sh("git submodule add ssh://git.analit.net/var/www/git/${lib} src/${lib}") if not Exist("src/${lib}")
-
 def PatchProject(project as string):
 	doc = XDocument.Load(project)
 	rootNamespace = doc.Root.Name.NamespaceName
