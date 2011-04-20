@@ -87,6 +87,10 @@ serviceName = "${project}";
 if Globals.IsDefined("serviceName"):
 	serviceName = Globals.serviceName
 
+_servers = GetServers()
+_rootServer = _servers.First()
+Globals.deployTo = "\\\\$_rootServer\\$project"
+
 task @BuildService, [@CleanService]:
 	MsBuild(projectFile,
 			Target : "build",

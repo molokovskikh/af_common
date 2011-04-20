@@ -156,6 +156,7 @@ task @SendDeployNotification:
 		"Релиз подготовил ${Environment.UserName}\r\n${deployMessage}")
 
 task @Backup:
+	deployTo = GetDeployTo(project)
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
 	backup = Path.Combine(backupRoot, backupName)
 	MkDir(backup)
