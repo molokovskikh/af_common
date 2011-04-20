@@ -26,40 +26,36 @@ params = { "OutDir" : buildTo + "\\", "Configuration" : "release" }
 if Globals.IsDefined("platform"):
 	params.Add("Platform", Globals.platform)
 
-serviceName = "${project}";
-if Globals.IsDefined("serviceName"):
-	serviceName = Globals.serviceName
+def StartServices(services as ServiceController*):
+	for service in services:
+		service.Start()
 
-Task @BuildService, [@CleanService]:
-	MsBuild(projectFile,
-			Target : "build",
-			Parameters : params,
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
-	Rm("${buildTo}/*.xml")
-	Cp("src/${project}/App.release.config", "${buildTo}/${project}.exe.config", true)
+def StopServices(services as ServiceController*):
+	for service in services:
+		if service.Status != ServiceControllerStatus.Stopped:
+			service.Stop()
 
-Task @CleanService:
-	MsBuild(projectFile,
-			Target : "clean",
-			Parameters : params,
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
-	if Exist(buildTo):
-		Rm("${buildTo}/*", true)
-	else:
-		MkDir(buildTo)
+	for service in services:
+		done = false
+		iteration = 0
+		while not done:
+			iteration++
+			service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20))
+			done = service.Status == ServiceControllerStatus.Stopped or iteration > 3
+			if not done:
+				print "служба не остановилась за 20 секунд, буду ждать, всего жду 3 раза по 20 секунд"
 
-Task @DeployService, [@BuildService]:
-	servers = List of string()
-	if Globals.Maybe.Servers:
-		for server in Globals.Maybe.Servers:
-			servers.Add(server.ToString())
+def GetServices(serviceName as string, servers as string*):
+	services = List of ServiceController()
+	for server in servers:
+		serverServices = ServiceController.GetServices(server).Where({s| s.ServiceName == serviceName}).ToList()
+		if not serverServices.Count:
+			raise "Can`t find service \"${serviceName}\" on server ${server}"
+		services.AddRange(serverServices)
+	return services
 
-	if not servers.Count:
-		servers.Add(Globals.server.ToString())
-
-	logServer = servers.First()
-
-	Console.Write("user for $logServer: ")
+def Impersonate(server as string, action as Action):
+	Console.Write("user for $server: ")
 	user = Console.ReadLine()
 	Console.Write("password: ")
 	password = GetPassword()
@@ -71,41 +67,74 @@ Task @DeployService, [@BuildService]:
 	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
 		raise Win32Exception()
 
-	try:
-		using WindowsIdentity.Impersonate(tokenHandle):
-			services = List of ServiceController()
-			for server in servers:
-				serverServices = ServiceController.GetServices(server).Where({s| s.ServiceName == serviceName}).ToList()
-				if not serverServices.Count:
-					raise "Can`t find service \"${serviceName}\" on server ${server}"
-				services.AddRange(serverServices)
+	using WindowsIdentity.Impersonate(tokenHandle):
+		try:
+			action()
+		ensure:
+			CloseHandle(tokenHandle);
 
-			for service in services:
-				if service.Status != ServiceControllerStatus.Stopped:
-					service.Stop()
-					done = false
-					iteration = 0
-					while not done:
-						iteration++
-						service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20))
-						done = service.Status == ServiceControllerStatus.Stopped or iteration > 3
-						if not done:
-							print "служба не остановилась за 20 секунд, буду ждать, всего жду 3 раза по 20 секунд"
-			fin = false
-			interation = 0
-			while not fin:
-				try:
-					Cp(FileSet("**.*", BaseDirectory : buildTo), "\\\\$logServer\\$project", true)
-					fin = true
-				except e:
-					raise if not e.Message.Contains("The process cannot access the file")
-					interation++
-					if interation >= 3:
-						raise
-					print "can`t access files, sleep..."
-					System.Threading.Thread.Sleep(100)
+def GetServers():
+	servers = List of string()
+	if Globals.Maybe.Servers:
+		for server in Globals.Maybe.Servers:
+			servers.Add(server.ToString())
 
-			for service in services:
-				service.Start()
-	ensure:
-		CloseHandle(tokenHandle);
+	if not servers.Count:
+		servers.Add(Globals.server.ToString())
+	return servers
+
+serviceName = "${project}";
+if Globals.IsDefined("serviceName"):
+	serviceName = Globals.serviceName
+
+task @BuildService, [@CleanService]:
+	MsBuild(projectFile,
+			Target : "build",
+			Parameters : params,
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	Rm("${buildTo}/*.xml")
+	Cp("src/${project}/App.release.config", "${buildTo}/${project}.exe.config", true)
+
+task @CleanService:
+	MsBuild(projectFile,
+			Target : "clean",
+			Parameters : params,
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
+	if Exist(buildTo):
+		Rm("${buildTo}/*", true)
+	else:
+		MkDir(buildTo)
+
+task @RestartServices:
+	servers = GetServers()
+	Impersonate(servers.First()):
+		services = GetServices(serviceName, servers)
+		StopServices(services)
+		StartServices(services)
+
+task @DeployService, [@BuildService]:
+	servers = GetServers()
+	rootServer = servers.First()
+	deployTo = "\\\\$rootServer\\$project"
+	if Globals.Maybe.DeployTo:
+		deployTo = Globals.DeployTo
+
+	Impersonate(servers.First()):
+		services = GetServices(serviceName, servers)
+		StopServices(services)
+
+		fin = false
+		interation = 0
+		while not fin:
+			try:
+				Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
+				fin = true
+			except e:
+				raise if not e.Message.Contains("The process cannot access the file")
+				interation++
+				if interation >= 3:
+					raise
+				print "can`t access files, sleep..."
+				System.Threading.Thread.Sleep(100)
+
+		StartServices(services)
