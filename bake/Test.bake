@@ -60,13 +60,12 @@ class Project:
 
 	def Test(grubOutput as bool):
 		assembly = "src/${_project}/bin/debug/${_project}.dll"
-#		_isX86 = false
 		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
 		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
 
-		nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console.exe"""
+		nunitPath = """nunit-console.exe"""
 		if _isX86:
-			nunitPath = """C:\Tools\NUnit-2.5.5.10112\bin\net-2.0\nunit-console-x86.exe"""
+			nunitPath = """nunit-console-x86.exe"""
 		nunit = NUnit(assembly,
 			ExecutablePath : nunitPath,
 			GrubOutput : grubOutput)
