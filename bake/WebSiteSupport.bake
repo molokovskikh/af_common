@@ -21,7 +21,6 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.gif",
 				"**/*.png",
 				"**/*.jpg",
-				"**/*.exe",
 				"**/*.js",
 				"**/*.zip",
 				"**/*.css",

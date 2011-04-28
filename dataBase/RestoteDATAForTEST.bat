@@ -1,0 +1,1 @@
+mysql -h testSQL.analit.net -u system -p internet < c:/Mysql_backup/backup.sql
