@@ -78,7 +78,7 @@ desc """
 Устанавливает mysql в папку текущего пользователя
 """
 task @InstallMySql:
-	zipFilePath = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+	zipFilePath = """C:\apps\"""
 	Console.Write("Вы хотите начать скачивание MySql? (132.8Mb) Y/N:")
 	return unless Console.ReadLine().ToLower() == "y"
 	webClient = WebClient()
@@ -88,7 +88,7 @@ task @InstallMySql:
 	downloadFile = Path.GetTempFileName()
 	try:
 		webClient.DownloadFile(\
-			"http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.9-win32.zip/from/http://mysql.infocom.ua/",\
+			"http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.11-win32.zip/from/http://mysql.infocom.ua/",\
 			downloadFile)
 		Console.WriteLine("Скачивание прошло успешно")
 
