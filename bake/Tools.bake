@@ -103,6 +103,7 @@ task @InstallMySql:
 		Console.WriteLine("Файл разархивирован в $extractPath")
 
 		path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)
+		path = "" unless path
 		unless path.Length > 0 and path.Trim() == ";":
 			path += ";"
 		binPath = Path.Combine(extractPath, "mysql-5.5.9-win32", "bin")

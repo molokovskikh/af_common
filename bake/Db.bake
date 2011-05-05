@@ -1,9 +1,11 @@
 ﻿import System
+import System.IO
 import System.Linq
 import System.Linq.Enumerable
 import System.Collections.Generic
 import MySql.Data.MySqlClient
 import System.Linq.Enumerable from System.Core
+import file from Tools.boo
 import file from Db.boo
 import file from LoggingBuilder.boo
 
@@ -67,15 +69,24 @@ task @UpdateSchema:
 	Exec("mysql", "--host=localhost --user=root -e\"grant all on *.* to 'RootDBMS'@'127.0.0.1';\"").Execute()
 	Sh("mysqldump --host=testsql.analit.net --user=system --password=newpass catalogs --no-data | mysql --database=catalogs --host=localhost --user=root")
 
+task @ReloadLocalDb:
+	backupRoot = """C:\backup_data"""
+	structure = Path.Combine(backupRoot, "Stuct.sql")
+	routne = Path.Combine(backupRoot, "StuctR.sql")
+	#Sh("mysqld --standalone")
+	#Sh("mysql --host=localhost --user=root -e\"drop user 'RootDBMS'@'127.0.0.1'\"")
+	#Sh("mysql --host=localhost --user=root -e\"create user 'RootDBMS'@'127.0.0.1'\"")
+	#Sh("mysql --host=localhost --user=root -e\"grant all on *.* to 'RootDBMS'@'127.0.0.1';\"")
+	Sh("mysql --host=localhost --user=root < $structure")
+	Sh("mysql --host=localhost --user=root < $routne")
+
 desc """
 Дампит таблицу из рабочей базы и сохраняет ее в тестовою
 Пример bake Sync Database=Internet Table=ClientEndpoints
 """
 Task @Sync:
-	Console.Write("user:")
-	user = Console.ReadLine()
-	Console.Write("password:")
-	password = Console.ReadLine()
+	user = Ask("user:")
+	password = AskPassword("password:")
 	Sh("mysqldump -hsql.analit.net -u${user} -p${password} --lock-tables=false --tables ${Configuration.Database} ${Configuration.Table} > dump.txt")
 	Sh("mysql -htestsql.analit.net -usystem -pnewpass -D${Configuration.Database} < dump.txt")
 	Rm("dump.txt")
@@ -84,11 +95,29 @@ desc """
 дампит полную схему рабочей базы в файл dump.txt удобно если надо поискать что то в схеме, например использование определенных таблиц в триггерах или процедурах
 """
 Task @DumpSchema:
-	Console.Write("user:")
-	user = Console.ReadLine()
-	Console.Write("password:")
-	password = Console.ReadLine()
+	user = Ask("user:")
+	password = AskPassword("password:")
 	Sh("mysqldump -hsql2.analit.net -u${user} -p${password} --lock-tables=false --all-databases --events --no-data --routines --triggers > dump.txt")
+
+desc """
+заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
+"""
+task @PrepareLocal:
+	sourceDb = "testsql.analit.net"
+	destination = "localhost"
+	user = Ask("user:")
+	password = AskPassword("password:")
+
+	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --all-databases --events --no-data --routines --triggers > dump.txt")
+	Sh("mysql -h$destination -uroot < dump.txt")
+
+	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients", "ordersendrules.order_handlers", "accessright.permissions")
+	for table in tables:
+		#database, table = table.Split(char('.'))
+		database, tableName = table.Split(char('.'))
+		Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --tables $database $tableName > dump.txt")
+		Sh("mysql -h$destination -uroot -D$database < dump.txt")
+		Rm("dump.txt")
 
 task @KillBrokenConnections:
 	ids = List[of int]()
@@ -112,13 +141,10 @@ task @CreateUser:
 	if Configuration.Maybe.permissions == @programmer:
 		privileges = ["Select_priv", "Update_priv", "Insert_priv", "Delete_priv", "Create_priv", "Drop_priv", "Index_priv", "Alter_priv", "Create_tmp_table_priv",
 			"Execute_priv", "Create_routine_priv", "Alter_routine_priv", "Trigger_priv"]
+	if Configuration.Maybe.permissions == @readonly:
+		privileges = ["Select_priv", "Create_tmp_table_priv", "Execute_priv"]
 	privilegesCommand = String.Join(",", privileges.Cast[of string]().ToArray())
 	yCommand = String.Join(",", Enumerable.Repeat("'Y'", privileges.Count))
 	Db.Execute("""insert into mysql.user(Host, User, Password, $privilegesCommand)
 values ('$host', '$user', password('$password'), $yCommand);
 flush privileges;""")
-#	if Globals.Environment == @Production:
-#		Globals.Environment = @Production2
-#		Db.Execute("""insert into mysql.user(Host, User, Password, Select_priv, Update_priv, Insert_priv, Delete_priv)
-#values ('$host', '$user', password('$password'), 'Y', 'Y', 'Y', 'Y');
-#flush privileges;""")
