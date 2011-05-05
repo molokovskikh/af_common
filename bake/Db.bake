@@ -110,6 +110,8 @@ task @PrepareLocal:
 
 	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --all-databases --events --no-data --routines --triggers > dump.txt")
 	Sh("mysql -h$destination -uroot < dump.txt")
+	sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
+	Sh("mysql --execute=\"$sql\" -h$destination -uroot < dump.txt")
 
 	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients", "ordersendrules.order_handlers", "accessright.permissions")
 	for table in tables:
