@@ -116,6 +116,18 @@ task @RestartServices:
 		StopServices(services)
 		StartServices(services)
 
+task @StopServices:
+	servers = GetServers()
+	Impersonate(servers.First()):
+		services = GetServices(serviceName, servers)
+		StopServices(services)
+
+task @StartServices:
+	servers = GetServers()
+	Impersonate(servers.First()):
+		services = GetServices(serviceName, servers)
+		StartServices(services)
+
 task @DeployService, [@BuildService]:
 	servers = GetServers()
 	rootServer = servers.First()
