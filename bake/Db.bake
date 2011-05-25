@@ -5,6 +5,7 @@ import System.Linq.Enumerable
 import System.Collections.Generic
 import MySql.Data.MySqlClient
 import System.Linq.Enumerable from System.Core
+import file from Config.bake
 import file from Tools.boo
 import file from Db.boo
 import file from LoggingBuilder.boo
@@ -105,15 +106,19 @@ desc """
 task @PrepareLocal:
 	sourceDb = "testsql.analit.net"
 	destination = "localhost"
-	user = Ask("user:")
-	password = AskPassword("password:")
-
-	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --all-databases --events --no-data --routines --triggers > dump.txt")
+	user = "system"
+	password = "newpass"
+	
+	excludes = ("mysql", "information_schema", "performance_schema")
+	databases = join(Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
+	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --databases $databases --events --no-data --routines --triggers > dump.txt")
 	Sh("mysql -h$destination -uroot < dump.txt")
-	sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
-	Sh("mysql --execute=\"$sql\" -h$destination -uroot < dump.txt")
+	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
+		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
+		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
 
-	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients", "ordersendrules.order_handlers", "accessright.permissions")
+	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
+		 "ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions")
 	for table in tables:
 		#database, table = table.Split(char('.'))
 		database, tableName = table.Split(char('.'))
