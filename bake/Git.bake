@@ -1,6 +1,6 @@
 task @PushToWild:
 	Sh("ssh git.analit.net mkdir /var/www/git/${Configuration.Project}.git")
 	Sh("ssh git.analit.net git init --bare /var/www/git/${Configuration.Project}.git")
-	Sh("git remote add origin ssh://git.analit.net/var/www/git/${Configuration.Project}.git")
+	Sh("git remote add -t master -m master origin ssh://git.analit.net/var/www/git/${Configuration.Project}.git")
 	Sh("git push origin master")
 	Sh("ssh git.analit.net /var/www/git/install_hook.rb")
