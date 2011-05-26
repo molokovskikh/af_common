@@ -55,10 +55,22 @@ def GetServices(serviceName as string, servers as string*):
 	return services
 
 def Impersonate(server as string, action as Action):
-	Console.Write("user for $server: ")
-	user = Console.ReadLine()
-	Console.Write("password: ")
-	password = GetPassword()
+	user as string
+	password as string
+	user = ""
+	password = ""
+
+	if Globals.Maybe.User:
+		user = Globals.User		
+	if Globals.Maybe.Password:
+		password = Globals.Password
+
+	if String.IsNullOrEmpty(user) or String.IsNullOrEmpty(password):
+		Console.Write("user for $server: ")
+		user = Console.ReadLine()
+		Console.Write("password: ")
+		password = GetPassword()
+
 
 	LOGON32_PROVIDER_DEFAULT = 0;
 	LOGON32_LOGON_INTERACTIVE = 2;
@@ -66,6 +78,9 @@ def Impersonate(server as string, action as Action):
 
 	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
 		raise Win32Exception()
+
+	Globals.User = user
+	Globals.Password = password
 
 	using WindowsIdentity.Impersonate(tokenHandle):
 		try:
@@ -127,6 +142,7 @@ task @StartServices:
 	Impersonate(servers.First()):
 		services = GetServices(serviceName, servers)
 		StartServices(services)
+	
 
 task @DeployService, [@BuildService]:
 	servers = GetServers()
@@ -138,6 +154,7 @@ task @DeployService, [@BuildService]:
 	Impersonate(servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
+		
 
 		fin = false
 		interation = 0
@@ -154,3 +171,33 @@ task @DeployService, [@BuildService]:
 				System.Threading.Thread.Sleep(100)
 
 		StartServices(services)
+
+
+task @SimpleDeployService:
+	servers = GetServers()
+	rootServer = servers.First()
+	deployTo = "\\\\$rootServer\\$project"
+	if Globals.Maybe.DeployTo:
+		deployTo = Globals.DeployTo
+
+	Impersonate(servers.First()):
+		services = GetServices(serviceName, servers)
+				
+		fin = false
+		interation = 0
+		while not fin:
+			try:
+				Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
+				fin = true
+			except e:
+				raise if not e.Message.Contains("The process cannot access the file")
+				interation++
+				if interation >= 3:
+					raise
+				print "can`t access files, sleep..."
+				System.Threading.Thread.Sleep(100)
+
+		StartServices(services)
+
+
+
