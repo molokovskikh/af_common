@@ -5,24 +5,46 @@ import System from System.Core
 
 class Db:
 
-	public static GetConnectionString as Func[of string]
+	def constructor(connectionString as string):
+		GetConnectionString = def:
+			return connectionString
+
+	def constructor(getConnectionString as Func[of string]):
+		GetConnectionString = getConnectionString
+
+	private static current as Db
+
+	public static Current as Db:
+		get:
+			raise "Не настроена конфигурация базы данных, ты импортировал config.bake?" unless current
+			return current
+		set:
+			current = value
+
+	public GetConnectionString as Func[of string]
 	
-	public static ConnectionString:
+	public ConnectionString:
 		get:
 			if not GetConnectionString:
 				raise "Не настроена конфигурация базы данных, ты импортировал config.bake?"
 			return GetConnectionString()
-	
-	static def Execute(commandText as string):
+
+	static def Execute(sql as string):
+		return Current.ExecuteSql(sql)
+
+	def ExecuteSql(sql as string):
 		using connection = MySqlConnection(ConnectionString):
 			connection.Open()
-			command = MySqlCommand(commandText, connection)
+			command = MySqlCommand(sql, connection)
 			return command.ExecuteNonQuery()
-	
-	static def Read(commandText as string):
+
+	static def Read(sql as string):
+		return Current.ReadSql(sql)
+
+	def ReadSql(sql as string):
 		using connection = MySqlConnection(ConnectionString):
 			connection.Open()
-			command = MySqlCommand(commandText, connection)
+			command = MySqlCommand(sql, connection)
 			using reader = command.ExecuteReader():
 				for record as DbDataRecord in reader:
 					yield DuckRecord(record)

@@ -29,16 +29,19 @@ END;
 	return sql
 
 def GetLogTableName(table as string):
-	return Inflector.Singularize(ToPascal(table)) + "Logs"
+	table = ToPascal(table)
+	singulized = Inflector.Singularize(table)
+	singulized = table unless singulized
+	return singulized + "Logs"
 
-def GetTableFields(db as string, table as string, getLine as Func[of string, string, string]):
+def GetTableFields(db as string, table as string, getLine as Func[of duck, string, string]):
 	fields = Boo.Lang.List()
 	for column in Db.Read("show columns from ${db}.${table}"):
 		field = column.Field.ToString()
 		if field.ToLower() == "id":
-			fields.Add("\t\t" + getLine(field, LogId(table)))
+			fields.Add("\t\t" + getLine(column, LogId(table)))
 		else:
-			fields.Add("\t\t" + getLine(field, field))
+			fields.Add("\t\t" + getLine(column, field))
 	return join(fields, ",\r\n")
 
 def LogId(table as string):
@@ -94,16 +97,21 @@ ${fields}
 	#	commandText  = "DROP TABLE IF EXISTS `logs`.`${logTable}`; " + commandText 
 	return commandText
 
+def CheckForNull(column as duck):
+	if column.Key.ToString() == "PRI" or column.Extra.ToString() == "auto_increment":
+		return false
+	return true
+
 def GetLogTriggerCommand(action as string, db as string, table as string):
 	match action:
 		case "INSERT":
-			fields = GetTableFields(db, table, {field, logTo| "${logTo} = NEW.${field}"})
+			fields = GetTableFields(db, table, {column, logTo| "${logTo} = NEW.${column.Field}"})
 		case "DELETE":
-			fields = GetTableFields(db, table, {field, logTo| "${logTo} = OLD.${field}"})
+			fields = GetTableFields(db, table, {column, logTo| "${logTo} = OLD.${column.Field}"})
 		case "UPDATE":
-			getLine as Func[of string, string, string] = def(field as string, logTo as string):
-				return "${logTo} = OLD.${field}" if field.ToLower() == "id"
-				return "${logTo} = NULLIF(NEW.${field}, OLD.${field})"
+			getLine as Func[of duck, string, string] = def(column as duck, logTo as string):
+				return "${logTo} = OLD.${column.Field}" unless CheckForNull(column)
+				return "${logTo} = NULLIF(NEW.${column.Field}, OLD.${column.Field})"
 			fields = GetTableFields(db, table, getLine)
 	
 	return GetLogTriggerTemplate(action, fields, db, table)

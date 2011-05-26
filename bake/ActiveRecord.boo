@@ -25,7 +25,7 @@ def GetActiveRecordConfiguration(assemblyPaths as (string)):
 	dict.Add(Environment.Dialect, "NHibernate.Dialect.MySQLDialect")
 	dict.Add(Environment.ConnectionDriver, "NHibernate.Driver.MySqlDataDriver")
 	dict.Add(Environment.ConnectionProvider, "NHibernate.Connection.DriverConnectionProvider")
-	dict.Add(Environment.ConnectionString, Db.ConnectionString)
+	dict.Add(Environment.ConnectionString, Db.Current.ConnectionString)
 	dict.Add(Environment.ProxyFactoryFactoryClass, "NHibernate.ByteCode.Castle.ProxyFactoryFactory, NHibernate.ByteCode.Castle")
 	dict.Add(Environment.Hbm2ddlKeyWords, "none")
 	config.Add(ActiveRecordBase, dict)
