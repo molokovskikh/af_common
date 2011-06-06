@@ -79,6 +79,8 @@ def LastWord(table as string):
 	#return text
 
 def ToPascal(text as string):
+	print text
+	print System.Diagnostics.StackTrace() unless text
 	pascaled = ""
 	toUpper = true
 	if text.ToUpper() == text:

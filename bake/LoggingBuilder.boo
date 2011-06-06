@@ -12,7 +12,11 @@ def GetLogTriggerTemplate(action as string, fields as string, database as string
 	operation = 1 if action == "UPDATE"
 	operation = 0 if action == "INSERT"
 	logTable = GetLogTableName(table)
-	triggerName = ToPascal(Inflector.Singularize(table)) + "Log" + ToPascal(action)
+	SingularizedTable = Inflector.Singularize(ToPascal(table))
+	if (SingularizedTable != null):
+		triggerName = ToPascal(SingularizedTable) + "Log" + ToPascal(action)
+	else:
+		triggerName = ToPascal(table) + "Log" + ToPascal(action)
 	sql = """
 CREATE DEFINER = RootDBMS@127.0.0.1 TRIGGER ${database}.${triggerName} AFTER ${action} ON ${database}.${table}
 FOR EACH ROW BEGIN
@@ -45,7 +49,11 @@ def GetTableFields(db as string, table as string, getLine as Func[of duck, strin
 	return join(fields, ",\r\n")
 
 def LogId(table as string):
-	return LastWord(Inflector.Singularize(ToPascal(table))) + "Id"
+	SingularizedTable = Inflector.Singularize(ToPascal(table))
+	if (SingularizedTable == null):
+		return LastWord(ToPascal(table)) + "Id"
+	return LastWord(SingularizedTable) + "Id"
+	
 
 def GetTableColumns(table as string, database as string) as IEnumerable[of (string)]:
 	for column in Db.Read("show columns from ${database}.${table}"):

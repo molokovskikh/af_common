@@ -106,7 +106,7 @@ task @InstallMySql:
 		path = "" unless path
 		unless path.Length > 0 and path.Trim() == ";":
 			path += ";"
-		binPath = Path.Combine(extractPath, "mysql-5.5.9-win32", "bin")
+		binPath = Path.Combine(extractPath, "mysql-5.5.11-win32", "bin")
 		path += binPath
 		Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
 
