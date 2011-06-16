@@ -160,7 +160,7 @@ task @Backup:
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
 	backup = Path.Combine(backupRoot, backupName)
 	MkDir(backup)
-	Cp(FileSet("**/*.*", Excludes : ["*.log","request/*.*","responce/*.*"], BaseDirectory : deployTo), backup)
+	Cp(FileSet("**/*.*", Excludes : ["*.log","request/*.*","responce/*.*","IdxDir/*.*"], BaseDirectory : deployTo), backup)
 	print "backuped to ${backup}"
 
 task @RollbackDeploy, [@WebClean]:
