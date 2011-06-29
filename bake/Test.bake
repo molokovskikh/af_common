@@ -90,8 +90,13 @@ class TestResults:
 	brokenTests = List of XElement()
 	outputs = List of string()
 	totalTime as TimeSpan
-	[property(RealTotalTime)]
-	realTotalTime as TimeSpan
+
+	Body as string:
+		get:
+			return Message()
+
+	property RealTotalTime as TimeSpan
+	property Files = List of string()
 
 	def Parse(filename as string):
 		doc = XDocument.Load(filename)
@@ -112,11 +117,16 @@ class TestResults:
 		failCount += failures.Count()
 		brokenTests.AddRange(failures)
 
+		index = Files.Count() + 1
+		resultFile = Path.GetFileNameWithoutExtension(filename) + index.ToString() + Path.GetExtension(filename)
+		File.Copy(filename, resultFile, true)
+		Files.Add(resultFile)
+
 	def Message():
 		totalCount = successCount + failCount + ignoredCount
 		message = StringWriter()
 		message.WriteLine("Всего тестов ${totalCount} прошли ${successCount} сломаны ${failCount} в игноре ${ignoredCount}")
-		message.WriteLine("Общее время запуска тестов по мнению nunit $totalTime на самом деле $realTotalTime")
+		message.WriteLine("Общее время запуска тестов по мнению nunit $totalTime на самом деле $RealTotalTime")
 		for output in outputs:
 			message.WriteLine(output)
 
@@ -185,12 +195,23 @@ def GetBranchName():
 	else:
 		return uri.Segments[3]
 
-def Notify(body as string):
+def NotifyError(result as string):
 	project = GetProjectName()
 	branch = GetBranchName()
 	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
 		message.Subject = "Сборка ${project} ветка ${branch}"
-		message.Body = body
+		message.Body = result
+		smtpClient = SmtpClient("box.analit.net")
+		smtpClient.Send(message)
+
+def Notify(result as TestResults):
+	project = GetProjectName()
+	branch = GetBranchName()
+	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
+		message.Subject = "Сборка ${project} ветка ${branch}"
+		message.Body = result.Body
+		for file in result.Files:
+			message.Attachments.Add(Attachment(file))
 		smtpClient = SmtpClient("box.analit.net")
 		smtpClient.Send(message)
 
@@ -201,7 +222,7 @@ task @integration:
 		result = TestResults()
 		for project in projects:
 			unless project.Build(notInteractive):
-				Notify("Сборка завершилась с ошибкой\r\n" + project.BuildOutput)
+				NotifyError("Сборка завершилась с ошибкой\r\n" + project.BuildOutput)
 				return
 
 		for project in projects:
@@ -214,6 +235,6 @@ task @integration:
 			else:
 				result.Output(project.TestOutput)
 
-		Notify(result.Message())
+		Notify(result)
 	except e as Exception:
-		Notify(e.ToString())
+		NotifyError(e.ToString())
