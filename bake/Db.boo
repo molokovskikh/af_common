@@ -57,4 +57,6 @@ class DuckRecord(IQuackFu):
 		_record = record
 		
 	def QuackGet(name as string, parameters as (object)) as object:
+		if parameters and parameters.Length:
+			name = parameters[0].ToString()
 		return _record[name]
