@@ -1,6 +1,8 @@
 ﻿import System
+import System.Reflection
 import System.IO
 import System.Net
+import System.Diagnostics
 import System.Linq.Enumerable
 import System.Xml from System.Xml
 import System.Xml.Linq
@@ -8,6 +10,9 @@ import System.Xml.XPath.Extensions from System.Xml.Linq
 import Bake.Win32.Helper
 import System.Linq.Enumerable
 import Ionic.Zip
+import Boo.Lang.Interpreter
+import Boo.Lang.Compiler
+import Boo.Lang.Compiler.TypeSystem.Reflection
 
 desc """
 Заменяет TargetFramework во всех проектах на параметер указанный в Version
@@ -26,8 +31,15 @@ task @UpdateTargetFramework:
 		print "${project} patched"
 
 task @Production:
-	Configuration.Environment = @Production
-	Globals.Environment = @Production
+	unless Configuration.Maybe.Environment:
+		Configuration.Environment = @Production
+		Globals.Environment = @Production
+
+#def CalculateRelativePath(fromPath as string, toPath as string):
+#	root = GetCommonRoot(fromPath, toPath)
+#	#relativeToPath = CalculateRelativePath(root, toPath)
+#	depht = GetDepthTo(fromPath, root)
+#	for i in range()
 
 def PatchProject(project as string):
 	doc = XDocument.Load(project)
@@ -39,8 +51,9 @@ def PatchProject(project as string):
 	for node in doc.XPathSelectElements("//p:Reference", manager):
 		lib = node.Attribute("Include").Value
 		lib = lib.Split(char(','))[0]
-		continue if not Exist("lib/${lib}.dll")
-		libPath = "..\\..\\lib\\${lib}.dll"
+		libFile = FileSet("lib/**/*.dll").Files.FirstOrDefault()
+		continue unless libFile
+		libPath = ""# CalculateRelativePath(project, libFile)
 		path = node.XPathSelectElement("p:HintPath", manager)
 		if not path:
 			print "add ${libPath}"
@@ -78,6 +91,7 @@ desc """
 Устанавливает mysql в папку текущего пользователя
 """
 task @InstallMySql:
+	version = "5.5.12"
 	zipFilePath = """C:\apps\"""
 	Console.Write("Вы хотите начать скачивание MySql? (132.8Mb) Y/N:")
 	return unless Console.ReadLine().ToLower() == "y"
@@ -88,13 +102,13 @@ task @InstallMySql:
 	downloadFile = Path.GetTempFileName()
 	try:
 		webClient.DownloadFile(\
-			"http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-5.5.11-win32.zip/from/http://mysql.infocom.ua/",\
+			"http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-$version-win32.zip/from/http://mysql.infocom.ua/",\
 			downloadFile)
 		Console.WriteLine("Скачивание прошло успешно")
 
 		extractPath = Path.Combine(zipFilePath, "MySQL")
 		MkDir(extractPath) unless Exist(extractPath)
-		Cp(downloadFile, Path.Combine(extractPath, "mysql-5.5.9-win32.zip"), true)
+		Cp(downloadFile, Path.Combine(extractPath, "mysql-$version-win32.zip"), true)
 
 		using zip = ZipFile.Read(downloadFile):
 			mysqlFolderName = Path.GetDirectoryName(zip.Entries.First().FileName).Split(char('\\')).First()
@@ -106,10 +120,48 @@ task @InstallMySql:
 		path = "" unless path
 		unless path.Length > 0 and path.Trim() == ";":
 			path += ";"
-		binPath = Path.Combine(extractPath, "mysql-5.5.11-win32", "bin")
+		binPath = Path.Combine(extractPath, "mysql-$version-win32", "bin")
 		path += binPath
 		Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
 
 		Console.WriteLine("в PATH пользователя добавлен $binPath")
 	ensure:
 		Rm(downloadFile)
+
+desc """
+запускаест visual studion с проектом, примев в корне проета (там где папка src) bake dev
+будет запущена студия с этим проектом
+"""
+task @dev:
+	solution = Path.GetFileName(Path.GetFullPath("."))
+	Process.Start(Path.GetFullPath("src/$solution.sln"))
+
+desc """
+в переменную path текущего пользователя будет добавлена текущая директория
+"""
+task @pathize:
+	path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)
+	current = Path.GetFullPath(".")
+	path = "$path;$current"
+	Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
+
+desc """
+запускает интерпритатор boo
+"""
+task @shell:
+	CompilerParameters.SharedTypeSystemProvider = ReflectionTypeSystemProvider()
+	interpreter = InteractiveInterpreter()
+	console = InteractiveInterpreterConsole(interpreter)
+	console.Eval("import Boo.Lang.Interpreter.Builtins")
+	console.ReadEvalPrintLoop()
+
+desc """
+загружает сборку проекта и bake скрипты которые хранятся в папке tasks
+"""
+task @LoadProject:
+	Assembly.LoadFrom("src/${Globals.Project}/bin/${Globals.Project}.dll")
+	if Exist("tasks"):
+		for file in Directory.GetFiles("tasks", "*.bake"):
+			using reader = File.OpenText(file):
+				Engine.Loader.Load(reader, file)
+

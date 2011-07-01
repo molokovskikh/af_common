@@ -1,0 +1,41 @@
+import Boo.Lang.Compiler
+import Boo.Lang.Interpreter
+import Boo.Lang.Compiler.TypeSystem.Reflection
+import NHibernate
+import NHibernate.AdoNet.Util
+import log4net
+import log4net.Appender
+import log4net.Core
+import log4net.Repository.Hierarchy
+
+class SqlAppender(IAppender):
+
+	property Name as string
+
+	def Close():
+		pass
+
+	def DoAppend(message as LoggingEvent):
+		formatter = BasicFormatter()
+		sql = formatter.Format(message.MessageObject.ToString())
+		print sql
+
+desc """
+запускает интерпритатор boo и инициализирует ActiveRecord
+"""
+task @DbShell, [@LoadProject, @InitActiveRecord]:
+	LoggerProvider.SetLoggersFactory(Log4NetLoggerFactory())
+
+	repository = cast(Hierarchy, LogManager.GetRepository())
+	repository.Configured = true
+	logger = cast(Logger, repository.GetLogger("NHibernate.SQL"))
+	logger.Level = Level.Debug
+	logger.AddAppender(SqlAppender(Name: "test"))
+
+	CompilerParameters.SharedTypeSystemProvider = ReflectionTypeSystemProvider()
+	console = InteractiveInterpreterConsole()
+	console.Eval("import Boo.Lang.Interpreter.Builtins")
+	console.Eval("import ${Globals.Project}.Models")
+	console.ReadEvalPrintLoop()
+
+
