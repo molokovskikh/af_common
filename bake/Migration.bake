@@ -54,13 +54,29 @@ class Migration:
 				stream.Write(sql)
 				stream.WriteLine(";")
 
-		rollbackFile = Path.Combine("migrations", "${Name}_rollback.sql")
-		using stream = StreamWriter(File.OpenWrite(rollbackFile)):
+		using stream = StreamWriter(File.OpenWrite(GetRollbackFile())):
 			for sql in Rollback:
 				stream.Write(sql)
 				stream.WriteLine(";")
 
 		print "saved to $FileName"
+
+	def GetRollbackFile():
+		id = GetId()
+		return Path.Combine("migrations", "${id}_rollback.sql")
+
+	def GetId():
+		return Path.GetFileNameWithoutExtension(FileName)
+
+	def DoRollback():
+		id = GetId()
+		sql = File.ReadAllText(GetRollbackFile())
+		print "Rollback $id"
+		print "------------------------------------------------------------"
+		print sql
+		print "------------------------------------------------------------"
+		Db.Execute(sql)
+		Db.Execute("delete from logs.SchemaMigrations where Version = '$id'")
 
 	def Print():
 		print "Migration $Name"
@@ -88,18 +104,32 @@ def FindAssembly(name as string):
 		return "src/${Globals.Project}/bin/Debug/$name.dll"
 	elif Exist("src/${Globals.Project}/bin/Debug/$name.exe"):
 		return "src/${Globals.Project}/bin/Debug/$name.exe"
+	elif Exist("src/$name/bin/debug/$name.exe"):
+		return "src/$name/bin/debug/$name.exe"
+	elif Exist("src/$name/bin/debug/$name.dll"):
+		return "src/$name/bin/debug/$name.dll"
 
 def GetConfiguration():
 	assemblies = List of string()
 	if assembly = FindAssembly(Globals.Project):
 		assemblies.Add(assembly)
+
 	if not assemblies.Count:
 		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
-			+ " Is ${Globals.Project} correct project name and project leave at 'src/${Globals.Project}'?"
+			+ " Is ${Globals.Project} correct project name and project live at 'src/${Globals.Project}'?"
+
 	if Globals.Maybe.AdditionalAssemblies:
-		for name in Globals.Maybe.AdditionalAssemblies:
+		for name in Globals.AdditionalAssemblies:
 			if assembly = FindAssembly(name):
 				assemblies.Add(assembly)
+
+	if Configuration.Maybe.assemblies:
+		for name in Configuration.assemblies.Split(char(',')):
+			if assembly = FindAssembly(name):
+				assemblies.Add(assembly)
+			else:
+				print "can`t find assembly $name"
+
 	return GetActiveRecordConfiguration(assemblies.ToArray())
 
 def SetupActiveRecord():
@@ -141,10 +171,12 @@ def FindMigration(migration as string):
 	fileName = "migrations/${migration}.boo" if not Exist(fileName)
 	return fileName
 
-def FindRollbackMigration(migration as string):
-	files = Directory.GetFiles("migrations", "*$migration*_rollback.sql")
-	raise "не могу найти миграцию для отката $migration" unless files.Length
-	return files[0]
+def FindMigrations(migration as string):
+	files = Directory.GetFiles("migrations", "*$migration*.sql")
+	return files.Where({f| not f.EndsWith("_rollback.sql")}).Select({f| Path.GetFileNameWithoutExtension(f)}).ToList()
+
+def FindMigrationsEntity(id as string):
+	return FindMigrations(id).Select({f| Migration(FileName:f)}).ToArray()
 
 def Apply(fileName as string):
 	begin = DateTime.Now
@@ -158,7 +190,7 @@ def Apply(fileName as string):
 			compiler = BooCompiler()
 			compiler.Parameters.Input.Add(FileInput(fileName))
 			compiler.Parameters.Pipeline = CompileToMemory()
-			compiler.Parameters.Pipeline.Insert(1, AutoReferenceFilesCompilerStep(AppDomain.CurrentDomain.BaseDirectory));
+			#compiler.Parameters.Pipeline.Insert(1, AutoReferenceFilesCompilerStep(AppDomain.CurrentDomain.BaseDirectory, MemoryCache()));
 			if ImInProject():
 				compiler.Parameters.LibPaths.Add("lib")
 				for dir in Directory.GetDirectories("lib/"):
@@ -177,9 +209,17 @@ def Apply(fileName as string):
 				return
 			main = result.GeneratedAssembly.EntryPoint
 			if ImInProject():
+				holder = ActiveRecordMediator.GetSessionFactoryHolder()
+				sessionFactory = holder.GetSessionFactory(ActiveRecordBase)
+				sessionFactory.Statistics.IsStatisticsEnabled = true;
 				using scope = TransactionScope(OnDispose.Rollback):
 					main.Invoke(null, (null, ))
 					scope.VoteCommit()
+				statistics = sessionFactory.Statistics
+				print "loaded ${statistics.EntityLoadCount}"
+				print "inserted ${statistics.EntityInsertCount} updated ${statistics.EntityUpdateCount} deleted ${statistics.EntityDeleteCount}"
+				print "transactions ${statistics.TransactionCount} sessions ${statistics.SessionOpenCount}"
+				sessionFactory.Statistics.Clear()
 			else:
 				main.Invoke(null, (null, ))
 		case ".sql":
@@ -263,6 +303,9 @@ def GetMigrations():
 def StartEditor(fileName as string):
 	Process.Start(Globals.Editor, fileName)
 
+task @InitActiveRecord:
+	SetupActiveRecord()
+
 task @OnlyInProject:
 	raise "Задучу имеет смысл запускать только в проекте" if not ImInProject()
 		
@@ -280,8 +323,7 @@ task @UpdateCommon:
 task @Migrate:#, [@UpdateCommon]:
 	migrations as List[of string]
 	if Configuration.Maybe.id:
-		migrations = List[of string]()
-		migrations.Add(Configuration.id.ToString())
+		migrations = FindMigrations(Configuration.id.ToString())
 	elif Globals.Environment == @Development or ImInProject():
 		migrations = GetMigrations()
 	else:
@@ -316,7 +358,9 @@ task @New:
 		SvnTool.Command("add ${migration}")
 		SvnTool.Command("commit -m\"Забил местечко\" ${migration}")
 		print "migration ${migration}"
-	
+desc """
+Повторяет миграцию
+"""	
 task @Repeat, [@Rollback, @Migrate]
 
 desc """
@@ -325,18 +369,11 @@ id - может быть как и полным именем миграции т
 """
 task @Rollback:
 	id = Configuration.id
-	fileName = FindRollbackMigration(id)
-	if not Exist(fileName):
+	migrations = FindMigrationsEntity(id)
+	unless migrations.Length:
 		raise "Не могу найти файл отката миграции"
-
-	id = Path.GetFileNameWithoutExtension(fileName).Replace("_rollback", "")
-	print "Rollback ${id}"
-	print "------------------------------------------------------------"
-	sql = File.ReadAllText(fileName)
-	print sql
-	print "------------------------------------------------------------"
-	Db.Execute(sql)
-	Db.Execute("delete from logs.SchemaMigrations where Version = '${id}'")
+	for migration in migrations:
+		migration.DoRollback()
 
 task @CancelLastMigration:
 	migration = GetMigratedMigrations().Last()
@@ -348,21 +385,28 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 	metaKeys = field.GetValue(metadata)
 	if not metaKeys:
 		return false
-	print key
+	keyColumns = key.ColumnIterator.ToArray()
 	for keyMetadata as IForeignKeyMetadata in metaKeys.Values:
 		columns = keyMetadata.Columns
-		keyColumns = key.ColumnIterator.ToArray()
-		print "test $keyMetadata"
 		for c in keyMetadata.Columns:
-			print c
-		if columns.Length != keyColumns.Length:
-			continue
-		match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
-		if match:
-			print "finded"
-			return true
-	print "not finded"
+			if columns.Length != keyColumns.Length:
+				continue
+			match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
+			if match:
+				return true
 	return false
+
+	for keyMetadata as IIndexMetadata in metaKeys.Values:
+		columns = keyMetadata.Columns
+		keyColumns = key.ColumnIterator.ToArray()
+		for c in keyMetadata.Columns:
+			if columns.Length != keyColumns.Length:
+				continue
+			match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
+			if match:
+				return true
+	return false
+
 
 desc """
 Генерирует миграция на основи разницы между мапингом active record и базы данных, пример bake GenerateMigration
@@ -399,8 +443,8 @@ task @GenerateMigration, [@OnlyInProject]:
 #			for key in table.ForeignKeyIterator:
 #				column = key.Columns.First()
 #				key.Name = "FK_$(key.Table.Name)_$(column.Name)"
-#				if not HasKey(tableMetadata, key):
-#					commands.Add(key.SqlCreateString(dialect, mapping, null, null));
+#				unless HasKey(tableMetadata, key):
+#					migration.Commands.Add(key.SqlCreateString(dialect, mapping, null, null));
 		else:
 			sql = formatter.Format(table.SqlCreateString(dialect, mapping, null, null))
 			migration.Commands.Add(sql)
@@ -464,3 +508,39 @@ task @CreateLogMigration, [@OnlyInProject]:
 	filename = Path.Combine("migrations", GetMigrationFileName("${database}${table}CreateLogging"))
 	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
 	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
+desc """
+создает миграцию и миграцию отката с тектом указанной хранимой процедуры
+пример bake AlterProcedure Db=Future Procedure=GetPrices
+"""
+task @AlterProcedure:
+	db = Configuration.Db
+	procedure = Configuration.Procedure
+	text = Db.Read("""SHOW CREATE PROCEDURE $db.$procedure;""").First()["Create Procedure"]
+	text = text.Replace("PROCEDURE ", "PROCEDURE $db.")
+	migration = Migration()
+	drop = "drop procedure $db.$procedure"
+	migration.Commands.Add(drop)
+	migration.Commands.Add(text)
+	migration.Rollback.Add(drop)
+	migration.Rollback.Add(text)
+	migration.Print()
+	migration.FileName = GetMigrationFileNameByRequest()
+	Console.Write("what should I do [s]ave migration or [a]ply and save?")
+	match Console.ReadLine():
+		case "a":
+			migration.Save()
+			Apply(migration.FileName)
+		case "s":
+			migration.Save()
+		otherwise:
+			return
+
+#def GetTriggerDelcaration(name as string):
+	
+#task @AlterTrigger:
+#	sql = GetTriggerDelcaration(Configuration.name)
+#	migration = Migration()
+#	sql.Commands.Add(sql)
+#	sql.Rollback.Add(sql)
+#	migration.Print()
+#	migration.Save()
