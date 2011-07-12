@@ -31,7 +31,7 @@ task @UpdateTargetFramework:
 		print "${project} patched"
 
 task @Production:
-	unless Configuration.Maybe.Environment:
+	if not Configuration.Maybe.Environment and not Configuration.Maybe.env:
 		Configuration.Environment = @Production
 		Globals.Environment = @Production
 
@@ -159,7 +159,9 @@ desc """
 загружает сборку проекта и bake скрипты которые хранятся в папке tasks
 """
 task @LoadProject:
-	Assembly.LoadFrom("src/${Globals.Project}/bin/${Globals.Project}.dll")
+	assembly = "src/${Globals.Project}/bin/${Globals.Project}.dll"
+	return unless Exist(assembly)
+	Assembly.LoadFrom(assembly)
 	if Exist("tasks"):
 		for file in Directory.GetFiles("tasks", "*.bake"):
 			using reader = File.OpenText(file):
