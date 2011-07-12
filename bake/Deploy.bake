@@ -76,7 +76,7 @@ def WriteMessages(file as string, message as string):
 
 def GetLastMessagesFromGit():
 	output = ""
-	startInfo = ProcessStartInfo("git", "log -10",
+	startInfo = ProcessStartInfo("git", "log -50",
 								 RedirectStandardOutput : true,
 								 StandardOutputEncoding  : Encoding.UTF8,
 								 CreateNoWindow : true,
