@@ -175,7 +175,12 @@ def GetProjects():
 
 task @test, [@RunTests]
 
+def Prepare():
+	if Exist("build/version.txt"):
+		Engine.Execute("GenerateAssemblyInfo")
+
 task @BuildTests:
+	Prepare()
 	projects = GetProjects()
 	for project in projects:
 		raise "Сборка проекта $project завершилась ошибкой" unless project.Build()
@@ -219,6 +224,7 @@ def Notify(result as TestResults):
 task @integration:
 	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
+		Prepare()
 		projects = GetProjects()
 		result = TestResults()
 		for project in projects:
