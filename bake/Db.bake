@@ -24,13 +24,13 @@ set PriceDate = now(),
 
 Task @BuildLogTriggers, [@BuildDeleteTrigger, @BuildUpdateTrigger, @BuildInsertTrigger]
 
-Task @SetupLogging, [@CreateLogTable, @BuildLogTriggers]
+Task @SetupLog, [@CreateLogTable, @BuildLogTriggers]
 
 Desc """
 добавляет в таблицу логов отсутствующие колонки и пересоздает триггеры, 
 нужна что бы сделать логи актуальными после внесения изменений в таблицу
 """
-Task @UpdateLogging, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
+Task @UpdateLog, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
 
 task @UpdateLogTable:
 	sql = GetUpdateLogTableCommand(Configuration.Database, Configuration.Table)

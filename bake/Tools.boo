@@ -3,6 +3,11 @@ import System.Text
 import System.IO
 import System.Diagnostics
 
+def AskCredentials(request as string):
+	user = Ask(request)
+	password = AskPassword("password:")
+	return (user, password)
+
 def Ask(request as string):
 	Console.Write(request)
 	return Console.ReadLine()

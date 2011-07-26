@@ -262,7 +262,7 @@ def GetMigrationFileName(filename as string) as string:
 	countMigrationMark = "00"
 	if Exist(@migrations):
 		localMigrations = Directory.GetFiles("migrations", "${mark}_*.*")
-		countMigrationMark = localMigrations.Length.ToString("00")
+		countMigrationMark = localMigrations.Where({m| not m.ToLower().EndsWith("_rollback.sql")}).Count().ToString("00")
 	return "${mark}_${countMigrationMark}_${filename}${extension}"
 
 def GetMigrationFileNameByRequest() as string:
@@ -299,6 +299,19 @@ def GetMigrations():
 		migrations.AddRange(Directory.GetFiles(".", "*.boo"))
 	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
 	return migrations
+
+def ProcessMigration(migration as Migration):
+	migration.Print()
+	migration.FileName = GetMigrationFileNameByRequest()
+	Console.Write("what should I do [s]ave migration or [a]ply and save?")
+	match Console.ReadLine():
+		case "a":
+			migration.Save()
+			Apply(migration.FileName)
+		case "s":
+			migration.Save()
+		otherwise:
+			return
 
 def StartEditor(fileName as string):
 	Process.Start(Globals.Editor, fileName)
@@ -358,6 +371,7 @@ task @New:
 		SvnTool.Command("add ${migration}")
 		SvnTool.Command("commit -m\"Забил местечко\" ${migration}")
 		print "migration ${migration}"
+
 desc """
 Повторяет миграцию
 """	
@@ -432,7 +446,7 @@ task @GenerateMigration, [@OnlyInProject]:
 	metadata = DatabaseMetadata(connection, dialect)
 	migration = Migration()
 	for table in configuration.CreateMappings(dialect).IterateTables:
-		if table.SchemaActions == SchemaAction.None or table.Schema == "logs":
+		if table.SchemaActions == SchemaAction.None:
 			continue
 		tableMetadata = metadata.GetTableMetadata(table.Name, table.Schema, table.Catalog, table.IsQuoted);
 		if tableMetadata:
@@ -453,18 +467,7 @@ task @GenerateMigration, [@OnlyInProject]:
 	if migration.IsEmpty:
 		raise "no changes find"
 
-	migration.Print()
-	migration.FileName = GetMigrationFileNameByRequest()
-
-	Console.Write("what should I do [s]ave migration or [a]ply and save?")
-	match Console.ReadLine():
-		case "a":
-			migration.Save()
-			Apply(migration.FileName)
-		case "s":
-			migration.Save()
-		otherwise:
-			return
+	ProcessMigration(migration)
 
 Desc """
 генерирует миграцю для обновления тригеров и таблицы логирования
@@ -508,14 +511,15 @@ task @CreateLogMigration, [@OnlyInProject]:
 	filename = Path.Combine("migrations", GetMigrationFileName("${database}${table}CreateLogging"))
 	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
 	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
+
 desc """
-создает миграцию и миграцию отката с тектом указанной хранимой процедуры
+создает миграцию и миграцию отката с текстом указанной хранимой процедуры
 пример bake AlterProcedure Db=Future Procedure=GetPrices
 """
 task @AlterProcedure:
 	db = Configuration.Db
 	procedure = Configuration.Procedure
-	text = Db.Read("""SHOW CREATE PROCEDURE $db.$procedure;""").First()["Create Procedure"]
+	text = Db.Read("SHOW CREATE PROCEDURE $db.$procedure").First()["Create Procedure"]
 	text = text.Replace("PROCEDURE ", "PROCEDURE $db.")
 	migration = Migration()
 	drop = "drop procedure $db.$procedure"
@@ -523,24 +527,21 @@ task @AlterProcedure:
 	migration.Commands.Add(text)
 	migration.Rollback.Add(drop)
 	migration.Rollback.Add(text)
-	migration.Print()
-	migration.FileName = GetMigrationFileNameByRequest()
-	Console.Write("what should I do [s]ave migration or [a]ply and save?")
-	match Console.ReadLine():
-		case "a":
-			migration.Save()
-			Apply(migration.FileName)
-		case "s":
-			migration.Save()
-		otherwise:
-			return
+	ProcessMigration(migration)
 
-#def GetTriggerDelcaration(name as string):
-	
-#task @AlterTrigger:
-#	sql = GetTriggerDelcaration(Configuration.name)
-#	migration = Migration()
-#	sql.Commands.Add(sql)
-#	sql.Rollback.Add(sql)
-#	migration.Print()
-#	migration.Save()
+desc """
+создает миграцию и миграцию отката с текстом указанного триггера
+пример bake AlterTrigger Db=Future Trigger=IntersectionAfterInsert
+"""
+task @AlterTrigger:
+	db = Configuration.Db
+	trigger = Configuration.Trigger
+	text = Db.Read("show create trigger $db.$trigger").First()["SQL Original Statement"]
+	text = text.Replace("TRIGGER $trigger", "TRIGGER $db.$trigger")
+	drop = "drop trigger $db.$trigger"
+	migration = Migration()
+	migration.Commands.Add(drop)
+	migration.Commands.Add(text)
+	migration.Rollback.Add(drop)
+	migration.Rollback.Add(text)
+	ProcessMigration(migration)
