@@ -102,6 +102,10 @@ Task @DumpSchema:
 
 desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
+параметры:
+profile - название профиля для загрузки, профиль определяет какие таблицы кроме стандартных
+будут загружены
+значения - catalogs загружается вся база дынных catalogs
 """
 task @PrepareLocal:
 	sourceDb = "testsql.analit.net"
@@ -118,7 +122,14 @@ task @PrepareLocal:
 		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
 
 	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
-		 "ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions")
+			"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
+			"farm.sourcetypes", "farm.pricefmts")
+	if Configuration.Maybe.profile == "catalogs":
+		profileTables = ("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
+			"catalogs.catalognames", "catalogs.descriptions", "catalogs.mnn",
+			"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
+			"catalogs.products", "catalogs.properties", "catalogs.propertyvalues")
+		tables = tables.Concat(profileTables).ToArray()
 	for table in tables:
 		#database, table = table.Split(char('.'))
 		database, tableName = table.Split(char('.'))
