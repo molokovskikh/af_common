@@ -137,6 +137,148 @@ task @PrepareLocal:
 		Sh("mysql -h$destination -uroot -D$database < dump.txt")
 		Rm("dump.txt")
 
+def ImportLocalDB(backupDBFolder as string):
+	sourceDb = "testsql.analit.net"
+	user = "system"
+	password = "newpass"
+
+	destination = "localhost"
+ 	
+	raise "Не удалось найти директорию ${backupDBFolder}" if not Directory.Exists(backupDBFolder)
+	
+	structFile = Path.Combine(backupDBFolder, "struct.sql")
+	structRoutineFile = Path.Combine(backupDBFolder, "structRoutine.sql")
+
+	raise "Не удалось найти файл ${structFile} в директории ${backupDBFolder}" if not File.Exists(structFile)
+	raise "Не удалось найти файл ${structRoutineFile} в директории ${backupDBFolder}" if not File.Exists(structRoutineFile)
+
+	files = Directory.GetFiles(backupDBFolder, "*.sql")
+	#print "files = ${join(files)}"
+
+	tableFiles = files.Where({f| f.IndexOf("\\table.", StringComparison.OrdinalIgnoreCase) > -1}).ToArray()
+	dbFiles = files.Where({f| f.IndexOf("\\db.", StringComparison.OrdinalIgnoreCase) > -1}).ToArray()
+
+	#print "tableFiles = ${join(tableFiles)}"
+	#print "dbFiles = ${join(dbFiles)}"
+
+	#Создаем пользователя RootDBMS, если он не существует
+	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
+		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
+		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
+
+	print "Import structure"
+	Sh("mysql -h$destination -uroot < ${structFile}")
+	
+	tablesCount = tableFiles.Length
+	for i, tableFileName in enumerate(tableFiles):
+		prefix, database, tableName = Path.GetFileName(tableFileName).Split(char('.'))
+		print "import table ${i+1}/${tablesCount}: ${database}.${tableName}"
+		Sh("mysql -h$destination -uroot -D$database < ${tableFileName}")
+	
+	dbCount = dbFiles.Length
+	for i, dbFileName in enumerate(dbFiles):
+		prefix, database = Path.GetFileName(dbFileName).Split(char('.'))
+		print "import database ${i+1}/${dbCount}: ${database}"
+		Sh("mysql -h$destination -uroot < ${dbFileName}")
+
+	print "Import routines"
+	Sh("mysql -h$destination -uroot < ${structRoutineFile}")
+	
+	return
+
+desc """
+заливает в локальную базу данных схему из тестовой и таблицы для работы PrgData
+данные экспортируются в каталог C:\backupDB
+параметры:
+leaveBackup - если установлен в значение true, то не будет удалять директорию backupDB после импорта
+"""
+task @PrepareLocalForPrgData:
+	sourceDb = "testsql.analit.net"
+	user = "system"
+	password = "newpass"
+
+	destination = "localhost"
+
+	backupDBFolder = """C:\backupDB"""
+	Rm(backupDBFolder, true) if Directory.Exists(backupDBFolder)
+	MkDir(backupDBFolder)
+	raise "Не удалось создать директорию ${backupDBFolder}" if not Directory.Exists(backupDBFolder)
+
+	leaveBackup = Configuration.Maybe.leaveBackup == "true"
+
+	structFile = Path.Combine(backupDBFolder, "struct.sql")
+	structRoutineFile = Path.Combine(backupDBFolder, "structRoutine.sql")
+
+	#список db, для которых не экспортируется структура
+	excludes = ("mysql", "information_schema", "performance_schema")
+	#список db, для которых не будут экспортироваться данные в таблицах
+	excludesDataDB = ("documents", "orders", "logs", "redmine", "im", "telephony")
+
+	databases = Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
+	print "databases for struct = ${join(databases)}"
+
+	print "Export structure"
+	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --databases ${join(databases)} --no-data --create-options  --skip-triggers  --default-character-set=cp1251 --quote-names --allow-keywords > ${structFile}")
+	print "Export routines"
+	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --databases ${join(databases)} --no-data --events  --routines  --triggers  --no-create-db --no-create-info  --default-character-set=cp1251 --quote-names --allow-keywords > ${structRoutineFile}")
+
+	# список таблиц-справочников
+	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
+			"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
+			"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types", "documents.waybill_sources")
+
+	tablesCount = tables.Length
+	for i, table in enumerate(tables):
+		database, tableName = table.Split(char('.'))
+		tableFileName = Path.Combine(backupDBFolder, "table.${table}.sql")
+		print "export table ${i+1}/${tablesCount}: ${table}"
+		Sh("mysqldump -h${sourceDb} -u${user} -p${password} --tables $database $tableName  --lock-tables=false  --default-character-set=cp1251 --quote-names --skip-disable-keys --skip-triggers --skip-add-locks --no-autocommit --extended-insert --no-create-db --no-create-info --allow-keywords  --single-transaction  --order-by-primary --max_allowed_packet=32M > ${tableFileName}")
+
+	#databases = ("accessright", "Billing", "documents")
+	databases = databases.Where({d| not excludesDataDB.Any({e| e == d})}).ToArray()
+	print "databases for data = ${join(databases)}"
+	ignoreTables = join(tables.Select({t| "--ignore-table=" + t}).ToArray())
+	print "ignoreTables = ${ignoreTables}"
+	
+	databasesCount = databases.Length
+	for i, database in enumerate(databases):
+		databaseFileName = Path.Combine(backupDBFolder, "db.${database}.sql")
+		print "export database ${i+1}/${databasesCount}: ${database}"
+		Sh("mysqldump -h${sourceDb} -u${user} -p${password} --databases ${database} ${ignoreTables}  --lock-tables=false  --default-character-set=cp1251 --quote-names --skip-disable-keys --skip-triggers --skip-add-locks --no-autocommit --extended-insert --no-create-db --no-create-info --allow-keywords  --single-transaction  --order-by-primary --max_allowed_packet=32M > ${databaseFileName}")
+
+	Rm(backupDBFolder, true) if not leaveBackup
+
+	return
+	
+	/*
+	excludes = ("mysql", "information_schema", "performance_schema")
+	databases = join(Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
+	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --databases $databases --events --no-data --routines --triggers > dump.txt")
+	Sh("mysql -h$destination -uroot < dump.txt")
+	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
+		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
+		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
+
+	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
+			"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
+			"farm.sourcetypes", "farm.pricefmts")
+	if Configuration.Maybe.profile == "catalogs":
+		profileTables = ("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
+			"catalogs.catalognames", "catalogs.descriptions", "catalogs.mnn",
+			"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
+			"catalogs.products", "catalogs.properties", "catalogs.propertyvalues")
+		tables = tables.Concat(profileTables).ToArray()
+	for table in tables:
+		#database, table = table.Split(char('.'))
+		database, tableName = table.Split(char('.'))
+		Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --tables $database $tableName > dump.txt")
+		Sh("mysql -h$destination -uroot -D$database < dump.txt")
+		Rm("dump.txt")
+	*/
+
+task @ImportLocalDBForPrgData:
+	ImportLocalDB("""C:\backupDB""")
+
 task @KillBrokenConnections:
 	ids = List[of int]()
 	for row in Db.Read("show full processlist"):
