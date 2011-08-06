@@ -1,5 +1,12 @@
 import System
 import System.IO
+import System.Collections
+import Castle.MonoRail.Views.Brail
+import Castle.MonoRail.Framework
+
+class Script:
+	property Path as string
+	property Type as string
 
 ProjectName = ""
 
@@ -25,6 +32,13 @@ def FromTemplateList(root as string, files as List):
 		file = Path.Combine(root, file)
 		FromTemplate(file)
 
+def GenerateFile(name as string, output as string, options as IDictionary):
+	templateRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates")
+	loader = FileAssemblyViewSourceLoader(templateRoot)
+	engine = StandaloneBooViewEngine(loader, BooViewEngineOptions())
+	using writer = File.CreateText(output):
+		engine.Process(name, writer, options)
+
 task @Generate:
 	ProjectName = Configuration.name
 	MkDir("src")
@@ -36,8 +50,45 @@ task @Generate:
 	MkDir("src/test/functional")
 	MkDir("src/test/unit")
 	MkDir("src/${ProjectName}")
-	FromTemplateList("src/${ProjectName}/", 
+	FromTemplateList("src/${ProjectName}/",
 		["global.asax", "global.asax.cs", "web.config", "web.release.config", "${ProjectName}.csproj"])
 	MkDir("src/${ProjectName}/Controllers")
 	MkDir("src/${ProjectName}/Views")
 	MkDir("src/${ProjectName}/Models")
+
+task @TestGe:
+	templateRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates")
+	loader = FileAssemblyViewSourceLoader(templateRoot)
+	engine = StandaloneBooViewEngine(loader, BooViewEngineOptions())
+	using writer = File.CreateText("test"):
+		engine.Process("test", writer, {})
+
+task @GenerateJsTest:
+	testFile = Configuration.file
+	test = Configuration.Maybe.test
+	script = Configuration.Maybe.script
+
+	script = testFile unless script
+	scripts = (Script(Path: script), )
+	project = Globals.Project
+	assets = ("src/$project/Assets/JavaScript/", "src/$project/JavaScript/")
+	for scriptFile in scripts:
+		unless Exist(scriptFile.Path):
+			mask = scriptFile.Path
+			mask += ".*" unless Path.GetExtension(mask)
+			for path in assets:
+				continue unless Exist(path)
+				files = Directory.GetFiles(path, mask)
+				if files.Length:
+					scriptFile.Path = files[0]
+					break
+		if Path.GetExtension(scriptFile.Path).ToLower() == ".coffee":
+			scriptFile.Type = "text/coffeescript"
+
+	testFile += ".html" unless Path.GetExtension(testFile)
+	testRoot = "test"
+	testFile = Path.Combine(testRoot, testFile)
+
+	parameters ={@project: project, @test: test, @scripts: scripts}
+	GenerateFile("CoffeeTest", testFile, parameters)
+	print "create $testFile"
