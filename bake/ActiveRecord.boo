@@ -40,6 +40,7 @@ def BuiltinInitializer(config as IConfigurationSource, assembly as Assembly):
 	for type in assembly.GetTypes():
 		continue unless type.Namespace and type.Namespace.EndsWith(".Initializers")
 		continue unless type.GetMethod("Initialize")
+		continue unless type.Name == "ActiveRecord"
 		System.Activator.CreateInstance(type).Initialize(config)
 		return true
 	return false
