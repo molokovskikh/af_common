@@ -3,18 +3,12 @@
 			<meta http-equiv="content-type" content="text/html; charset=UTF-8">
 			<script src="http://code.jquery.com/jquery-latest.js"></script>
 			<script src="http://code.jquery.com/qunit/git/qunit.js"></script>
-			<script src="../src/${project}/JavaScript/coffee-script.js"></script>
 			<% for script in scripts: %>
-				<script type="${script.Type}" src="../${script.Path}"></script>
+				<script type="${script.Type}" src="${script.Path}"></script>
 			<% end %>
 			<link rel="stylesheet" href="http://code.jquery.com/qunit/git/qunit.css"></link>
 	</head>
 	<body>
-		<script type="text/coffeescript">
-			$ ->
-				test "${test}", ->
-					ok false, "напиши меня"
-		</script>
 		<h1 id="qunit-header">QUnit example</h1>
 		<h2 id="qunit-banner"></h2>
 		<div id="qunit-testrunner-toolbar"></div>

@@ -1,12 +1,14 @@
 import System
 import System.IO
 import System.Collections
+import System.Linq.Enumerable
 import Castle.MonoRail.Views.Brail
 import Castle.MonoRail.Framework
 
 class Script:
 	property Path as string
 	property Type as string
+	property Name as string
 
 ProjectName = ""
 
@@ -38,6 +40,7 @@ def GenerateFile(name as string, output as string, options as IDictionary):
 	engine = StandaloneBooViewEngine(loader, BooViewEngineOptions())
 	using writer = File.CreateText(output):
 		engine.Process(name, writer, options)
+	print "create $output"
 
 task @Generate:
 	ProjectName = Configuration.name
@@ -69,26 +72,31 @@ task @GenerateJsTest:
 	script = Configuration.Maybe.script
 
 	script = testFile unless script
-	scripts = (Script(Path: script), )
+
+	testFile += ".html" unless Path.GetExtension(testFile)
+	testCoffee = Path.ChangeExtension(testFile, ".coffee")
+	testRoot = "test"
+	testCoffee = Path.Combine(testRoot, testCoffee)
+	testFile = Path.Combine(testRoot, testFile)
+
+	scripts = (Script(Name: script), Script(Path: Path.ChangeExtension(Path.GetFileName(testCoffee), ".js")))
 	project = Globals.Project
 	assets = ("src/$project/Assets/JavaScript/", "src/$project/JavaScript/")
 	for scriptFile in scripts:
-		unless Exist(scriptFile.Path):
-			mask = scriptFile.Path
+		unless scriptFile.Path or Exist(scriptFile.Path):
+			mask = scriptFile.Name
 			mask += ".*" unless Path.GetExtension(mask)
 			for path in assets:
 				continue unless Exist(path)
 				files = Directory.GetFiles(path, mask)
 				if files.Length:
-					scriptFile.Path = files[0]
+					scriptFile.Path = Path.Combine("../", files[0])
+					if Path.GetExtension(scriptFile.Path).ToLower() == ".coffee":
+						scriptFile.Type = "text/coffeescript"
 					break
-		if Path.GetExtension(scriptFile.Path).ToLower() == ".coffee":
-			scriptFile.Type = "text/coffeescript"
 
-	testFile += ".html" unless Path.GetExtension(testFile)
-	testRoot = "test"
-	testFile = Path.Combine(testRoot, testFile)
+	scripts = scripts.Where({s| s.Path != null}).ToArray()
 
 	parameters ={@project: project, @test: test, @scripts: scripts}
-	GenerateFile("CoffeeTest", testFile, parameters)
-	print "create $testFile"
+	GenerateFile("CoffeeTest.html", testFile, parameters)
+	GenerateFile("CoffeeTest.coffee", testCoffee, parameters)
