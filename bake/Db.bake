@@ -27,7 +27,7 @@ Task @BuildLogTriggers, [@BuildDeleteTrigger, @BuildUpdateTrigger, @BuildInsertT
 Task @SetupLog, [@CreateLogTable, @BuildLogTriggers]
 
 Desc """
-добавляет в таблицу логов отсутствующие колонки и пересоздает триггеры, 
+добавляет в таблицу логов отсутствующие колонки и пересоздает триггеры,
 нужна что бы сделать логи актуальными после внесения изменений в таблицу
 """
 Task @UpdateLog, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
@@ -55,7 +55,7 @@ task @BuildUpdateTrigger:
 	sql = GetLogTriggerCommand("UPDATE", Configuration.Database, Configuration.Table)
 	PrintCommand(sql)
 	Db.Execute(sql)
-	
+
 task @BuildDeleteTrigger:
 	sql = GetLogTriggerCommand("DELETE", Configuration.Database, Configuration.Table)
 	PrintCommand(sql)
@@ -112,8 +112,8 @@ task @PrepareLocal:
 	destination = "localhost"
 	user = "system"
 	password = "newpass"
-	
-	excludes = ("mysql", "information_schema", "performance_schema")
+
+	excludes = ("mysql", "information_schema", "performance_schema", "test")
 	databases = join(Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
 	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --databases $databases --events --no-data --routines --triggers > dump.txt")
 	Sh("mysql -h$destination -uroot < dump.txt")
@@ -143,9 +143,9 @@ def ImportLocalDB(backupDBFolder as string):
 	password = "newpass"
 
 	destination = "localhost"
- 	
+
 	raise "Не удалось найти директорию ${backupDBFolder}" if not Directory.Exists(backupDBFolder)
-	
+
 	structFile = Path.Combine(backupDBFolder, "struct.sql")
 	structRoutineFile = Path.Combine(backupDBFolder, "structRoutine.sql")
 
@@ -168,13 +168,13 @@ def ImportLocalDB(backupDBFolder as string):
 
 	print "Импортирование схемы БД"
 	Sh("mysql -h$destination -uroot < ${structFile}")
-	
+
 	tablesCount = tableFiles.Length
 	for i, tableFileName in enumerate(tableFiles):
 		prefix, database, tableName = Path.GetFileName(tableFileName).Split(char('.'))
 		print "Импортирование таблицы-справочника ${i+1} из ${tablesCount}: ${database}.${tableName}"
 		Sh("mysql -h$destination -uroot -D$database < ${tableFileName}")
-	
+
 	dbCount = dbFiles.Length
 	for i, dbFileName in enumerate(dbFiles):
 		prefix, database = Path.GetFileName(dbFileName).Split(char('.'))
@@ -183,7 +183,7 @@ def ImportLocalDB(backupDBFolder as string):
 
 	print "Импортирование ХП и триггеров"
 	Sh("mysql -h$destination -uroot < ${structRoutineFile}")
-	
+
 	return
 
 desc """
@@ -240,18 +240,18 @@ task @PrepareLocalForPrgData:
 	#print "databases for data = ${join(databases)}"
 	ignoreTables = join(tables.Select({t| "--ignore-table=" + t}).ToArray())
 	#print "ignoreTables = ${ignoreTables}"
-	
+
 	databasesCount = databases.Length
 	for i, database in enumerate(databases):
 		databaseFileName = Path.Combine(backupDBFolder, "db.${database}.sql")
 		print "Экспорт базы данных ${i+1} из ${databasesCount}: ${database}"
 		Sh("mysqldump -h${sourceDb} -u${user} -p${password} --databases ${database} ${ignoreTables}  --lock-tables=false  --default-character-set=cp1251 --quote-names --skip-disable-keys --skip-triggers --skip-add-locks --no-autocommit --extended-insert --no-create-db --no-create-info --allow-keywords  --single-transaction  --order-by-primary --max_allowed_packet=32M > ${databaseFileName}")
-	
+
 	ImportLocalDB(backupDBFolder)
 
 	Rm(backupDBFolder, true) if not leaveBackup
 
-	return	
+	return
 
 desc """
 заливает в локальную базу данных схему и таблицы из каталога C:\backupDB
