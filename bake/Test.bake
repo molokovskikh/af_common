@@ -38,14 +38,14 @@ class Project:
 			FrameworkVersion : _frameworkVersion,
 			GrubOutput : grubOutput)
 		clean.Arguments.Add("/verbosity:minimal")
-		
+
 		build = MsBuild(_projectFile,
 			Target : "build",
 			Parameters : { "Configuration" : "debug" },
 			FrameworkVersion : _frameworkVersion,
 			GrubOutput : grubOutput)
 		build.Arguments.Add("/verbosity:minimal")
-
+		print build.CommandLine
 		try:
 			clean.Execute()
 			build.Execute()
@@ -81,7 +81,7 @@ class Project:
 		TestOutput = nunit.Output.ToString()
 		return success
 
-	override def ToString():
+	def ToString():
 		return _project
 
 class TestResults:
@@ -185,7 +185,16 @@ task @BuildTests:
 	for project in projects:
 		raise "Сборка проекта $project завершилась ошибкой" unless project.Build()
 
-task @RunTests, [@BuildTests]:
+task @TestJs:
+	return unless Exist("test") or Exist("tools/phantomjs-1.2.0")
+
+	root = Path.GetFullPath("tools/phantomjs-1.2.0")
+	phantom = Path.Combine(root, "phantomjs.exe")
+	run = Path.Combine(root, "examples", "run-qunit.js")
+	for file in Directory.GetFiles("test", "*.html"):
+		Sh("$phantom $run $file")
+
+task @RunTests, [@TestJs, @BuildTests]:
 	for project in GetProjects():
 		project.Test()
 
@@ -242,6 +251,18 @@ task @integration:
 			else:
 				result.Output(project.TestOutput)
 
+		if Exist("test") and Exist("tools/phantomjs-1.2.0"):
+			root = Path.GetFullPath("tools/phantomjs-1.2.0")
+			phantom = Path.Combine(root, "phantomjs.exe")
+			run = Path.Combine(root, "examples", "run-qunit.js")
+			for file in Directory.GetFiles("test", "*.html"):
+				phantomExec = Exec("$phantom $run $file", GrubOutput: true)
+				try:
+					phantomExec.Execute()
+				except e as BuildException:
+					success = false
+				result.Output(phantomExec.Output.ToString())
+
 		Notify(result)
 	except e as Exception:
 		NotifyError(e.ToString())
@@ -250,6 +271,6 @@ desc """
 запускает сборку проекта на билд сервере
 """
 task @integrate:
-	url = "http://devsrv.adc.analit.net/god/Projects/${Globals.Project}/Build"
+	url = "http://devsrv.adc.analit.net/god/Projects/Build?id=${Globals.Project}"
 	request = WebRequest.Create(url)
 	request.GetResponse().Dispose()
