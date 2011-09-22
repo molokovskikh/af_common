@@ -107,10 +107,10 @@ class TestResults:
 			if attribute = element.Attribute("time"):
 				total += Convert.ToDecimal(attribute.Value, CultureInfo.InvariantCulture)
 		totalTime += TimeSpan.FromSeconds(total)
-		
+
 		successCount += doc.XPathSelectElements("//test-case[@result='Success']").Count()
 		ignoredCount += doc.XPathSelectElements("//test-case[@result='Ignored']").Count()
-		
+
 		failures = doc.XPathSelectElements("//test-case[@result='Failure']")
 		failCount += failures.Count()
 		brokenTests.AddRange(failures)
@@ -157,7 +157,7 @@ class TestResults:
 		outputs.Add(output)
 
 frameworkVersion = Globals.FrameworkVersion
-	
+
 def GetProjects():
 	isx86 = Globals.Maybe.platform == "x86" or Globals.Maybe.Platform == "x86"
 	projects = List[of Project]()
@@ -230,7 +230,7 @@ def Notify(result as TestResults):
 		smtpClient = SmtpClient("box.analit.net")
 		smtpClient.Send(message)
 
-task @integration:
+task @integration, [@Migrate]:
 	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
 		Prepare()
