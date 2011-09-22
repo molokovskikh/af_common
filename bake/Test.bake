@@ -256,7 +256,7 @@ task @integration, [@Migrate]:
 			phantom = Path.Combine(root, "phantomjs.exe")
 			run = Path.Combine(root, "examples", "run-qunit.js")
 			for file in Directory.GetFiles("test", "*.html"):
-				phantomExec = Exec("$phantom $run $file", GrubOutput: true)
+				phantomExec = Exec(phantom, "$run $file", GrubOutput: true)
 				try:
 					phantomExec.Execute()
 				except e as BuildException:
