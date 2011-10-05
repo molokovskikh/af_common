@@ -1,43 +1,54 @@
 import System
 import System.IO
+import System.Collections
+import System.Linq.Enumerable
+import Castle.MonoRail.Views.Brail
+import Castle.MonoRail.Framework
 
-ProjectName = ""
+class Script:
+	property Path as string
+	property Type as string
+	property Name as string
 
-def GetTemplate(filename as string):
-	name = Path.GetFileName(filename)
-	templateRoot = """C:\Projects\Production\Common\trunk\Tasks\Resources\templates\"""
-	if Exist(Path.Combine(templateRoot, name)):
-		return Path.Combine(templateRoot, name)
-	extension = Path.GetExtension(filename)
-	files = Directory.GetFiles(templateRoot, "*${extension}")
-	if files.Length:
-		return files[0]
-	raise "can`t find template for ${filename}"
+def GenerateFile(name as string, output as string, options as IDictionary):
+	templateRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "templates")
+	loader = FileAssemblyViewSourceLoader(templateRoot)
+	engine = StandaloneBooViewEngine(loader, BooViewEngineOptions())
+	using writer = File.CreateText(output):
+		engine.Process(name, writer, options)
+	print "create $output"
 
-def FromTemplate(filename as string):
-	templateName = GetTemplate(filename)
-	text = File.ReadAllText(templateName)
-	result = text.Replace("{name}", ProjectName).Replace("{projectGuid}", Guid.NewGuid().ToString()).Replace("{solutionGuid}", Guid.NewGuid().ToString())
-	File.WriteAllText(filename, result)
+task @GenerateJsTest:
+	testFile = Configuration.file
+	test = Configuration.Maybe.test
+	script = Configuration.Maybe.script
 
-def FromTemplateList(root as string, files as List):
-	for file in files:
-		file = Path.Combine(root, file)
-		FromTemplate(file)
+	script = testFile unless script
 
-task @Generate:
-	ProjectName = Configuration.name
-	MkDir("src")
-	MkDir("lib")
-	FromTemplate("src/${ProjectName}.sln")
-	MkDir("src/test")
-	FromTemplate("src/test/test.csproj")
-	MkDir("src/test/integration")
-	MkDir("src/test/functional")
-	MkDir("src/test/unit")
-	MkDir("src/${ProjectName}")
-	FromTemplateList("src/${ProjectName}/", 
-		["global.asax", "global.asax.cs", "web.config", "web.release.config", "${ProjectName}.csproj"])
-	MkDir("src/${ProjectName}/Controllers")
-	MkDir("src/${ProjectName}/Views")
-	MkDir("src/${ProjectName}/Models")
+	testFile += ".html" unless Path.GetExtension(testFile)
+	testCoffee = Path.ChangeExtension(testFile, ".coffee")
+	testRoot = "test"
+	testCoffee = Path.Combine(testRoot, testCoffee)
+	testFile = Path.Combine(testRoot, testFile)
+
+	scripts = (Script(Name: script), Script(Path: Path.ChangeExtension(Path.GetFileName(testCoffee), ".js")))
+	project = Globals.Project
+	assets = ("src/$project/Assets/JavaScript/", "src/$project/JavaScript/")
+	for scriptFile in scripts:
+		unless scriptFile.Path or Exist(scriptFile.Path):
+			mask = scriptFile.Name
+			mask += ".*" unless Path.GetExtension(mask)
+			for path in assets:
+				continue unless Exist(path)
+				files = Directory.GetFiles(path, mask)
+				if files.Length:
+					scriptFile.Path = Path.Combine("../", files[0])
+					if Path.GetExtension(scriptFile.Path).ToLower() == ".coffee":
+						scriptFile.Type = "text/coffeescript"
+					break
+
+	scripts = scripts.Where({s| s.Path != null}).ToArray()
+
+	parameters ={@project: project, @test: test, @scripts: scripts}
+	GenerateFile("CoffeeTest.html", testFile, parameters)
+	GenerateFile("CoffeeTest.coffee", testCoffee, parameters)

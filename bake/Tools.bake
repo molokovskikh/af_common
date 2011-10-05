@@ -151,6 +151,7 @@ desc """
 task @shell:
 	CompilerParameters.SharedTypeSystemProvider = ReflectionTypeSystemProvider()
 	interpreter = InteractiveInterpreter()
+	interpreter.SetValue("bake", Engine)
 	console = InteractiveInterpreterConsole(interpreter)
 	console.Eval("import Boo.Lang.Interpreter.Builtins")
 	console.ReadEvalPrintLoop()

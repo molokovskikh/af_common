@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project DefaultTargets="PrepareClickOnceDeployment" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="Microsoft.Sdc.Common.tasks"/>
+<Project ToolsVersion="4.0" DefaultTargets="PrepareClickOnceDeployment" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.tasks"/>
 
   <PropertyGroup>
     <PublishDir></PublishDir>

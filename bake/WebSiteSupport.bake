@@ -7,11 +7,11 @@ projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
 
 task @BuildWebSite, [@CleanWebSite]:
 	MkDir(buildTo) if not Exist(buildTo)
-	MsBuild(projectFile,
+	MsBuild(projectFile, "/verbosity:quiet",
 			Target : "build",
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						   "OutputPath" : "${buildTo}\\bin\\",
-						   "Configuration" : "Release" },
+						   "Configuration" : "Release"},
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/bin/*.xml")
 	Cp(FileSet(["**/*.as?x", 
@@ -22,6 +22,7 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.png",
 				"**/*.jpg",
 				"**/*.js",
+				"**/*.coffee",
 				"**/*.zip",
 				"**/*.css",
 				"**/*.skin",
@@ -33,7 +34,7 @@ task @BuildWebSite, [@CleanWebSite]:
 	Cp("${projectPath}/Web.release.config", "${buildTo}/Web.config")
 
 task @CleanWebSite:
-	MsBuild(projectFile,
+	MsBuild(projectFile, "/verbosity:quiet",
 			Target : "clean",
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						   "Configuration" : "release" },

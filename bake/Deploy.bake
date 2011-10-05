@@ -176,7 +176,7 @@ task @WebDeploy, [@WebClean]:
 
 	files = FileSet("**/*.*", BaseDirectory : buildTo)
 	Cp(files, deployTo, true)
-	print "${files.Files.Count} files deployed  to ${deployTo}"
+	print "${files.Files.Count} files deployed to $deployTo"
 
 task @WebClean:
 	deployTo = GetDeployTo(Globals.Project.ToString())

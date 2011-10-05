@@ -72,7 +72,7 @@ task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	if Exist("${projectPath}App.${configuration}.config"):
 		Cp("${projectPath}App.${configuration}.config", "${buildTo}${projectName}.exe.config", true)
-	Rm(FileSet("*.*", 
+	Rm(FileSet("*.*",
 			   BaseDirectory : buildTo,
 			   Excludes : ["*.dll", "*.exe", "*.config"]))
 	publishVersion = GetAssemblyVersion("${buildTo}${projectName}.exe")
@@ -89,25 +89,23 @@ task "build publish package", [@ClickOnceBuild, "clean publish package"]:
 	certPath = GetResource("inforoomCS.pfx")
 	password = "password"
 	Cp(GetResource("publish.build"), buildPublishTo)
-	Cp(GetResource("Microsoft.Sdc.Common.tasks"), buildPublishTo)
-	MsBuild("${buildPublishTo}publish.build", 
+	MsBuild("${buildPublishTo}publish.build",
 			Parameters : { "Version" : publishVersion,
 							"MinVersion" : publishVersion,
 							"ClickOnceUrl" : deploymentUrl,
 							"ClickOnceAppTitle" : productName,
 							"SolutionName" : projectName,
-							"PublishDir" : buildTo, 
-							"SigningCert" : certPath,                                                        
-							"Password" : password, 
-							"SdkPath" : MicrosoftSdk.Path(),
+							"PublishDir" : buildTo,
+							"SigningCert" : certPath,
+							"Password" : password,
+							"SdkPath" : Path.Combine(MicrosoftSdk.Path(), "NETFX 4.0 Tools"),
 							"BootstrapperSdkPath" : BootstrapperSdkPath()},
-			FrameworkVersion : "3.5").Execute()
+			FrameworkVersion : "4.0.30319").Execute()
 	CopyWithDeploy(FileSet("**\\*.*", BaseDirectory : buildTo), buildPublishTo)
 	cert = X509Certificate2(File.ReadAllBytes(certPath), password)
 	Exec("\"${MicrosoftSdk.Path()}\\signtool.exe\"",
 		 "sign /sha1 ${cert.Thumbprint} ${buildPublishTo}setup.exe").Execute()
 	Rm("${buildPublishTo}/publish.build")
-	Rm("${buildPublishTo}/Microsoft.Sdc.Common.tasks")
 	GeneratePublishPage("${buildPublishTo}publish.htm", publishVersion, productName)
 
 task "clean publish package":
