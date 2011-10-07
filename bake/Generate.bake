@@ -18,6 +18,10 @@ def GenerateFile(name as string, output as string, options as IDictionary):
 		engine.Process(name, writer, options)
 	print "create $output"
 
+desc """
+генерирует шаблон для javascript теста
+параметры file - название файла с тестами
+"""
 task @GenerateJsTest:
 	testFile = Configuration.file
 	test = Configuration.Maybe.test
