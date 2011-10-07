@@ -7,6 +7,8 @@ import log4net
 import log4net.Appender
 import log4net.Core
 import log4net.Repository.Hierarchy
+import Castle.ActiveRecord
+import Castle.ActiveRecord.Framework
 
 class SqlAppender(IAppender):
 
@@ -33,9 +35,9 @@ task @DbShell, [@LoadProject, @InitActiveRecord]:
 	logger.AddAppender(SqlAppender(Name: "test"))
 
 	CompilerParameters.SharedTypeSystemProvider = ReflectionTypeSystemProvider()
-	console = InteractiveInterpreterConsole()
+	interpreter = InteractiveInterpreter()
+	interpreter.SetValue("scope", SessionScope())
+	console = InteractiveInterpreterConsole(interpreter)
 	console.Eval("import Boo.Lang.Interpreter.Builtins")
 	console.Eval("import ${Globals.Project}.Models")
 	console.ReadEvalPrintLoop()
-
-
