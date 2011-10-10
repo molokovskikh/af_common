@@ -5,6 +5,12 @@ buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Pr
 projectPath = Path.GetFullPath("src/${Globals.Project}")
 projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
 
+def CopyAssets(output as string):
+	return unless Exist("packages")
+	assets = Path.Combine(output, "Assets", "JavaScript")
+	javaScripts = FileSet("packages/**/*.min.js")
+	Cp(javaScripts, assets)
+
 task @BuildWebSite, [@CleanWebSite]:
 	MkDir(buildTo) if not Exist(buildTo)
 	MsBuild(projectFile, "/verbosity:quiet",
@@ -14,7 +20,7 @@ task @BuildWebSite, [@CleanWebSite]:
 						   "Configuration" : "Release"},
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/bin/*.xml")
-	Cp(FileSet(["**/*.as?x", 
+	Cp(FileSet(["**/*.as?x",
 				"**/*.brail",
 				"**/*.brailjs",
 				"**/*.swf",
@@ -28,10 +34,11 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.skin",
 				"**/*.htm",
 				"**/*.sitemap",
-				"**/*.master"], 
-				BaseDirectory: projectPath), 
+				"**/*.master"],
+				BaseDirectory: projectPath),
 		buildTo, true)
 	Cp("${projectPath}/Web.release.config", "${buildTo}/Web.config")
+	CopyAssets(buildTo)
 
 task @CleanWebSite:
 	MsBuild(projectFile, "/verbosity:quiet",
