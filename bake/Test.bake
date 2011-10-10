@@ -3,7 +3,7 @@ import System.Net
 import System.Globalization
 import System.Diagnostics
 import System.Collections.Generic
-import System.Linq.Enumerable from System.Core
+import System.Linq.Enumerable
 import System.Xml.Linq
 import System.Xml.XPath.Extensions from System.Xml.Linq
 import System.IO
@@ -230,7 +230,13 @@ def Notify(result as TestResults):
 		smtpClient = SmtpClient("box.analit.net")
 		smtpClient.Send(message)
 
-task @integration, [@Migrate]:
+#перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
+#boo миграции которые используют классы из проекта
+task @TryToBuild:
+	buildTask = Engine.Tasks.FirstOrDefault({t| t.Name == @Build})
+	Execute(@Build) if buildTask
+
+task @integration, [@TryToBuild, @Migrate]:
 	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
 		Prepare()
