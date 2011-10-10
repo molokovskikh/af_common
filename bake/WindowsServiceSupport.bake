@@ -18,7 +18,7 @@ def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as Stri
 def CloseHandle(handle as IntPtr) as bool:
 	pass
 
-project = Globals.project
+project = Globals.Project
 buildTo = Path.GetFullPath("build")
 projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
 
@@ -182,7 +182,7 @@ task @SimpleDeployService:
 
 	Impersonate(servers.First()):
 		services = GetServices(serviceName, servers)
-				
+
 		fin = false
 		interation = 0
 		while not fin:
