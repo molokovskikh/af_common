@@ -233,8 +233,11 @@ def Notify(result as TestResults):
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
 #boo миграции которые используют классы из проекта
 task @TryToBuild:
-	buildTask = Engine.Tasks.FirstOrDefault({t| t.Name == @Build})
-	Execute(@Build) if buildTask
+	projectPath = Path.GetFullPath("src/${Globals.Project}")
+	projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
+	MsBuild(projectFile, "/verbosity:quiet",
+			Target : "build",
+			FrameworkVersion : Globals.FrameworkVersion).Execute()
 
 task @integration, [@TryToBuild, @Migrate]:
 	notInteractive = Configuration.Maybe.notInteractive != null
