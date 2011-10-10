@@ -239,7 +239,7 @@ task @TryToBuild:
 			Target : "build",
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 
-task @integration, [@TryToBuild, @Migrate]:
+task @integration:
 	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
 		Prepare()
