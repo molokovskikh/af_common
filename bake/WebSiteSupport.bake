@@ -7,9 +7,16 @@ projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
 
 def CopyAssets(output as string):
 	return unless Exist("packages")
-	assets = Path.Combine(output, "Assets", "JavaScript")
+
+	assets = Path.Combine(output, "Assets", "Javascripts")
 	javaScripts = FileSet("packages/**/*.min.js")
 	Cp(javaScripts, assets)
+
+	assets = Path.Combine(output, "Assets", "Stylesheets")
+	for dir in Directory.GetDirectories("packages"):
+		path = Path.Combine(dir, "Content", "Content")
+		continue unless Exist(path)
+		Cp(FileSet("**.*", BaseDirectory: path), assets)
 
 task @BuildWebSite, [@CleanWebSite]:
 	MkDir(buildTo) if not Exist(buildTo)
