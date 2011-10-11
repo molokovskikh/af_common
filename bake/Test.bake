@@ -175,11 +175,11 @@ def GetProjects():
 
 task @test, [@RunTests]
 
-task @Prepare:
+task @PrepareBuild:
 	if Exist("build/version.txt"):
 		Engine.Execute("GenerateAssemblyInfo")
 
-task @BuildTests, [@Prepare]:
+task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
 	for project in projects:
 		raise "Сборка проекта $project завершилась ошибкой" unless project.Build()
@@ -231,14 +231,14 @@ def Notify(result as TestResults):
 
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
 #boo миграции которые используют классы из проекта
-task @TryToBuild, [@Prepare]:
+task @TryToBuild, [@PrepareBuild]:
 	projectPath = Path.GetFullPath("src/${Globals.Project}")
 	projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
 	MsBuild(projectFile, "/verbosity:quiet",
 			Target : "build",
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 
-task @integration, [@Prepare]:
+task @integration, [@PrepareBuild]:
 	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
 		projects = GetProjects()
