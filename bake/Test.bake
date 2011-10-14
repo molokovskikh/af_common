@@ -233,10 +233,10 @@ def Notify(result as TestResults):
 #boo миграции которые используют классы из проекта
 task @TryToBuild, [@PrepareBuild]:
 	projectPath = Path.GetFullPath("src/${Globals.Project}")
-	projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
+	projectFile = FileSet("${projectPath}/${Globals.Project}.*proj").Files.First()
 	MsBuild(projectFile, "/verbosity:quiet",
-			Target : "build",
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
+			Target: "build",
+			FrameworkVersion: Globals.FrameworkVersion).Execute()
 
 task @integration, [@PrepareBuild]:
 	notInteractive = Configuration.Maybe.notInteractive != null
