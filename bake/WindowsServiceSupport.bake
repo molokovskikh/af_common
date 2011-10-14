@@ -98,9 +98,8 @@ def GetServers():
 		servers.Add(Globals.Server.ToString())
 	return servers
 
-serviceName = "${project}";
-if Globals.IsDefined("serviceName"):
-	serviceName = Globals.serviceName
+unless serviceName = Globals.Maybe.ServiceName:
+	serviceName = project
 
 _servers = GetServers()
 _rootServer = _servers.First()
