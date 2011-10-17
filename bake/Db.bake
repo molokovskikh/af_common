@@ -10,27 +10,54 @@ import file from Tools.boo
 import file from Db.boo
 import file from LoggingBuilder.boo
 
+class DbProfile:
+	property ImportDbs as (string)
+	property ImportTables as (string)
+
 def PrintCommand(sql as string):
 	print "----------------------------------------"
 	print sql
 	print "----------------------------------------"
 
-Task @MakePricesActual:
+emptyProfile = DbProfile(\
+	ImportTables: ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
+		"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
+		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types")
+)
+
+catalogProfile = DbProfile(\
+	ImportTables: ("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
+		"catalogs.catalognames", "catalogs.descriptions", "catalogs.mnn",
+		"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
+		"catalogs.products", "catalogs.properties",
+		"catalogs.propertyvalues").Concat(emptyProfile.ImportTables).ToArray()
+)
+
+futureProfile = DbProfile(\
+	ImportDbs: ("accessright", "billing", "catalogs",
+		"contacts", "future", "ordersendrules", "usersettings"),
+	ImportTables: ("farm.CostFormRules", "farm.FormRules",
+		"farm.sources", "documents.waybill_sources").Concat(emptyProfile.ImportTables).ToArray()
+)
+
+profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile}
+
+task @MakePricesActual:
 	Db.Execute("""
 update PriceItems
 set PriceDate = now(),
 	LastFormalization = now();
 """)
 
-Task @BuildLogTriggers, [@BuildDeleteTrigger, @BuildUpdateTrigger, @BuildInsertTrigger]
+task @BuildLogTriggers, [@BuildDeleteTrigger, @BuildUpdateTrigger, @BuildInsertTrigger]
 
-Task @SetupLog, [@CreateLogTable, @BuildLogTriggers]
+task @SetupLog, [@CreateLogTable, @BuildLogTriggers]
 
 Desc """
 добавляет в таблицу логов отсутствующие колонки и пересоздает триггеры,
 нужна что бы сделать логи актуальными после внесения изменений в таблицу
 """
-Task @UpdateLog, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
+task @UpdateLog, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
 
 task @UpdateLogTable:
 	sql = GetUpdateLogTableCommand(Configuration.Database, Configuration.Table)
@@ -100,12 +127,36 @@ Task @DumpSchema:
 	password = AskPassword("password:")
 	Sh("mysqldump -hsql2.analit.net -u${user} -p${password} --lock-tables=false --all-databases --events --no-data --routines --triggers > dump.txt")
 
+def ImportSchema(mysqldump as string, mysql as string):
+	excludes = ("mysql", "information_schema", "performance_schema", "test")
+	databases = join(Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
+	Sh("$mysqldump --add-drop-database --databases $databases --events --no-data --routines --triggers > dump.txt")
+	Sh("$mysql < dump.txt")
+
+def ImportDatabases(mysqldump as string, mysql as string, databases as string*):
+	return unless databases
+	for database in databases:
+		Sh("$mysqldump $database > dump.txt")
+		Sh("$mysql -D$database < dump.txt")
+		Rm("dump.txt")
+
+def ImportTables(mysqldump as string, mysql as string, tables as string*):
+	return unless tables
+	for table in tables:
+		database, tableName = table.Split(char('.'))
+		Sh("$mysqldump --tables $database $tableName > dump.txt")
+		Sh("$mysql -D$database < dump.txt")
+		Rm("dump.txt")
+
 desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
 параметры:
 profile - название профиля для загрузки, профиль определяет какие таблицы кроме стандартных
 будут загружены
-значения - catalogs загружается вся база дынных catalogs
+значения:
+empty - только схема и справочные таблицы
+catalogs - загружается вся база дынных catalogs
+future - future, billing, usersettings, catalogs, contacts, ordersendrules и источники из farm и documents
 """
 task @PrepareLocal:
 	sourceDb = "testsql.analit.net"
@@ -113,29 +164,24 @@ task @PrepareLocal:
 	user = "system"
 	password = "newpass"
 
-	excludes = ("mysql", "information_schema", "performance_schema", "test")
-	databases = join(Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
-	Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --add-drop-database --databases $databases --events --no-data --routines --triggers > dump.txt")
-	Sh("mysql -h$destination -uroot < dump.txt")
+	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false"
+	mysql = "mysql -h$destination -uroot"
+
+	ImportSchema(mysqldump, mysql)
 	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
 		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
 		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
 
-	tables = ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
-			"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
-			"farm.sourcetypes", "farm.pricefmts")
-	if Configuration.Maybe.profile == "catalogs":
-		profileTables = ("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
-			"catalogs.catalognames", "catalogs.descriptions", "catalogs.mnn",
-			"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
-			"catalogs.products", "catalogs.properties", "catalogs.propertyvalues")
-		tables = tables.Concat(profileTables).ToArray()
-	for table in tables:
-		#database, table = table.Split(char('.'))
-		database, tableName = table.Split(char('.'))
-		Sh("mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --tables $database $tableName > dump.txt")
-		Sh("mysql -h$destination -uroot -D$database < dump.txt")
-		Rm("dump.txt")
+	unless profileName = Configuration.Maybe.profile:
+		profileName = @empty
+	profile = profiles[profileName]
+
+	unless profile:
+		all = join(profiles.Keys)
+		raise "не знаю что за профиль $profileName, есть $all"
+
+	ImportDatabases(mysqldump, mysql, profile.ImportDbs)
+	ImportTables(mysqldump, mysql, profile.ImportTables)
 
 def ImportLocalDB(backupDBFolder as string):
 	sourceDb = "testsql.analit.net"
