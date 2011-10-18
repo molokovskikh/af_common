@@ -38,6 +38,7 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.woff",
 				"**/*.ttf",
 				"**/*.svg",
+				"**/*.eot",
 				"**/*.coffee",
 				"**/*.zip",
 				"**/*.css",
