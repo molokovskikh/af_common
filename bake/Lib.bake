@@ -1,14 +1,47 @@
 ﻿import System
 import System.IO
-import System.Diagnostics
 import System.Xml.Linq
+import System.Diagnostics
 import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
 import file from Svn.boo
 
+class Library:
+	property Name as string
+	property LibVersion as string
+	property InstallPath as string
+
+	def constructor(name as string):
+		Name = name
+		if Name.Contains("/"):
+			LibVersion = Name[Name.IndexOf("/") + 1:]
+			Name = Name[:Name.IndexOf("/")]
+
+	def RemoveOldVersion():
+		return unless LibVersion
+		path = Path.GetDirectoryName(InstallPath)
+		for dir in Directory.GetDirectories(path):
+			version as Version
+			if Version.TryParse(Path.GetFileName(dir), version):
+				if Version(LibVersion) != version:
+					print "Remove old $Name $version"
+					RmDir(dir, true)
+
 installed = List of string()
 libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
+
+def GetMaxLibVersion(libPath as string):
+	version as string
+	if not Directory.GetFiles(libPath).Length:
+		for d in Directory.GetDirectories(libPath):
+			name = Path.GetFileName(d)
+			currentVersion = Version(name)
+			if not version:
+				version = name
+			elif Version(version) < currentVersion:
+				version = name
+	return version
 
 def InstallLib(lib as string):
 	if lib.Contains(" "):
@@ -18,34 +51,80 @@ def InstallLib(lib as string):
 	if not Exist(libPath):
 		raise "Library ${libPath} not exists"
 
-	if not Directory.GetFiles(libPath).Length:
-		maxDir as string
-		for d in Directory.GetDirectories(libPath):
-			name = Path.GetFileName(d)
-			version = Version(name)
-			if not maxDir:
-				maxDir = name
-			elif Version(maxDir) < version:
-				maxDir = name
-		lib += "/$maxDir"
+	version as string
+	if lib.Contains("/"):
+		version = lib[lib.IndexOf("/") + 1:]
+
+	unless version:
+		version = GetMaxLibVersion(libPath)
+		if version:
+			lib += "/" + version
+
 	libPath = Path.Combine(libRoot, lib)
+	installPath = Path.GetFullPath("lib/$lib")
 
 	if installed.Contains(lib):
 		return
 
-	Cp(FileSet("**.*", BaseDirectory : libPath, Excludes : ["**/.svn/**", "deps"]), "lib", true)
+	Cp(FileSet("**.*", BaseDirectory : libPath, Excludes : ["**/.svn/**", "deps"]), installPath, true)
 	installed.Add(lib)
-	print "Library ${lib} installed into ${Path.GetFullPath('lib')}"
-	if Exist("${libPath}/deps"):
-		deps = System.IO.File.ReadAllLines("${libPath}/deps")
-		for dep in deps:
+	print "Library ${lib} installed into $installPath"
+	Library(lib, InstallPath: installPath).RemoveOldVersion()
+	depFile = "${libPath}/deps"
+	if Exist(depFile):
+		for dep in File.ReadAllLines(depFile):
 			InstallLib(dep)
+
+def ReferencePath(libs as string*):
+	return String.Join(";", libs.Select({l| '$(LibPath)\\' + l}).ToArray())
+
+def BuildLibProperties(filename as string, libPath as string, paths as string*):
+	if Exist(filename):
+		document = XDocument.Load(filename)
+		element = document.Descendants().First({e| e.Name.LocalName == @ReferencePath})
+		libs = paths.Where({p| element.Value.IndexOf(p) < 0})
+		element.Value += ";" + ReferencePath(libs)
+		document.Save(filename)
+	else:
+		xmlNamespace = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003")
+		document = XDocument(XElement(xmlNamespace + @Project,\
+			XElement(xmlNamespace + @PropertyGroup,\
+				XElement(xmlNamespace + @LibPath, libPath),\
+				XElement(xmlNamespace + @ReferencePath, ReferencePath(paths)))))
+		document.Save(filename)
+
+def Import():
+	importPath = "..\\ProjectLib.properties"
+	for dir in Directory.GetDirectories("src"):
+		for file in Directory.GetFiles(dir, "*.*proj"):
+			document = XDocument.Load(file)
+			projectNode = document.Elements().First()
+			importNode = projectNode.Elements().FirstOrDefault({e| e.Name.LocalName == @Import and\
+				e.Attribute(@Project).Value == importPath})
+			unless importNode:
+				importNode = XElement(projectNode.Name.Namespace + @Import,\
+					XAttribute(@Project, importPath),\
+					XAttribute(@Condition, "Exists('$importPath')"))
+				projectNode.AddFirst(importNode)
+				document.Save(file)
+
 desc """
 Устанавливает библиотеку, пример bake lib name=NUnit
 """
 task @lib:
 	lib = Configuration.name
 	InstallLib(lib)
+	paths = installed.Select({l| l.Replace("/", "\\")})
+	BuildLibProperties("src/lib.properties", "..\\..\\..\\lib", paths)
+	BuildLibProperties("src/ProjectLib.properties", "..\\..\\lib", paths)
+	Import()
+
+task @packages:
+	return unless Exist(@packages)
+	paths = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})
+	BuildLibProperties("src/lib.properties", "..\\..\\..", paths)
+	BuildLibProperties("src/ProjectLib.properties", "..\\..", paths)
+	Import()
 
 desc """
 Выводит список доступных библиотек
