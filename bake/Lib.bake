@@ -75,22 +75,27 @@ def InstallLib(lib as string):
 		for dep in File.ReadAllLines(depFile):
 			InstallLib(dep)
 
-def ReferencePath(libs as string*):
-	return String.Join(";", libs.Select({l| '$(LibPath)\\' + l}).ToArray())
+def ReferencePath(prefix as string, libs as string*):
+	return String.Join(";", libs.Select({l| '$(' + prefix + ')\\' + l}).ToArray())
 
-def BuildLibProperties(filename as string, libPath as string, paths as string*):
+def BuildLibProperties(prefix as string, filename as string, libPath as string, paths as string*):
+	xmlNamespace = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003")
 	if Exist(filename):
 		document = XDocument.Load(filename)
 		element = document.Descendants().First({e| e.Name.LocalName == @ReferencePath})
 		libs = paths.Where({p| element.Value.IndexOf(p) < 0})
-		element.Value += ";" + ReferencePath(libs)
+		element.Value += ";" + ReferencePath(prefix, libs)
+
+		unless document.Descendants().FirstOrDefault({e| e.Name.LocalName == prefix}):
+			propertyGroup = document.Descendants().First({e| e.Name.LocalName == @PropertyGroup})
+			propertyGroup.Add(XElement(xmlNamespace + prefix, libPath))
+
 		document.Save(filename)
 	else:
-		xmlNamespace = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003")
 		document = XDocument(XElement(xmlNamespace + @Project,\
 			XElement(xmlNamespace + @PropertyGroup,\
-				XElement(xmlNamespace + @LibPath, libPath),\
-				XElement(xmlNamespace + @ReferencePath, ReferencePath(paths)))))
+				XElement(xmlNamespace + prefix, libPath),\
+				XElement(xmlNamespace + @ReferencePath, ReferencePath(prefix, paths)))))
 		document.Save(filename)
 
 def Import():
@@ -108,6 +113,14 @@ def Import():
 				projectNode.AddFirst(importNode)
 				document.Save(file)
 
+def CheckPlatformSpecificVersion(path as string):
+	preferedVersions = ["net40", "NET40ClientProfile", "net35", "20", "2.0"]
+	specificVersion = preferedVersions.Select({v| Path.Combine(path, v)}).FirstOrDefault({d| Directory.Exists(d)})
+	if specificVersion:
+		return specificVersion
+	else:
+		return path
+
 desc """
 Устанавливает библиотеку, пример bake lib name=NUnit
 """
@@ -115,15 +128,21 @@ task @lib:
 	lib = Configuration.name
 	InstallLib(lib)
 	paths = installed.Select({l| l.Replace("/", "\\")})
-	BuildLibProperties("src/lib.properties", "..\\..\\..\\lib", paths)
-	BuildLibProperties("src/ProjectLib.properties", "..\\..\\lib", paths)
+	BuildLibProperties("LibPath", "src/Lib.properties", "..\\..\\..\\lib", paths)
+	BuildLibProperties("LibPath", "src/ProjectLib.properties", "..\\..\\lib", paths)
 	Import()
 
+desc """
+импортирует библиотки из packages в файлы проектов
+"""
 task @packages:
 	return unless Exist(@packages)
-	paths = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})
-	BuildLibProperties("src/lib.properties", "..\\..\\..", paths)
-	BuildLibProperties("src/ProjectLib.properties", "..\\..", paths)
+
+	libs = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
+		.Select({d| CheckPlatformSpecificVersion(d)})
+
+	BuildLibProperties("PackagePath", "src/Lib.properties", "..\\..\\..", libs)
+	BuildLibProperties("PackagePath", "src/ProjectLib.properties", "..\\..", libs)
 	Import()
 
 desc """
