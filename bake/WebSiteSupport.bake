@@ -46,6 +46,7 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.swf",
 				"**/*.gif",
 				"**/*.png",
+				"**/*.ico",
 				"**/*.jpg",
 				"**/*.js",
 				"**/*.woff",
