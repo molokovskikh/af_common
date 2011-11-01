@@ -10,8 +10,6 @@ def CopyAssets(output as string):
 	return unless Exist("src/Common.Web.UI/Common.Web.Ui/Assets/Content/")
 
 	assets = Path.Combine(output, "Assets", "Javascripts")
-	javaScripts = FileSet("packages/**/*.min.js")
-	Cp(javaScripts, assets) if javaScripts.Files.Count
 	for dir in Directory.GetDirectories("packages"):
 		path = Path.Combine(dir, "Content", "Scripts")
 		continue unless Exist(path)
