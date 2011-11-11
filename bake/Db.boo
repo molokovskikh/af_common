@@ -35,8 +35,15 @@ class Db:
 	def ExecuteSql(sql as string):
 		using connection = MySqlConnection(ConnectionString):
 			connection.Open()
-			command = MySqlCommand(sql, connection)
-			return command.ExecuteNonQuery()
+			transaction = connection.BeginTransaction()
+			try:
+				command = MySqlCommand(sql, connection)
+				result = command.ExecuteNonQuery()
+				transaction.Commit()
+				return result
+			except:
+				transaction.Rollback()
+				raise
 
 	static def Read(sql as string):
 		return Current.ReadSql(sql)

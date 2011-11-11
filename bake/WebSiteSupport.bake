@@ -28,6 +28,7 @@ task @BuildWebSite, [@CleanWebSite]:
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/bin/*.xml")
 	Cp(FileSet(["**/*.as?x",
+				"**/*.svc",
 				"**/*.brail",
 				"**/*.brailjs",
 				"**/*.swf",

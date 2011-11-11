@@ -37,7 +37,7 @@ futureProfile = DbProfile(\
 	ImportDbs: ("accessright", "billing", "catalogs",
 		"contacts", "future", "ordersendrules", "usersettings"),
 	ImportTables: ("farm.CostFormRules", "farm.FormRules",
-		"farm.sources", "documents.waybill_sources").Concat(emptyProfile.ImportTables).ToArray()
+		"farm.sources", "documents.waybill_sources", "logs.authorizationdates").Concat(emptyProfile.ImportTables).ToArray()
 )
 
 profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile}
