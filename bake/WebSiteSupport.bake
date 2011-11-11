@@ -7,27 +7,16 @@ projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
 
 def CopyAssets(output as string):
 	return unless Exist("packages")
-	return unless Exist("src/Common.Web.UI/Common.Web.Ui/Assets/Content/")
 
 	assets = Path.Combine(output, "Assets", "Javascripts")
-	for dir in Directory.GetDirectories("packages"):
-		path = Path.Combine(dir, "Content", "Scripts")
-		continue unless Exist(path)
-		Cp(FileSet("**.*", BaseDirectory: path), assets)
-	javaScripts = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/javascripts/**.*")
+	javaScripts = FileSet("packages/**/*.min.js")
 	Cp(javaScripts, assets) if javaScripts.Files.Count
 
-	assets = Path.Combine(output, "Assets", "images")
-	images = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/images/**.*")
-	Cp(images, assets) if images.Files.Count
-	
 	assets = Path.Combine(output, "Assets", "Stylesheets")
 	for dir in Directory.GetDirectories("packages"):
 		path = Path.Combine(dir, "Content", "Content")
 		continue unless Exist(path)
 		Cp(FileSet("**.*", BaseDirectory: path), assets)
-	styleSheets = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/Stylesheets/**.*")
-	Cp(styleSheets, assets) if styleSheets.Files.Count
 
 task @BuildWebSite, [@CleanWebSite]:
 	MkDir(buildTo) if not Exist(buildTo)
@@ -39,13 +28,11 @@ task @BuildWebSite, [@CleanWebSite]:
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/bin/*.xml")
 	Cp(FileSet(["**/*.as?x",
-				"**/*.svc",
 				"**/*.brail",
 				"**/*.brailjs",
 				"**/*.swf",
 				"**/*.gif",
 				"**/*.png",
-				"**/*.ico",
 				"**/*.jpg",
 				"**/*.js",
 				"**/*.woff",
