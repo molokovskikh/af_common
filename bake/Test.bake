@@ -10,7 +10,7 @@ import System.IO
 import System.Net.Mail
 import Mono.Cecil
 import file from Config.bake
-import file from Svn.boo
+import file from Tools.boo
 
 class Project:
 	_project as string
@@ -199,30 +199,19 @@ task @RunTests, [@TestJs, @BuildTests]:
 
 def GetProjectName():
 	return Path.GetFileName(Environment.CurrentDirectory)
-	//return Uri(SvnTool.Info().XPathSelectElement("//url").Value).Segments[1]
-
-def GetBranchName():
-	return "master"
-	uri = Uri(SvnTool.Info().XPathSelectElement("//url").Value)
-	if uri.Segments[2].ToLower() == "trunk":
-		return uri.Segments[2]
-	else:
-		return uri.Segments[3]
 
 def NotifyError(result as string):
 	project = GetProjectName()
-	branch = GetBranchName()
 	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
-		message.Subject = "Сборка ${project} ветка ${branch}"
+		message.Subject = "Сборка $project"
 		message.Body = result
 		smtpClient = SmtpClient("box.analit.net")
 		smtpClient.Send(message)
 
 def Notify(result as TestResults):
 	project = GetProjectName()
-	branch = GetBranchName()
 	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
-		message.Subject = "Сборка ${project} ветка ${branch}"
+		message.Subject = "Сборка $project"
 		message.Body = result.Body
 		for file in result.Files:
 			message.Attachments.Add(Attachment(file))
@@ -243,6 +232,12 @@ task @integration, [@PrepareBuild]:
 	try:
 		projects = GetProjects()
 		result = TestResults()
+
+		ExecuteProcess("git", "status")
+		log = ExecuteProcess("git", "show HEAD --stat")
+		if log:
+			result.Output(log)
+
 		for project in projects:
 			unless project.Build(notInteractive):
 				NotifyError("Сборка завершилась с ошибкой\r\n" + project.BuildOutput)
