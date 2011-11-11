@@ -45,7 +45,9 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.skin",
 				"**/*.htm",
 				"**/*.sitemap",
-				"**/*.master"],
+				"**/*.master",
+				"**/*.ico",
+				"**/*.svc"],
 				BaseDirectory: projectPath),
 		buildTo, true)
 	Cp("${projectPath}/Web.release.config", "${buildTo}/Web.config")
