@@ -13,6 +13,7 @@ import Ionic.Zip
 import Boo.Lang.Interpreter
 import Boo.Lang.Compiler
 import Boo.Lang.Compiler.TypeSystem.Reflection
+import file from Shell.boo
 
 desc """
 Заменяет TargetFramework во всех проектах на параметер указанный в Version
@@ -154,6 +155,7 @@ task @shell:
 	interpreter.SetValue("bake", Engine)
 	console = InteractiveInterpreterConsole(interpreter)
 	console.Eval("import Boo.Lang.Interpreter.Builtins")
+	Bake.Shell.MakeFuzzi(interpreter, console)
 	console.ReadEvalPrintLoop()
 
 desc """
