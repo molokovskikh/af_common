@@ -45,7 +45,6 @@ class Project:
 			FrameworkVersion : _frameworkVersion,
 			GrubOutput : grubOutput)
 		build.Arguments.Add("/verbosity:minimal")
-		print build.CommandLine
 		try:
 			clean.Execute()
 			build.Execute()
@@ -227,7 +226,11 @@ task @TryToBuild, [@PrepareBuild]:
 			Target: "build",
 			FrameworkVersion: Globals.FrameworkVersion).Execute()
 
-task @integration, [@PrepareBuild]:
+task @TryBeforeTest:
+	if Engine.Tasks.FirstOrDefault({t| t.Name == @BeforeTest}):
+		Engine.Execute(@BeforeTest)
+
+task @integration, [@PrepareBuild, @TryBeforeTest]:
 	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
 		projects = GetProjects()
@@ -274,5 +277,7 @@ desc """
 """
 task @integrate:
 	url = "http://devsrv.adc.analit.net/god/Projects/Build?id=${Globals.Project}"
+	if branch = Configuration.Maybe.branch:
+		url += "&ref=$branch"
 	request = WebRequest.Create(url)
 	request.GetResponse().Dispose()
