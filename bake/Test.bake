@@ -21,9 +21,9 @@ class Project:
 	property BuildOutput as string
 	property TestOutput as string
 
-	def constructor(projectFile as string, project as string, isX86 as bool, frameworkVersion as string):
+	def constructor(projectFile as string, isX86 as bool, frameworkVersion as string):
 		_projectFile = projectFile
-		_project = project
+		_project = Path.GetFileNameWithoutExtension(projectFile)
 		_isX86 = isX86
 		_frameworkVersion = frameworkVersion
 
@@ -159,18 +159,9 @@ frameworkVersion = Globals.FrameworkVersion
 
 def GetProjects():
 	isx86 = Globals.Maybe.platform == "x86" or Globals.Maybe.Platform == "x86"
-	projects = List[of Project]()
-	dirs = Directory.GetDirectories("src")
-	for dir in dirs:
-		project = Path.GetFileName(dir).ToLower()
-		if project.EndsWith(".tests")\
-			or project.EndsWith(".test")\
-			or project == "test"\
-			or project == "functional"\
-			or project == "integration"\
-			or project == "unit":
-			projects.Add(Project(Path.Combine(dir, project) + ".csproj", project, isx86, frameworkVersion))
-	return projects
+	files = FileSet(["src/*Test.*proj", "src/**/*Tests.*proj", "src/**/Functional.*proj",
+		"src/**/Integration.*proj", "src/**/Unit.*proj"]).Files
+	return files.Select({f| Project(f, isx86, frameworkVersion)}).ToList()
 
 task @test, [@RunTests]
 
@@ -219,7 +210,7 @@ def Notify(result as TestResults):
 
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
 #boo миграции которые используют классы из проекта
-task @TryToBuild, [@PrepareBuild]:
+task @TryToBuild, [@PrepareBuild, @TryBeforeTest]:
 	projectPath = Path.GetFullPath("src/${Globals.Project}")
 	projectFile = FileSet("${projectPath}/${Globals.Project}.*proj").Files.First()
 	MsBuild(projectFile, "/verbosity:quiet",
@@ -230,7 +221,7 @@ task @TryBeforeTest:
 	if Engine.Tasks.FirstOrDefault({t| t.Name == @BeforeTest}):
 		Engine.Execute(@BeforeTest)
 
-task @integration, [@PrepareBuild, @TryBeforeTest]:
+task @integration, [@PrepareBuild]:
 	notInteractive = Configuration.Maybe.notInteractive != null
 	try:
 		projects = GetProjects()
