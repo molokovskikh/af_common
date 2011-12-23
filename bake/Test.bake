@@ -59,7 +59,7 @@ class Project:
 		return Test(false)
 
 	def Test(grubOutput as bool):
-		assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "/bin/debug/${_project}.dll")
+		assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/${_project}.dll")
 		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
 		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
 
@@ -226,10 +226,10 @@ task @integration, [@PrepareBuild]:
 	try:
 		projects = GetProjects()
 		result = TestResults()
-
 		ExecuteProcess("git", "status")
 		log = ExecuteProcess("git", "show HEAD --stat")
 		if log:
+			result.Output("")
 			result.Output(log)
 
 		for project in projects:
