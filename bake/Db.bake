@@ -40,7 +40,12 @@ futureProfile = DbProfile(\
 		"farm.sources", "documents.waybill_sources", "logs.authorizationdates").Concat(emptyProfile.ImportTables).ToArray()
 )
 
-profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile}
+coreProfile = DbProfile(\
+	ImportDbs: futureProfile.ImportDbs,
+	ImportTables: ("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr").Concat(futureProfile.ImportTables).ToArray()
+)
+
+profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
