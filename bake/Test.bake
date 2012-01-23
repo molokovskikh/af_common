@@ -265,6 +265,8 @@ task @integration, [@PrepareBuild]:
 
 desc """
 запускает сборку проекта на билд сервере
+опциональный параметр branch - название ветки или номер ревизии
+пример использования bake integrate branch=test
 """
 task @integrate:
 	url = "http://devsrv.adc.analit.net/god/Projects/Build?id=${Globals.Project}"
