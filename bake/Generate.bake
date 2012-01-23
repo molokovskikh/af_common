@@ -29,7 +29,7 @@ task @GenerateJsTest:
 
 	script = testFile unless script
 
-	testFile += ".html" unless Path.GetExtension(testFile)
+	testFile += ".html"
 	testCoffee = Path.ChangeExtension(testFile, ".coffee")
 	testRoot = "test"
 	testCoffee = Path.Combine(testRoot, testCoffee)
