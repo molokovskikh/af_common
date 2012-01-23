@@ -75,6 +75,16 @@ def InstallLib(lib as string):
 		for dep in File.ReadAllLines(depFile):
 			InstallLib(dep)
 
+def IsValidPath(path as string, libPath as string):
+	return true if path.IndexOf("\\packages\\") < 0
+	return false if path.IndexOf("LibPath") >= 0
+	return Exist(path.Replace('$(PackagePath)', libPath))
+
+def CleanUp(value as string, libPath as string):
+	return value unless value
+	paths = value.Split(char(';'))
+	return String.Join(";", paths.Where({p| IsValidPath(p, libPath)}))
+
 def ReferencePath(prefix as string, libs as string*):
 	return String.Join(";", libs.Select({l| '$(' + prefix + ')\\' + l}).ToArray())
 
@@ -83,12 +93,13 @@ def BuildLibProperties(prefix as string, filename as string, libPath as string, 
 	if Exist(filename):
 		document = XDocument.Load(filename)
 		element = document.Descendants().First({e| e.Name.LocalName == @ReferencePath})
-		libs = paths.Where({p| element.Value.IndexOf(p) < 0})
-		element.Value += ";" + ReferencePath(prefix, libs)
+		value = CleanUp(element.Value, libPath)
+		libs = paths.Where({p| value.IndexOf(p) < 0})
+		element.Value = value + ";" + ReferencePath(prefix, libs)
 
 		unless document.Descendants().FirstOrDefault({e| e.Name.LocalName == prefix}):
 			propertyGroup = document.Descendants().First({e| e.Name.LocalName == @PropertyGroup})
-			propertyGroup.Add(XElement(xmlNamespace + prefix, libPath))
+			propertyGroup.AddFirst(XElement(xmlNamespace + prefix, libPath))
 
 		document.Save(filename)
 	else:
