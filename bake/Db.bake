@@ -37,7 +37,7 @@ futureProfile = DbProfile(\
 	ImportDbs: ("accessright", "billing", "catalogs",
 		"contacts", "future", "ordersendrules", "usersettings"),
 	ImportTables: ("farm.CostFormRules", "farm.FormRules",
-		"farm.sources", "documents.waybill_sources", "logs.authorizationdates").Concat(emptyProfile.ImportTables).ToArray()
+		"farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers").Concat(emptyProfile.ImportTables).ToArray()
 )
 
 coreProfile = DbProfile(\
@@ -45,7 +45,13 @@ coreProfile = DbProfile(\
 	ImportTables: ("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr").Concat(futureProfile.ImportTables).ToArray()
 )
 
-profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile}
+InternetProfile = DbProfile(\
+	ImportDbs: ("accessright", "analit", "contacts",
+		"internet", "telephony"),
+	ImportTables : ("logs.internetsessionslogs", "logs.clientendpointinternetlogs").Concat(emptyProfile.ImportTables).ToArray()
+)
+
+profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
