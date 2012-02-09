@@ -183,6 +183,8 @@ task @PrepareLocal:
 
 	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false"
 	mysql = "mysql -h$destination -uroot"
+	port = Globals.Maybe.Port
+	mysql = "$mysql --port=$port" if port
 
 	ImportSchema(mysqldump, mysql)
 	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
