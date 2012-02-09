@@ -51,3 +51,4 @@ task @RunMySql:
 	unless Exist("data/mysql"):
 		InitMySql(datadir, port)
 	Process.Start("mysqld", "--console --standalone --port=$port --datadir=$datadir")
+	Thread.Sleep(2000)
