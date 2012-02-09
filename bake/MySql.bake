@@ -2,6 +2,7 @@ import System
 import System.IO
 import System.Diagnostics
 import System.Linq.Enumerable
+import System.Threading
 
 def Run(exe as string, args as string, input as string):
 	info = ProcessStartInfo(exe, args,
