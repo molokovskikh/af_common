@@ -3,9 +3,6 @@ import System.IO
 import System.Diagnostics
 import System.Linq.Enumerable
 import System.Threading
-import System.Management from "C:\\Program Files (x86)\\Reference Assemblies\\Microsoft\\Framework\\.NETFramework\\v4.0\\System.Management.dll"
-
-import System.Management from "System.Management.dll"
 
 def Run(exe as string, args as string, input as string):
 	info = ProcessStartInfo(exe, args,
@@ -55,6 +52,6 @@ task @RunMySql:
 	unless Exist("data/mysql"):
 		InitMySql(datadir, port)
 	pidFile = Directory.GetFiles(datadir, "*.pid")
-	if pidFile.Lenght == 0:
+	if pidFile.Length == 0:
 		Process.Start("mysqld", "--console --standalone --port=$port --datadir=$datadir")
 		Thread.Sleep(2000)
