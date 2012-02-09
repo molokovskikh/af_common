@@ -47,7 +47,7 @@ def EnvByName(name as string) as string:
 
 	if name.ToLower() == "local":
 		port = Globals.Maybe.Port
-		connectionString = ";port=$port" if port
+		connectionString += ";port=$port" if port
 	Globals.Environments[Globals.Environment] = connectionString
 	connectionString = Globals.Environments[Globals.Environment]
 	return connectionString
