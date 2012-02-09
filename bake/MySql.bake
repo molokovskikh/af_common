@@ -33,8 +33,10 @@ def Run(exe as string, args as string, input as string):
 		raise "Процесс '$exe $args' завершился ошибкой ${process.ExitCode} $error $output"
 
 def InitMySql(datadir, port):
-	MkDir("data")
-	MkDir("data/mysql")
+	dbPath = Path.Combine(datadir, "mysql")
+	return if Exist(dbPath)
+	MkDir(datadir)
+	MkDir(dbPath)
 	mysqlPath = "C:/apps/mysql/"
 	mysqlDir = Directory.GetDirectories(mysqlPath).FirstOrDefault({d| Path.GetFileName(d).StartsWith("mysql")})
 	raise "Не могу найти mysql в папке $mysqlPath" unless mysqlDir
@@ -47,10 +49,11 @@ def InitMySql(datadir, port):
 	Run("mysqld", "--console --standalone --port=$port --datadir=$datadir --bootstrap", initSql)
 
 task @RunMySql:
-	datadir = Path.GetFullPath("data").Replace("\\", "/")
+	dataRoot = "../data"
+	datadir = Path.GetFullPath("$dataRoot/${Globals.Project}").Replace("\\", "/")
+	MkDir(dataRoot) unless Exist(dataRoot)
 	port = Globals.Port
-	unless Exist("data/mysql"):
-		InitMySql(datadir, port)
+	InitMySql(datadir, port)
 	pidFile = Directory.GetFiles(datadir, "*.pid")
 	if pidFile.Length == 0:
 		Process.Start("mysqld", "--console --standalone --port=$port --datadir=$datadir")
