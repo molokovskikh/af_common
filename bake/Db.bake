@@ -140,7 +140,8 @@ Task @DumpSchema:
 
 def ImportSchema(mysqldump as string, mysql as string):
 	excludes = ("mysql", "information_schema", "performance_schema", "test")
-	databases = join(Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
+	db = Db(Globals.Environments[@Development].ToString())
+	databases = join(db.ReadSql("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
 	Sh("$mysqldump --add-drop-database --databases $databases --events --no-data --routines --triggers > dump.txt")
 	Sh("$mysql < dump.txt")
 
