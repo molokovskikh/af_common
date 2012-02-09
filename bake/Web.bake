@@ -3,6 +3,6 @@ import file from Test.bake
 import file from WebSiteSupport.bake
 import file from Migration.bake
 
-task @DeployPipeline, [@Production, @Build, @Backup, @Migrate, @WebDeploy]
+task @DeployPipeline, [@CheckScmChanges, @Production, @Build, @Backup, @Migrate, @WebDeploy, @SendDeployNotification]
 
 task @WebBuild, [@BuildWebSite]

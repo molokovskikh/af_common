@@ -1,0 +1,53 @@
+import System
+import System.IO
+import System.Diagnostics
+import System.Linq.Enumerable
+
+def Run(exe as string, args as string, input as string):
+	info = ProcessStartInfo(exe, args,
+		RedirectStandardError: true,
+		RedirectStandardOutput: true,
+		RedirectStandardInput: true,
+		UseShellExecute: false,
+		CreateNoWindow: true)
+	process = Process.Start(info)
+	process.BeginErrorReadLine()
+	process.BeginOutputReadLine()
+	output = StringWriter()
+	error = StringWriter()
+	process.ErrorDataReceived += {s, a| error.WriteLine(a.Data) }
+	process.OutputDataReceived += {s, a| output.WriteLine(a.Data) }
+	for line in input.Split(char('\n')):
+		process.StandardInput.WriteLine(line)
+	process.StandardInput.Close()
+
+	process.WaitForExit(2*60*1000)
+	unless process.HasExited:
+		try:
+			process.Kill()
+		except e:
+			print "Ошибка при убийстве процесса '$exe $args' $e"
+		raise "Процесс '$exe $args' не завершился за 2 минуты и был убит $error $output"
+	if process.ExitCode != 0:
+		raise "Процесс '$exe $args' завершился ошибкой ${process.ExitCode} $error $output"
+
+def InitMySql(datadir, port):
+	MkDir("data")
+	MkDir("data/mysql")
+	mysqlPath = "C:/apps/mysql/"
+	mysqlDir = Directory.GetDirectories(mysqlPath).FirstOrDefault({d| Path.GetFileName(d).StartsWith("mysql")})
+	raise "Не могу найти mysql в папке $mysqlPath" unless mysqlDir
+	mysqlDir = Path.Combine(mysqlDir, "share")
+	initScriptFiles = ("mysql_system_tables.sql", "mysql_system_tables_data.sql")
+	initSql = "use mysql;"
+	for file in initScriptFiles:
+		initSql += File.ReadAllText(Path.Combine(mysqlDir, file))
+
+	Run("mysqld", "--console --standalone --port=$port --datadir=$datadir --bootstrap", initSql)
+
+task @RunMySql:
+	datadir = Path.GetFullPath("data").Replace("\\", "/")
+	port = Globals.Port
+	unless Exist("data/mysql"):
+		InitMySql(datadir, port)
+	Process.Start("mysqld", "--console --standalone --port=$port --datadir=$datadir")

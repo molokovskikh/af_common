@@ -159,6 +159,11 @@ def ImportTables(mysqldump as string, mysql as string, tables as string*):
 		Sh("$mysql -D$database < dump.txt")
 		Rm("dump.txt")
 
+def ReadEnvVariable(name as string, defaultValue):
+	return Globals[ToPascal(name)] if Globals.IsDefined(ToPascal(name))
+	return Configuration[name] if Configuration.IsDefined(name)
+	return defaultValue
+
 desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
 параметры:
@@ -183,8 +188,7 @@ task @PrepareLocal:
 		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
 		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
 
-	unless profileName = Configuration.Maybe.profile:
-		profileName = @empty
+	profileName = ReadEnvVariable(@profile, @empty)
 	profile = profiles[profileName]
 
 	unless profile:
