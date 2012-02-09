@@ -45,7 +45,7 @@ def EnvByName(name as string) as string:
 		password = AskPassword("password:")
 		connectionString += "password=${password};"
 
-	if name.ToLower() == "local":
+	if name.ToLower() == "local" and not connectionString.Contains("port"):
 		port = Globals.Maybe.Port
 		connectionString += ";port=$port" if port
 	Globals.Environments[Globals.Environment] = connectionString

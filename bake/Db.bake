@@ -185,11 +185,13 @@ task @PrepareLocal:
 	mysql = "mysql -h$destination -uroot"
 	port = Globals.Maybe.Port
 	mysql = "$mysql --port=$port" if port
+	local = Globals.Environments[@Local].ToString()
+	local += ";port=$port" if port and not local.Contains("port")
 
 	ImportSchema(mysqldump, mysql)
-	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
-		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
-		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
+	unless Db(local).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
+		sql = "flush privileges;CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
+		Sh("$mysql --execute=\"$sql\"")
 
 	profileName = ReadEnvVariable(@profile, @empty)
 	profile = profiles[profileName]
