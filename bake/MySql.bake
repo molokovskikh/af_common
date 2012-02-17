@@ -54,7 +54,15 @@ task @RunMySql:
 	MkDir(dataRoot) unless Exist(dataRoot)
 	port = Globals.Port
 	InitMySql(datadir, port)
+
 	pidFile = Directory.GetFiles(datadir, "*.pid")
-	if pidFile.Length == 0:
+	mysqlProcess as Process
+	if pidFile.Length:
+		text = File.ReadAllText(pidFile[0])
+		pid = 0
+		if text and int.TryParse(text, pid):
+			mysqlProcess = Process.GetProcesses().FirstOrDefault({p| p.Id == pid})
+
+	unless mysqlProcess:
 		Process.Start("mysqld", "--console --standalone --port=$port --datadir=$datadir")
 		Thread.Sleep(2000)
