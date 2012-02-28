@@ -105,6 +105,8 @@ _servers = GetServers()
 _rootServer = _servers.First()
 Globals.deployTo = "\\\\$_rootServer\\$project"
 
+task @ServiceDeployPipeline, [@CheckScmChanges, @BuildService, @StopServices, @Production, @Migrate, @Backup, @SimpleDeployService, @SendDeployNotification]
+
 task @BuildService, [@CleanService]:
 	MsBuild(projectFile,
 			Target : "build",
@@ -171,7 +173,6 @@ task @DeployService, [@BuildService]:
 
 		StartServices(services)
 
-
 task @SimpleDeployService:
 	servers = GetServers()
 	rootServer = servers.First()
@@ -197,6 +198,3 @@ task @SimpleDeployService:
 				System.Threading.Thread.Sleep(100)
 
 		StartServices(services)
-
-
-
