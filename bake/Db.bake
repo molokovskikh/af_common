@@ -166,8 +166,8 @@ def ImportTables(mysqldump as string, mysql as string, tables as string*):
 		Rm("dump.txt")
 
 def ReadEnvVariable(name as string, defaultValue):
-	return Globals[ToPascal(name)] if Globals.IsDefined(ToPascal(name))
 	return Configuration[name] if Configuration.IsDefined(name)
+	return Globals[ToPascal(name)] if Globals.IsDefined(ToPascal(name))
 	return defaultValue
 
 desc """
