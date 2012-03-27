@@ -1,3 +1,5 @@
+import System
+import System.IO
 import Boo.Lang.Compiler
 import Boo.Lang.Interpreter
 import Boo.Lang.Compiler.TypeSystem.Reflection
@@ -38,6 +40,9 @@ task @DbShell, [@LoadProject, @InitActiveRecord]:
 	interpreter = InteractiveInterpreter()
 	interpreter.SetValue("scope", SessionScope())
 	console = InteractiveInterpreterConsole(interpreter)
+	shellFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Shell.boo")
+	text = File.ReadAllText(shellFile)
+	console.Eval(text)
 	console.Eval("import Boo.Lang.Interpreter.Builtins")
 	console.Eval("import ${Globals.Project}.Models")
 	console.ReadEvalPrintLoop()

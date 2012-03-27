@@ -67,7 +67,10 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.svc"],
 				BaseDirectory: projectPath),
 		buildTo, true)
-	Cp("${projectPath}/Web.release.config", "${buildTo}/Web.config")
+	config = "Web.release.config"
+	if Globals.Environment == @Test:
+		config = "Web.test.config"
+	Cp("$projectPath/$config", "${buildTo}/Web.config")
 	CopyAssets(buildTo)
 
 task @CleanWebSite:
