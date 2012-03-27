@@ -70,7 +70,9 @@ class Migration:
 
 	def DoRollback():
 		id = GetId()
-		sql = File.ReadAllText(GetRollbackFile())
+		filename = GetRollbackFile()
+		return unless Exist(filename)
+		sql = File.ReadAllText(filename)
 		print "Rollback $id"
 		print "------------------------------------------------------------"
 		print sql
@@ -512,17 +514,11 @@ task @CreateLogMigration, [@OnlyInProject]:
 	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
 	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
 
-desc """
-создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake AlterProcedure Db=Future Procedure=GetPrices
-"""
-task @AlterProcedure:
-	db = Configuration.Db
-	procedure = Configuration.Procedure
-	text = Db.Read("SHOW CREATE PROCEDURE $db.$procedure").First()["Create Procedure"]
-	text = text.Replace("PROCEDURE ", "PROCEDURE $db.")
+def AlterRoutnie(type as string, db as string, name as string):
+	text = Db.Read("SHOW CREATE $type $db.$name").First()["Create $type"]
+	text = text.Replace("$type ", "$type $db.")
 	migration = Migration()
-	drop = "drop procedure $db.$procedure"
+	drop = "DROP $type $db.$name"
 	migration.Commands.Add(drop)
 	migration.Commands.Add(text)
 	migration.Rollback.Add(drop)
@@ -530,12 +526,46 @@ task @AlterProcedure:
 	ProcessMigration(migration)
 
 desc """
+создает миграцию и миграцию отката для безопасного удаления таблицы, она переименуется в
+_<таблица> что бы потом когда станет понятно что ничего не сломалось
+ее можно было удалить
+пример bake SafeDropTable Db=Usersettings Name=Clientsdata
+"""
+task @SafeDropTable:
+	db = Configuration.Db
+	name = Configuration.Name
+	migration = Migration()
+	migration.Commands.Add("rename table $db.$name to $db._$name")
+	migration.Rollback.Add("rename table $db._$name to $db.$name")
+	ProcessMigration(migration)
+
+desc """
+создает миграцию и миграцию отката с текстом указанной хранимой процедуры
+пример bake AlterProcedure Db=Future Name=GetPrices
+"""
+task @AlterProcedure:
+	db = Configuration.Db
+	name = Configuration.Name
+	type = "PROCEDURE"
+	AlterRoutnie(type, db, name)
+
+desc """
+создает миграцию и миграцию отката с текстом указанной хранимой процедуры
+пример bake AlterFunction Db=Future Name=GetPrices
+"""
+task @AlterFunction:
+	db = Configuration.Db
+	name = Configuration.Name
+	type = "FUNCTION"
+	AlterRoutnie(type, db, name)
+
+desc """
 создает миграцию и миграцию отката с текстом указанного триггера
-пример bake AlterTrigger Db=Future Trigger=IntersectionAfterInsert
+пример bake AlterTrigger Db=Future Name=IntersectionAfterInsert
 """
 task @AlterTrigger:
 	db = Configuration.Db
-	trigger = Configuration.Trigger
+	trigger = Configuration.Name
 	text = Db.Read("show create trigger $db.$trigger").First()["SQL Original Statement"]
 	text = text.Replace("TRIGGER $trigger", "TRIGGER $db.$trigger")
 	drop = "drop trigger $db.$trigger"
