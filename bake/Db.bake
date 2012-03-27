@@ -141,7 +141,8 @@ desc """
 Task @DumpSchema:
 	user = Ask("user:")
 	password = AskPassword("password:")
-	Sh("mysqldump -hsql2.analit.net -u${user} -p${password} --lock-tables=false --all-databases --events --no-data --routines --triggers > dump.txt")
+	host = Ask("host:")
+	Sh("mysqldump -h$host -u$user -p$password --lock-tables=false --all-databases --events --no-data --routines --triggers > dump.txt")
 
 def ImportSchema(mysqldump as string, mysql as string):
 	excludes = ("mysql", "information_schema", "performance_schema", "test")
@@ -188,10 +189,11 @@ task @PrepareLocal:
 
 	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false"
 	mysql = "mysql -h$destination -uroot"
-	port = Globals.Maybe.Port
-	mysql = "$mysql --port=$port" if port
 	local = Globals.Environments[@Local].ToString()
-	local += ";port=$port" if port and not local.Contains("port")
+	if Environment.MachineName.ToLower() == "devsrv":
+		port = Globals.Maybe.Port
+		mysql = "$mysql --port=$port" if port
+		local += ";port=$port" if port and not local.Contains("port")
 
 	ImportSchema(mysqldump, mysql)
 	unless Db(local).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
