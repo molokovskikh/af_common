@@ -15,8 +15,8 @@ def UnderSourceControl(path as string):
 	filename = Path.GetFileName(path)
 	return false if not Exist(dir)
 	output = ExecuteProcess("git", "ls-files", dir)
-	lines = output.Split(char('\n'))
-	return lines.Any({l| l.ToLower() == path.ToLower()})
+	lines = output.Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
+	return lines.Any({l| l.ToLower().Trim() == filename.ToLower()})
 
 def GetProjects():
 	for dir in Directory.GetDirectories("src"):
