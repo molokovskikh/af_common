@@ -182,7 +182,7 @@ profile - название профиля для загрузки, профил�
 значения:
 empty - только схема и справочные таблицы
 catalogs - загружается вся база дынных catalogs
-future - future, billing, usersettings, catalogs, contacts, ordersendrules и источники из farm и documents
+customers - customers, billing, usersettings, catalogs, contacts, ordersendrules и источники из farm и documents
 """
 task @PrepareLocal:
 	sourceDb = "testsql.analit.net"
