@@ -237,13 +237,13 @@ def ImportLocalDB(backupDBFolder as string):
 	#print "tableFiles = ${join(tableFiles)}"
 	#print "dbFiles = ${join(dbFiles)}"
 
+	print "Импортирование схемы БД"
+	Sh("mysql -h$destination -uroot < ${structFile}")
+
 	#Создаем пользователя RootDBMS, если он не существует
 	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
 		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
 		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
-
-	print "Импортирование схемы БД"
-	Sh("mysql -h$destination -uroot < ${structFile}")
 
 	tablesCount = tableFiles.Length
 	for i, tableFileName in enumerate(tableFiles):
@@ -291,7 +291,7 @@ task @PrepareLocalForPrgData:
 	#список db, для которых не будут экспортироваться данные в таблицах
 	excludesDataDB = ("documents", "orders", "logs", "redmine", "im", "telephony", "reports")
 
-	databases = Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
+	databases = Db(Globals.Environments[@Development].ToString()).Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
 	#print "databases for struct = ${join(databases)}"
 
 	print "Экспорт схемы БД"
