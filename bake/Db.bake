@@ -11,8 +11,21 @@ import file from Db.boo
 import file from LoggingBuilder.boo
 
 class DbProfile:
-	property ImportDbs as (string)
-	property ImportTables as (string)
+	property ImportDbs as (string) = (,)
+	property ImportTables as (string) = (,)
+	
+	def constructor():
+		pass
+		
+	def constructor(profile as DbProfile):
+		Tables(profile.ImportTables)
+		Dbs(profile.ImportDbs)
+	
+	def Tables(names as string*):
+		ImportTables = ImportTables.Concat(names).ToArray()
+	
+	def Dbs(names as string*):
+		ImportDbs = ImportDbs.Concat(names).ToArray()
 
 def PrintCommand(sql as string):
 	print "----------------------------------------"
@@ -25,38 +38,28 @@ emptyProfile = DbProfile(\
 		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types")
 )
 
-catalogProfile = DbProfile(\
-	ImportTables: ("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
+catalogProfile = DbProfile(emptyProfile)
+catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
 		"catalogs.catalognames", "catalogs.descriptions", "catalogs.mnn",
 		"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
 		"catalogs.products", "catalogs.properties",
-		"catalogs.propertyvalues").Concat(emptyProfile.ImportTables).ToArray()
-)
+		"catalogs.propertyvalues"))
 
-futureProfile = DbProfile(\
-	ImportDbs: ("accessright", "billing", "catalogs",
-		"contacts", "future", "ordersendrules", "usersettings"),
-	ImportTables: ("farm.CostFormRules", "farm.FormRules",
-		"farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers").Concat(emptyProfile.ImportTables).ToArray()
-)
+customersProfile = DbProfile(emptyProfile)
+customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "customers", "ordersendrules", "usersettings"))
+customersProfile.Tables(("farm.CostFormRules", "farm.FormRules", "farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers"))
 
-reportsProfile = DbProfile(\
-	ImportDbs: futureProfile.ImportDbs,
-	ImportTables: ("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes").Concat(futureProfile.ImportTables).ToArray()
-)
+reportsProfile = DbProfile(customersProfile)
+reportsProfile.Tables(("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes"))
 
-coreProfile = DbProfile(\
-	ImportDbs: futureProfile.ImportDbs,
-	ImportTables: ("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr").Concat(futureProfile.ImportTables).ToArray()
-)
+coreProfile = DbProfile(customersProfile)
+coreProfile.Tables(("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr"))
 
-InternetProfile = DbProfile(\
-	ImportDbs: ("accessright", "analit", "contacts",
-		"internet", "telephony"),
-	ImportTables : ("logs.internetsessionslogs", "logs.clientendpointinternetlogs").Concat(emptyProfile.ImportTables).ToArray()
-)
+InternetProfile = DbProfile(emptyProfile)
+InternetProfile.Dbs(("accessright", "analit", "contacts", "internet", "telephony"))
+InternetProfile.Tables(("logs.internetsessionslogs", "logs.clientendpointinternetlogs"))
 
-profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile, @reports: reportsProfile}
+profiles = {@empty: emptyProfile, @customers: customersProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile, @reports: reportsProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
