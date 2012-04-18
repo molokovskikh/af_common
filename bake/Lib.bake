@@ -109,6 +109,24 @@ def BuildLibProperties(prefix as string, filename as string, libPath as string, 
 				XElement(xmlNamespace + @ReferencePath, ReferencePath(prefix, paths)))))
 		document.Save(filename)
 
+def SetValue(filename as string, name as string, value as string):
+	xmlNamespace = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003")
+	if Exist(filename):
+		document = XDocument.Load(filename)
+		element = document.Descendants().FirstOrDefault({e| e.Name.LocalName == name})
+		if element:
+			element.Value = value
+		else:
+			propertyGroup = document.Descendants().First({e| e.Name.LocalName == @PropertyGroup})
+			propertyGroup.AddFirst(XElement(xmlNamespace + name, value))
+
+		document.Save(filename)
+	else:
+		document = XDocument(XElement(xmlNamespace + @Project,\
+			XElement(xmlNamespace + @PropertyGroup,\
+				XElement(xmlNamespace + name, value))))
+		document.Save(filename)
+
 def Import():
 	importPath = "..\\ProjectLib.properties"
 	for dir in Directory.GetDirectories("src"):
@@ -125,12 +143,19 @@ def Import():
 				document.Save(file)
 
 def CheckPlatformSpecificVersion(path as string):
-	preferedVersions = ["net40", "NET40ClientProfile", "net35", "20", "2.0"]
+	preferedVersions = ["net40", "NET40ClientProfile", "net35", "20", "2.0", "net"]
 	specificVersion = preferedVersions.Select({v| Path.Combine(path, v)}).FirstOrDefault({d| Directory.Exists(d)})
 	if specificVersion:
 		return specificVersion
 	else:
 		return path
+
+def GetLibPath(dir as string):
+	subdirs = Directory.GetDirectories(dir)
+	return dir if subdirs.Length == 0 or subdirs.Length > 1
+	version as Version
+	return subdirs[0] if version.TryParse(Path.GetFileName(subdirs[0]), version)
+	return dir
 
 desc """
 Устанавливает библиотеку, пример bake lib name=NUnit
@@ -149,11 +174,23 @@ desc """
 task @packages:
 	return unless Exist(@packages)
 
-	libs = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
-		.Select({d| CheckPlatformSpecificVersion(d)})
-
-	BuildLibProperties("PackagePath", "src/Lib.properties", "..\\..\\..", libs)
-	BuildLibProperties("PackagePath", "src/ProjectLib.properties", "..\\..", libs)
+	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
+		.Select({d| CheckPlatformSpecificVersion(d)})\
+		.Select({d| '$(PackagePath)\\' + d})
+	libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
+		.Select({d| GetLibPath(d)})\
+		.Select({d| '$(LibPath)\\' + d})
+	
+	paths = String.Join(";", packages.Concat(libs).ToArray())
+		
+	SetValue("src/Lib.properties", "PackagePath", "..\\..\\..")
+	SetValue("src/Lib.properties", "LibPath", "..\\..\\..")
+	SetValue("src/Lib.properties", "ReferencePath", paths)
+	
+	SetValue("src/ProjectLib.properties", "PackagePath", "..\\..")
+	SetValue("src/ProjectLib.properties", "LibPath", "..\\..")
+	SetValue("src/ProjectLib.properties", "ReferencePath", paths)
+	
 	Import()
 
 desc """
