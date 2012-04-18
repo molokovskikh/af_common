@@ -35,7 +35,11 @@ def PrintCommand(sql as string):
 emptyProfile = DbProfile(\
 	ImportTables: ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
 		"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
-		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types")
+		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types",
+		"internet.AccessCategories",
+		"internet.categoriesaccessset",
+		"internet.usercategories",
+		"internet.status")
 )
 
 catalogProfile = DbProfile(emptyProfile)
