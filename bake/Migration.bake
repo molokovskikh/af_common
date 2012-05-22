@@ -304,14 +304,29 @@ def GetMigrations():
 
 def ProcessMigration(migration as Migration):
 	migration.Print()
-	migration.FileName = GetMigrationFileNameByRequest()
-	Console.Write("what should I do [s]ave migration or [a]ply and save?")
+	if Configuration.Maybe.file:
+		migration.FileName = GetMigrationFileName(Configuration.Maybe.file)
+	else:
+		migration.FileName = GetMigrationFileNameByRequest()
+
+	quiet = false
+	if Configuration.Maybe.quiet:
+		quiet = Configuration.Maybe.quiet
+
+	if quiet:
+		migration.Save()
+		return
+
+	Console.Write("what should I do [s]ave migration, [a]ply and save or [e]dit?")
 	match Console.ReadLine():
 		case "a":
 			migration.Save()
 			Apply(migration.FileName)
 		case "s":
 			migration.Save()
+		case "e":
+			migration.Save()
+			Process.Start(Globals.Editor, migration.FileName)
 		otherwise:
 			return
 
@@ -367,7 +382,7 @@ task @New:
 		StartEditor(filename)
 	else:
 		SvnTool.Update()
-		id = GetMigrations().Where({m|m =~ /^\d+$/}).Select({m| Convert.ToInt32(m)}).Max() + 1
+		id = GetMigrations().Where({m|m =~ /^\d+$/}).Select({m| Convert.ToInt32(m)}).DefaultIfEmpty().Max() + 1
 		migration = "${id}.sql"
 		File.WriteAllText(migration, "")
 		SvnTool.Command("add ${migration}")
@@ -557,6 +572,16 @@ task @AlterFunction:
 	db = Configuration.Db
 	name = Configuration.Name
 	type = "FUNCTION"
+	AlterRoutnie(type, db, name)
+
+desc """
+создает миграцию и миграцию отката с текстом указанной хранимой процедуры
+пример bake AlterFunction Db=Future Name=GetPrices
+"""
+task @AlterEvent:
+	db = Configuration.Db
+	name = Configuration.Name
+	type = "EVENT"
 	AlterRoutnie(type, db, name)
 
 desc """

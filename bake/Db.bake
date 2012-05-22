@@ -11,8 +11,21 @@ import file from Db.boo
 import file from LoggingBuilder.boo
 
 class DbProfile:
-	property ImportDbs as (string)
-	property ImportTables as (string)
+	property ImportDbs as (string) = (,)
+	property ImportTables as (string) = (,)
+	
+	def constructor():
+		pass
+		
+	def constructor(profile as DbProfile):
+		Tables(profile.ImportTables)
+		Dbs(profile.ImportDbs)
+	
+	def Tables(names as string*):
+		ImportTables = ImportTables.Concat(names).ToArray()
+	
+	def Dbs(names as string*):
+		ImportDbs = ImportDbs.Concat(names).ToArray()
 
 def PrintCommand(sql as string):
 	print "----------------------------------------"
@@ -22,16 +35,19 @@ def PrintCommand(sql as string):
 emptyProfile = DbProfile(\
 	ImportTables: ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
 		"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
-		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types")
+		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types",
+		"internet.AccessCategories",
+		"internet.categoriesaccessset",
+		"internet.usercategories",
+		"internet.status")
 )
 
-catalogProfile = DbProfile(\
-	ImportTables: ("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
+catalogProfile = DbProfile(emptyProfile)
+catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.catalogforms",
 		"catalogs.catalognames", "catalogs.descriptions", "catalogs.mnn",
 		"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
 		"catalogs.products", "catalogs.properties",
-		"catalogs.propertyvalues").Concat(emptyProfile.ImportTables).ToArray()
-)
+		"catalogs.propertyvalues"))
 
 futureProfile = DbProfile(\
 	ImportDbs: ("accessright", "billing", "catalogs",
@@ -40,15 +56,15 @@ futureProfile = DbProfile(\
 		"farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers").Concat(emptyProfile.ImportTables).ToArray()
 )
 
-reportsProfile = DbProfile(\
-	ImportDbs: futureProfile.ImportDbs,
-	ImportTables: ("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes").Concat(futureProfile.ImportTables).ToArray()
-)
+customersProfile = DbProfile(emptyProfile)
+customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "customers", "ordersendrules", "usersettings"))
+customersProfile.Tables(("farm.CostFormRules", "farm.FormRules", "farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers"))
 
-coreProfile = DbProfile(\
-	ImportDbs: futureProfile.ImportDbs,
-	ImportTables: ("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr").Concat(futureProfile.ImportTables).ToArray()
-)
+reportsProfile = DbProfile(customersProfile)
+reportsProfile.Tables(("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes"))
+
+coreProfile = DbProfile(customersProfile)
+coreProfile.Tables(("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr"))
 
 drugsProfile = DbProfile(
 	ImportDbs: futureProfile.ImportDbs,
@@ -61,7 +77,7 @@ InternetProfile = DbProfile(\
 	ImportTables : ("logs.internetsessionslogs", "logs.clientendpointinternetlogs").Concat(emptyProfile.ImportTables).ToArray()
 )
 
-profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile, @reports: reportsProfile, @drug: drugsProfile}
+profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile, @reports: reportsProfile, @drug: drugsProfile, @customers: customersProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
@@ -184,7 +200,7 @@ profile - название профиля для загрузки, профил�
 значения:
 empty - только схема и справочные таблицы
 catalogs - загружается вся база дынных catalogs
-future - future, billing, usersettings, catalogs, contacts, ordersendrules и источники из farm и documents
+customers - customers, billing, usersettings, catalogs, contacts, ordersendrules и источники из farm и documents
 """
 task @PrepareLocal:
 	sourceDb = "testsql.analit.net"
@@ -239,13 +255,13 @@ def ImportLocalDB(backupDBFolder as string):
 	#print "tableFiles = ${join(tableFiles)}"
 	#print "dbFiles = ${join(dbFiles)}"
 
+	print "Импортирование схемы БД"
+	Sh("mysql -h$destination -uroot < ${structFile}")
+
 	#Создаем пользователя RootDBMS, если он не существует
 	unless Db(Globals.Environments[@Local].ToString()).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
 		sql = "CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
 		Sh("mysql --execute=\"$sql\" -h$destination -uroot")
-
-	print "Импортирование схемы БД"
-	Sh("mysql -h$destination -uroot < ${structFile}")
 
 	tablesCount = tableFiles.Length
 	for i, tableFileName in enumerate(tableFiles):
@@ -293,7 +309,7 @@ task @PrepareLocalForPrgData:
 	#список db, для которых не будут экспортироваться данные в таблицах
 	excludesDataDB = ("documents", "orders", "logs", "redmine", "im", "telephony", "reports")
 
-	databases = Db.Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
+	databases = Db(Globals.Environments[@Development].ToString()).Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
 	#print "databases for struct = ${join(databases)}"
 
 	print "Экспорт схемы БД"
