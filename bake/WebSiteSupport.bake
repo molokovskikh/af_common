@@ -64,6 +64,7 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.sitemap",
 				"**/*.master",
 				"**/*.ico",
+				"**/*.odt",
 				"**/*.svc"],
 				BaseDirectory: projectPath),
 		buildTo, true)

@@ -35,7 +35,7 @@ catalogProfile = DbProfile(\
 
 futureProfile = DbProfile(\
 	ImportDbs: ("accessright", "billing", "catalogs",
-		"contacts", "future", "ordersendrules", "usersettings"),
+		"contacts", "customers", "ordersendrules", "usersettings"),
 	ImportTables: ("farm.CostFormRules", "farm.FormRules",
 		"farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers").Concat(emptyProfile.ImportTables).ToArray()
 )
@@ -50,13 +50,18 @@ coreProfile = DbProfile(\
 	ImportTables: ("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr").Concat(futureProfile.ImportTables).ToArray()
 )
 
+drugsProfile = DbProfile(
+	ImportDbs: futureProfile.ImportDbs,
+	ImportTables: catalogProfile.ImportTables.Concat(futureProfile.ImportTables).Concat(coreProfile.ImportTables).ToArray()
+)
+
 InternetProfile = DbProfile(\
 	ImportDbs: ("accessright", "analit", "contacts",
 		"internet", "telephony"),
 	ImportTables : ("logs.internetsessionslogs", "logs.clientendpointinternetlogs").Concat(emptyProfile.ImportTables).ToArray()
 )
 
-profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile, @reports: reportsProfile}
+profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile, @reports: reportsProfile, @drug: drugsProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
