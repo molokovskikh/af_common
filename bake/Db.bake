@@ -39,7 +39,8 @@ emptyProfile = DbProfile(\
 		"internet.AccessCategories",
 		"internet.categoriesaccessset",
 		"internet.usercategories",
-		"internet.status")
+		"internet.status",
+		"internet.AdditionalStatus")
 )
 
 catalogProfile = DbProfile(emptyProfile)
