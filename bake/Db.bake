@@ -194,6 +194,11 @@ def ReadEnvVariable(name as string, defaultValue):
 	return defaultValue
 
 desc """
+Вызывает PrepareLocal затем Migrate
+"""
+task @CleanDb, [@PrepareLocal, @Migrate]
+
+desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
 параметры:
 profile - название профиля для загрузки, профиль определяет какие таблицы кроме стандартных
