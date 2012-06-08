@@ -36,7 +36,7 @@ def GetLogTableName(table as string):
 	table = ToPascal(table)
 	singulized = Inflector.Singularize(table)
 	singulized = table unless singulized
-	return singulized + "InternetLogs"
+	return singulized + "Logs"
 
 def GetTableFields(db as string, table as string, getLine as Func[of duck, string, string]):
 	fields = Boo.Lang.List()
