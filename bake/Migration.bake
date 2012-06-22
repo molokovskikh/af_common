@@ -462,6 +462,8 @@ task @GenerateMigration, [@OnlyInProject]:
 
 	metadata = DatabaseMetadata(connection, dialect)
 	migration = Migration()
+	foreignKeyAlter = List[of string]()
+	foreignKeyRollback = List[of string]()
 	for table in configuration.CreateMappings(dialect).IterateTables:
 		if table.SchemaActions == SchemaAction.None:
 			continue
@@ -483,10 +485,12 @@ task @GenerateMigration, [@OnlyInProject]:
 			for key in table.ForeignKeyIterator:
 				columns = String.Join("_", key.Columns.Select({c| c.Name}).ToArray())
 				key.Name = "FK_${table.Schema}_$(key.Table.Name)_$columns"
-				migration.Commands.Add(key.SqlCreateString(dialect, mapping, null, null));
+				foreignKeyAlter.Add(key.SqlCreateString(dialect, mapping, null, null));
+				migration.Rollback.Insert(0, "alter table ${table.Schema}.${table.Name} drop foreign key ${key.Name}")
 
 			migration.Rollback.Add("drop table if exists ${table.Schema}.${table.Name}")
 
+	migration.Commands.AddRange(foreignKeyAlter)
 	if migration.IsEmpty:
 		raise "no changes find"
 
