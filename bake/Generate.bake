@@ -54,5 +54,6 @@ task @GenerateJsTest:
 	scripts = scripts.Where({s| s.Path != null}).ToArray()
 
 	parameters ={@project: project, @test: test, @scripts: scripts}
+	MkDir("test") unless Exist("test")
 	GenerateFile("CoffeeTest.html", testFile, parameters)
 	GenerateFile("CoffeeTest.coffee", testCoffee, parameters)

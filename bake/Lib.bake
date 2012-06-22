@@ -3,6 +3,7 @@ import System.IO
 import System.Xml.Linq
 import System.Diagnostics
 import System.Xml.XPath.Extensions
+import System.Xml.Serialization from System.XML
 import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
 import file from Svn.boo
@@ -28,8 +29,42 @@ class Library:
 					print "Remove old $Name $version"
 					RmDir(dir, true)
 
-installed = List of string()
+[XmlRoot(Namespace: "http://schemas.microsoft.com/developer/msbuild/2003")]
+class Project:
+	property PropertyGroup as PropertyGroup
+
+class PropertyGroup:
+	property LibPath as string
+	property PackagePath as string
+	property ReferencePath as string
+
 libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
+
+def ParseFromPackageName(dir as string):
+	name = Path.GetFileName(dir)
+	match = /(\.\d+){2,4}$/.Match(name)
+	return null unless match.Success
+	return /(\.\d+){2,4}$/.Replace(name, /^\./.Replace(match.Value, "/"))
+
+def ParseFromLib(dir as string):
+	posibleVersion = Directory.GetDirectories(dir).FirstOrDefault()
+	versionValue as Version
+	return null unless Version.TryParse(posibleVersion, versionValue)
+	name = Path.GetFileName(dir)
+	version = posibleVersion
+	return "$name/$version"
+
+def ReadInstalled():
+	libs = List of string()
+	if Exist("packages"):
+		libs.AddRange(Directory.GetDirectories("packages")\
+			.Select({d| ParseFromPackageName(d)})\
+			.Where({d| d is not null}))
+	if Exist("lib"):
+		libs.AddRange(Directory.GetDirectories("lib")\
+			.Select({d| ParseFromPackageName(d)})\
+			.Where({d| d is not null}))
+	return libs
 
 def GetMaxLibVersion(libPath as string):
 	version as string
@@ -43,7 +78,7 @@ def GetMaxLibVersion(libPath as string):
 				version = name
 	return version
 
-def InstallLib(lib as string):
+def InstallLib(lib as string, installed as List of string):
 	if lib.Contains(" "):
 		lib = lib.Replace(" ", "/")
 
@@ -73,7 +108,7 @@ def InstallLib(lib as string):
 	depFile = "${libPath}/deps"
 	if Exist(depFile):
 		for dep in File.ReadAllLines(depFile):
-			InstallLib(dep)
+			InstallLib(dep, installed)
 
 def IsValidPath(path as string, libPath as string):
 	return true if path.IndexOf("\\packages\\") < 0
@@ -109,24 +144,6 @@ def BuildLibProperties(prefix as string, filename as string, libPath as string, 
 				XElement(xmlNamespace + @ReferencePath, ReferencePath(prefix, paths)))))
 		document.Save(filename)
 
-def SetValue(filename as string, name as string, value as string):
-	xmlNamespace = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003")
-	if Exist(filename):
-		document = XDocument.Load(filename)
-		element = document.Descendants().FirstOrDefault({e| e.Name.LocalName == name})
-		if element:
-			element.Value = value
-		else:
-			propertyGroup = document.Descendants().First({e| e.Name.LocalName == @PropertyGroup})
-			propertyGroup.Add(XElement(xmlNamespace + name, value))
-
-		document.Save(filename)
-	else:
-		document = XDocument(XElement(xmlNamespace + @Project,\
-			XElement(xmlNamespace + @PropertyGroup,\
-				XElement(xmlNamespace + name, value))))
-		document.Save(filename)
-
 def Import():
 	importPath = "..\\ProjectLib.properties"
 	for dir in Directory.GetDirectories("src"):
@@ -157,12 +174,23 @@ def GetLibPath(dir as string):
 	return subdirs[0] if version.TryParse(Path.GetFileName(subdirs[0]), version)
 	return dir
 
+def Save(paths as string, path as string, filename as string):
+	serializer = XmlSerializer(Project)
+	using stream = File.OpenRead(filename):
+		libProperties = cast(Project, serializer.Deserialize(stream))
+	libProperties.PropertyGroup.LibPath = path
+	libProperties.PropertyGroup.PackagePath = path
+	libProperties.PropertyGroup.ReferencePath = paths
+	using stream = File.OpenWrite(filename):
+		serializer.Serialize(stream, libProperties)
+
 desc """
 Устанавливает библиотеку, пример bake lib name=NUnit
 """
 task @lib:
 	lib = Configuration.name
-	InstallLib(lib)
+	installed = ReadInstalled()
+	InstallLib(lib, installed)
 	paths = installed.Select({l| l.Replace("/", "\\")})
 	BuildLibProperties("LibPath", "src/Lib.properties", "..\\..\\..\\lib", paths)
 	BuildLibProperties("LibPath", "src/ProjectLib.properties", "..\\..\\lib", paths)
@@ -184,15 +212,19 @@ task @packages:
 		packages = packages.Concat(libs)
 	
 	paths = String.Join(";", packages.ToArray())
-		
-	SetValue("src/Lib.properties", "PackagePath", "..\\..\\..")
-	SetValue("src/Lib.properties", "LibPath", "..\\..\\..")
-	SetValue("src/Lib.properties", "ReferencePath", paths)
-	
-	SetValue("src/ProjectLib.properties", "PackagePath", "..\\..")
-	SetValue("src/ProjectLib.properties", "LibPath", "..\\..")
-	SetValue("src/ProjectLib.properties", "ReferencePath", paths)
-	
+
+	filename = "src/Lib.properties"
+	path = "..\\..\\.."
+	Save(paths, path, filename)
+
+	filename = "src/ProjectLib.properties"
+	path = "..\\.."
+	Save(paths, path, filename)
+
+	filename = "src/SrcLib.properties"
+	path = "..\\..\\..\\.."
+	Save(paths, path, filename)
+
 	Import()
 
 desc """
@@ -208,3 +240,9 @@ desc """
 task @ImportLibs:
 	for lib in Configuration.libs.ToString().Split(char(',')):
 		Sh("git submodule add ssh://git.analit.net/var/www/git/${lib} src/${lib}") if not Exist("src/${lib}")
+
+desc """
+устанавливает недостающие пакеты
+"""
+task @InstallPackages:
+	Exec("nuget", "install packages.config", BaseDirectory: "packages").Execute()
