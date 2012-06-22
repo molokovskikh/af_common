@@ -118,7 +118,7 @@ def SetValue(filename as string, name as string, value as string):
 			element.Value = value
 		else:
 			propertyGroup = document.Descendants().First({e| e.Name.LocalName == @PropertyGroup})
-			propertyGroup.AddFirst(XElement(xmlNamespace + name, value))
+			propertyGroup.Add(XElement(xmlNamespace + name, value))
 
 		document.Save(filename)
 	else:
@@ -177,11 +177,13 @@ task @packages:
 	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
 		.Select({d| CheckPlatformSpecificVersion(d)})\
 		.Select({d| '$(PackagePath)\\' + d})
-	libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
-		.Select({d| GetLibPath(d)})\
-		.Select({d| '$(LibPath)\\' + d})
+	if Exist(@lib):
+		libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
+			.Select({d| GetLibPath(d)})\
+			.Select({d| '$(LibPath)\\' + d})
+		packages = packages.Concat(libs)
 	
-	paths = String.Join(";", packages.Concat(libs).ToArray())
+	paths = String.Join(";", packages.ToArray())
 		
 	SetValue("src/Lib.properties", "PackagePath", "..\\..\\..")
 	SetValue("src/Lib.properties", "LibPath", "..\\..\\..")

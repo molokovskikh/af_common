@@ -183,6 +183,7 @@ task @WebClean:
 	Rm(FileSet("**/*.*", Excludes : ["*.log"], BaseDirectory : deployTo))
 
 task @CheckScmChanges:
+	return if Globals.Environment == @Test
 	if DetectScm() == "git":
 		gitStatus = GitStatus(GetGitStatus())
 		raise "В репозитории имеются неподтвержденные изменения. Надо произвести Commit и потом выполнить deploy." if gitStatus.ChangesExists
