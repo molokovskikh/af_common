@@ -245,4 +245,5 @@ desc """
 устанавливает недостающие пакеты
 """
 task @InstallPackages:
-	Exec("nuget", "install packages.config", BaseDirectory: "packages").Execute()
+	if Exist("packages/packages.config"):
+		Exec("nuget", "install packages.config", BaseDirectory: "packages").Execute()
