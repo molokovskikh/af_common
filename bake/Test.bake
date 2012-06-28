@@ -176,10 +176,11 @@ task @BuildTests, [@PrepareBuild]:
 		raise "Сборка проекта $project завершилась ошибкой" unless project.Build()
 
 task @TestJs:
-	return unless Exist("test") or Exist("tools/phantomjs-1.2.0")
+	return unless Exist("test")
 
-	root = Path.GetFullPath("tools/phantomjs-1.2.0")
-	phantom = Path.Combine(root, "phantomjs.exe")
+	root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../tools/phantomjs-1.2.0")
+	root = Path.GetFullPath(root)
+	phantom = "phantomjs"
 	run = Path.Combine(root, "examples", "run-qunit.js")
 	for file in Directory.GetFiles("test", "*.html"):
 		Sh("$phantom $run $file")
@@ -248,9 +249,10 @@ task @integration, [@PrepareBuild]:
 			else:
 				result.Output(project.TestOutput)
 
-		if Exist("test") and Exist("tools/phantomjs-1.2.0"):
-			root = Path.GetFullPath("tools/phantomjs-1.2.0")
-			phantom = Path.Combine(root, "phantomjs.exe")
+		if Exist("test"):
+			root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../tools/phantomjs-1.2.0")
+			root = Path.GetFullPath(root)
+			phantom = "phantomjs"
 			run = Path.Combine(root, "examples", "run-qunit.js")
 			for file in Directory.GetFiles("test", "*.html"):
 				phantomExec = Exec(phantom, "$run $file", GrubOutput: true)
