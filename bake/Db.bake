@@ -17,9 +17,10 @@ class DbProfile:
 	def constructor():
 		pass
 		
-	def constructor(profile as DbProfile):
-		Tables(profile.ImportTables)
-		Dbs(profile.ImportDbs)
+	def constructor(*profiles as (DbProfile)):
+		for profile in profiles:
+			Tables(profile.ImportTables)
+			Dbs(profile.ImportDbs)
 	
 	def Tables(names as string*):
 		ImportTables = ImportTables.Concat(names).ToArray()
@@ -50,27 +51,33 @@ catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.cata
 		"catalogs.products", "catalogs.properties",
 		"catalogs.propertyvalues"))
 
-futureProfile = DbProfile(\
-	ImportDbs: ("accessright", "billing", "catalogs",
-		"contacts", "customers", "ordersendrules", "usersettings"),
-	ImportTables: ("farm.CostFormRules", "farm.FormRules",
-		"farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers").Concat(emptyProfile.ImportTables).ToArray()
-)
-
 customersProfile = DbProfile(emptyProfile)
 customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "customers", "ordersendrules", "usersettings"))
 customersProfile.Tables(("farm.CostFormRules", "farm.FormRules", "farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers"))
 
-reportsProfile = DbProfile(customersProfile)
-reportsProfile.Tables(("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes"))
+reportTypesProfile = DbProfile(emptyProfile)
+reportTypesProfile.Tables(("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes"))
+
+reportsProfile = DbProfile(customersProfile, reportTypesProfile)
 
 coreProfile = DbProfile(customersProfile)
 coreProfile.Tables(("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr"))
 
-drugsProfile = DbProfile(
-	ImportDbs: futureProfile.ImportDbs,
-	ImportTables: catalogProfile.ImportTables.Concat(futureProfile.ImportTables).Concat(coreProfile.ImportTables).ToArray()
-)
+drugsProfile = DbProfile(customersProfile, coreProfile)
+
+ordersProfile = DbProfile(catalogProfile, reportTypesProfile)
+ordersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList",
+	"farm.Synonym", "farm.SynonymFirmCr",
+	"Customers.Suppliers",
+	"Customers.Clients",
+	"Customers.Addresses",
+	"Usersettings.PricesData",
+	"Usersettings.RetClientsSet",
+	"Billing.Payers",
+	"Billing.LegalEntities"))
+
+emptyOrdersProfile = DbProfile()
+emptyOrdersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList"))
 
 InternetProfile = DbProfile(\
 	ImportDbs: ("accessright", "analit", "contacts",
@@ -78,7 +85,16 @@ InternetProfile = DbProfile(\
 	ImportTables : ("logs.internetsessionslogs", "logs.clientendpointinternetlogs").Concat(emptyProfile.ImportTables).ToArray()
 )
 
-profiles = {@empty: emptyProfile, @future: futureProfile, @catalog: catalogProfile, @core: coreProfile, @internet: InternetProfile, @reports: reportsProfile, @drug: drugsProfile, @customers: customersProfile}
+profiles = {@empty: emptyProfile,
+	@catalog: catalogProfile,
+	@core: coreProfile,
+	@internet: InternetProfile,
+	@reportTypes: reportTypesProfile,
+	@reports: reportsProfile,
+	@drug: drugsProfile,
+	@customers: customersProfile,
+	@orders: ordersProfile,
+	@emptyOrders: emptyOrdersProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
@@ -222,7 +238,9 @@ task @PrepareLocal:
 		mysql = "$mysql --port=$port" if port
 		local += ";port=$port" if port and not local.Contains("port")
 
-	ImportSchema(mysqldump, mysql)
+	unless Configuration.Maybe.SkipSchema:
+		ImportSchema(mysqldump, mysql)
+
 	unless Db(local).ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
 		sql = "flush privileges;CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
 		Sh("$mysql --execute=\"$sql\"")
