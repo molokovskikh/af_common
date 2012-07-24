@@ -209,8 +209,8 @@ task @CheckCommon:
 	CheckRepository(path)
 
 	localHead = GetGitDir("show --pretty=format:%H HEAD", path)
-	lines = localHead.Split(char('\n'))
-	localHead = lines[0]
+	lines = localHead.Trim().Split(char('\n'))
+	localHead = lines[0].Trim()
 
 	remotes = GetGitDir("ls-remote", path)
 	remoteHead = /([0-9,a-f]{5,40})\s+HEAD/.Match(remotes).Groups[1].Value
