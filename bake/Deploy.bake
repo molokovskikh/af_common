@@ -163,7 +163,7 @@ task @SendDeployNotification:
 	smtp = SmtpClient("box.analit.net")
 	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash) values('$user', now(), '$head')")
 	smtp.Send("dev@analit.net",
-		"r.kvasov@analit.net",
+		"dev@kvasov@analit.net",
 		"Обновление ${humanReadableName}",
 		"Релиз подготовил $user\nРевизия $head\n$logs")
 
