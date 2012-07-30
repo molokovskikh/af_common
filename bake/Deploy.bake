@@ -7,6 +7,7 @@ import System.Linq.Enumerable from System.Core
 import System.Globalization
 import file from Config.bake
 import System.Text.RegularExpressions
+import file from Db.boo
 
 class GitStatus:
 	public Branch as string
@@ -134,6 +135,12 @@ def GetLastScmMessages():
 def GetGitStatus():
 	return GetGit("status")
 
+def GetGitHead(path as string):
+	localHead = GetGitDir("show --pretty=format:%H HEAD", path)
+	lines = localHead.Trim().Split(char('\n'))
+	return lines[0].Trim()
+
+
 backupRoot = """\\offdc\MMedia\AppBackUp\"""
 
 def FindLastBackup():
@@ -144,23 +151,25 @@ def FindLastBackup():
 		.First()
 
 task @SendDeployNotification:
-	if Configuration.Maybe.silent or Configuration.Maybe.env == @test:
-		return
+	return if Globals.Environment == @Test
 
-	messages = GetLastScmMessages()
-	deployMessage = StartEditor(editor, messages)
-
-	if not deployMessage.Trim():
-		print "Нужно написать сообщение которое будет отправлено в рассылку или запустить с параметрами -o:silent=true"
-		return
-
-	smtp = SmtpClient("mail.adc.analit.net")
-	smtp.Send("tech@analit.net",
-		"UpdatesList@subscribe.analit.net",
+	deployRecord = Db.Read("select GitHash from Logs.Deploys order by DeployedOn desc limit 1").FirstOrDefault()
+	if deployRecord:
+		lastDeployHash = deployRecord.GitHash
+	head = GetGitHead(null)
+	if lastDeployHash:
+		logs = GetGit("log $lastDeployHash..")
+	user = Environment.UserName
+	smtp = SmtpClient("box.analit.net")
+	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash) values('$user', now(), '$head')")
+	smtp.Send("dev@analit.net",
+		"r.kvasov@analit.net",
 		"Обновление ${humanReadableName}",
-		"Релиз подготовил ${Environment.UserName}\r\n${deployMessage}")
+		"Релиз подготовил $user\nРевизия $head\n$logs")
 
 task @Backup:
+	return if Globals.Environment == @Test
+
 	deployTo = GetDeployTo(project)
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
 	backup = Path.Combine(backupRoot, backupName)
@@ -208,10 +217,7 @@ task @CheckCommon:
 
 	CheckRepository(path)
 
-	localHead = GetGitDir("show --pretty=format:%H HEAD", path)
-	lines = localHead.Trim().Split(char('\n'))
-	localHead = lines[0].Trim()
-
+	localHead = GetGitHead(path)
 	remotes = GetGitDir("ls-remote", path)
 	remoteHead = /([0-9,a-f]{5,40})\s+HEAD/.Match(remotes).Groups[1].Value
 	if remoteHead != localHead:
