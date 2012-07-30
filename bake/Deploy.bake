@@ -165,7 +165,7 @@ task @SendDeployNotification:
 	smtp.Send("r.kvasov@analit.net",
 		"dev@analit.net",
 		"Обновление ${humanReadableName}",
-		"Релиз подготовил $user\rРевизия $head\r$logs")
+		"Релиз подготовил $user\nРевизия $head\n$logs")
 
 task @Backup:
 	return if Globals.Environment == @Test
