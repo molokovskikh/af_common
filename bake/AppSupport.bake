@@ -6,6 +6,7 @@ import System.ServiceProcess
 import System.ComponentModel
 import System.Security.Principal
 import System.Runtime.InteropServices
+import Ionic.Zip
 
 Task @BuildApp, [@CleanApp]:
 	project = Globals.Project
@@ -32,3 +33,16 @@ Task @CleanApp:
 		Rm("${buildTo}/*", true)
 	else:
 		MkDir(buildTo)
+
+task @Zip, [@CleanZip]:
+	project = Globals.Project
+	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot, project))
+	filename = Path.Combine(Globals.BuildRoot, project) + ".zip"
+	zip = ZipFile(filename)
+	zip.AddDirectory(buildTo)
+	zip.Save()
+
+task @CleanZip:
+	project = Globals.Project
+	filename = Path.Combine(Globals.BuildRoot, project) + ".zip"
+	Rm(filename) if Exist(filename)
