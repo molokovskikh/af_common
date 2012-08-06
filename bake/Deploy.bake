@@ -203,7 +203,7 @@ def CheckRepository(path as string):
 		raise "Текущая ветка ${gitStatus.Branch} репозитория $path не является master-веткой. Надо переключиться в ветку master и потом выполнить deploy." if not gitStatus.IsBranchMaster()
 		raise "В текущей ветки есть изменения, не сохраненные в удаленном репозитории. Надо сделать push и потом выполнить deploy." if gitStatus.NeedPush
 
-task @CheckScmChanges, [@CheckCommon, @CheckCurrent, @CheckWritingErrors]
+task @CheckScmChanges, [@CheckWritingErrors, @CheckCommon, @CheckCurrent]
 
 task @CheckWritingErrors:
 	Sh("SearchOfWriting.exe")
