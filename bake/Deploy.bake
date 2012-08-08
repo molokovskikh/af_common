@@ -205,9 +205,6 @@ def CheckRepository(path as string):
 
 task @CheckScmChanges, [@CheckCommon, @CheckCurrent]
 
-task @CheckWritingErrors:
-	Sh("SearchOfWriting.exe")
-
 task @CheckCurrent:
 	return if Globals.Environment == @Test
 

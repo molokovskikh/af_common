@@ -166,9 +166,12 @@ def GetProjects():
 
 task @test, [@RunTests]
 
-task @PrepareBuild:
+task @PrepareBuild, [@CheckWritingErrors]:
 	if Exist("build/version.txt"):
 		Engine.Execute("GenerateAssemblyInfo")
+		
+task @CheckWritingErrors:
+	Sh("SearchOfWriting.exe")
 
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
