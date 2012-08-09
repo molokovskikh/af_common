@@ -169,10 +169,19 @@ task @test, [@RunTests]
 task @PrepareBuild, [@CheckWritingErrors]:
 	if Exist("build/version.txt"):
 		Engine.Execute("GenerateAssemblyInfo")
-		
-task @CheckWritingErrors:
-	Sh("SearchOfWriting.exe")
 
+desc """
+Если сказать CreateIgnoreFiles=True, 
+будут созданы файлы игнора,
+либо просто запущен процесс поиска ошибок
+"""
+task @CheckWritingErrors:
+	creareIgnore = Configuration.Maybe.CreateIgnoreFiles or Configuration.Maybe.CreateIgnoreFiles
+	if (creareIgnore):
+		Sh("SearchOfWriting.exe CreateIgnoreFiles:" + creareIgnore)
+	else:
+		Sh("SearchOfWriting.exe")
+		
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
 	for project in projects:
