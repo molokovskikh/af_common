@@ -178,9 +178,9 @@ desc """
 task @CheckWritingErrors:
 	creareIgnore = Configuration.Maybe.CreateIgnoreFiles or Configuration.Maybe.CreateIgnoreFiles
 	if (creareIgnore):
-		Sh("SearchOfWriting.exe CreateIgnoreFiles:" + creareIgnore)
+		Exec("SearchOfWriting", "CreateIgnoreFiles:" + creareIgnore).Execute()
 	else:
-		Sh("SearchOfWriting.exe")
+		Exec("SearchOfWriting").Execute()
 		
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
