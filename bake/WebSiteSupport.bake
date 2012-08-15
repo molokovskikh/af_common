@@ -65,6 +65,7 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.master",
 				"**/*.ico",
 				"**/*.odt",
+				"**/*.doc",
 				"**/*.svc"],
 				BaseDirectory: projectPath),
 		buildTo, true)
