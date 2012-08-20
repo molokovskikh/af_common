@@ -20,7 +20,7 @@ def GetLogTriggerTemplate(action as string, fields as string, database as string
 	sql = """
 CREATE DEFINER = RootDBMS@127.0.0.1 TRIGGER ${database}.${triggerName} AFTER ${action} ON ${database}.${table}
 FOR EACH ROW BEGIN
-	INSERT 
+	INSERT
 	INTO `logs`.${logTable}
 	SET LogTime = now(),
 		OperatorName = IFNULL(@INUser, SUBSTRING_INDEX(USER(),'@',1)),
@@ -29,7 +29,7 @@ FOR EACH ROW BEGIN
 ${fields};
 END;
 """
-	sql = "DROP TRIGGER IF EXISTS ${database}.${triggerName}; " + sql
+	sql = "DROP TRIGGER IF EXISTS ${database}.${triggerName};" + sql
 	return sql
 
 def GetLogTableName(table as string):
