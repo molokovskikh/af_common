@@ -11,7 +11,7 @@ def GetMigrationPath():
 	raise "Не найдена директория с миграциями ${baseDirectory}" if not Directory.Exists(baseDirectory)
 	return baseDirectory + "\\"
 
-Globals.Environment = @Development unless Globals.Maybe.Environment
+Globals.Environment = @Local unless Globals.Maybe.Environment
 if Configuration.Maybe.env:
 	Globals.Environment = ToPascal(Configuration.env)
 

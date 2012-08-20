@@ -110,6 +110,8 @@ task @SetupLog, [@CreateLogTable, @BuildLogTriggers]
 Desc """
 добавляет в таблицу логов отсутствующие колонки и пересоздает триггеры,
 нужна что бы сделать логи актуальными после внесения изменений в таблицу
+Database - база данных
+Table - таблица
 """
 task @UpdateLog, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
 

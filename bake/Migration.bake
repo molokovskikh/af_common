@@ -586,7 +586,7 @@ task @AlterFunction:
 
 desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake AlterFunction Db=Future Name=GetPrices
+пример bake AlterEvent Db=Future Name=GetPrices
 """
 task @AlterEvent:
 	db = Configuration.Db
