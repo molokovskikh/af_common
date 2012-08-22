@@ -176,8 +176,11 @@ def GetLibPath(dir as string):
 
 def Save(paths as string, path as string, filename as string):
 	serializer = XmlSerializer(Project)
-	using stream = File.OpenRead(filename):
-		libProperties = cast(Project, serializer.Deserialize(stream))
+	libProperties = Project()
+	libProperties.PropertyGroup = PropertyGroup()
+	if Exist(filename):
+		using stream = File.OpenRead(filename):
+			libProperties = cast(Project, serializer.Deserialize(stream))
 	libProperties.PropertyGroup.LibPath = path
 	libProperties.PropertyGroup.PackagePath = path
 	libProperties.PropertyGroup.ReferencePath = paths
