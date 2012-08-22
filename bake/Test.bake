@@ -95,6 +95,7 @@ class TestResults:
 		get:
 			return Message()
 
+	property Branch as string
 	property RealTotalTime as TimeSpan
 	property Files = List of string()
 
@@ -204,18 +205,12 @@ task @RunTests, [@TestJs, @BuildTests]:
 def GetProjectName():
 	return Path.GetFileName(Environment.CurrentDirectory)
 
-def NotifyError(result as string):
-	project = GetProjectName()
-	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
-		message.Subject = "Сборка $project"
-		message.Body = result
-		smtpClient = SmtpClient("box.analit.net")
-		smtpClient.Send(message)
-
 def Notify(result as TestResults):
 	project = GetProjectName()
 	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
 		message.Subject = "Сборка $project"
+		if result.Branch:
+			message.Subject += "ветка ${result.Branch}"
 		message.Body = result.Body
 		for file in result.Files:
 			message.Attachments.Add(Attachment(file))
@@ -237,9 +232,10 @@ task @TryBeforeTest:
 
 task @integration, [@PrepareBuild]:
 	notInteractive = Configuration.Maybe.notInteractive != null
+	branch = Configuration.Maybe.branch
+	result = TestResults()
 	try:
 		projects = GetProjects()
-		result = TestResults()
 		ExecuteProcess("git", "status")
 		log = ExecuteProcess("git", "show HEAD --stat")
 		if log:
@@ -248,7 +244,7 @@ task @integration, [@PrepareBuild]:
 
 		for project in projects:
 			unless project.Build(notInteractive):
-				NotifyError("Сборка завершилась с ошибкой\r\n" + project.BuildOutput)
+				result.Output("Сборка завершилась с ошибкой\r\n" + project.BuildOutput)
 				return
 
 		for project in projects:
@@ -274,9 +270,10 @@ task @integration, [@PrepareBuild]:
 					success = false
 				result.Output(phantomExec.Output.ToString())
 
-		Notify(result)
 	except e as Exception:
-		NotifyError(e.ToString())
+		result.Output(e.ToString())
+	ensure:
+		Notify(result)
 
 desc """
 запускает сборку проекта на билд сервере
