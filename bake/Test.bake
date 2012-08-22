@@ -210,7 +210,7 @@ def Notify(result as TestResults):
 	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
 		message.Subject = "Сборка $project"
 		if result.Branch:
-			message.Subject += "ветка ${result.Branch}"
+			message.Subject += " ветка ${result.Branch}"
 		message.Body = result.Body
 		for file in result.Files:
 			message.Attachments.Add(Attachment(file))
