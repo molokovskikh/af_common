@@ -232,8 +232,8 @@ task @TryBeforeTest:
 
 task @integration, [@PrepareBuild]:
 	notInteractive = Configuration.Maybe.notInteractive != null
-	branch = Configuration.Maybe.branch
 	result = TestResults()
+	result.Branch = Configuration.Maybe.branch
 	try:
 		projects = GetProjects()
 		ExecuteProcess("git", "status")
