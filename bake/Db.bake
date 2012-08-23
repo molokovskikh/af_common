@@ -60,6 +60,26 @@ reportTypesProfile.Tables(("reports.enum_values", "reports.general_reports", "re
 
 reportsProfile = DbProfile(customersProfile, reportTypesProfile)
 
+reportstestProfile = DbProfile(reportTypesProfile)
+reportstestProfile.Tables(("Customers.Suppliers",
+	"Customers.Users",
+	"Customers.Clients",
+	"Customers.Addresses",
+	"Usersettings.PricesData",
+	"Usersettings.RetClientsSet",
+	"Usersettings.PricesCosts",
+	"Usersettings.PriceItems",
+	"Usersettings.PricesRegionalData",
+	"Usersettings.RegionalData",
+	"Customers.Intersection",
+	"Usersettings.SupplierIntersection",
+	"Usersettings.PriceIntersections",
+	"Usersettings.DelayOfPayments",
+	"Customers.UserPrices",
+	"billing.Payers",
+	"farm.CostFormRules",
+	"farm.FormRules"))
+
 coreProfile = DbProfile(customersProfile)
 coreProfile.Tables(("farm.Core0", "farm.CoreCosts", "farm.Synonym", "farm.SynonymFirmCr"))
 
@@ -94,7 +114,8 @@ profiles = {@empty: emptyProfile,
 	@drug: drugsProfile,
 	@customers: customersProfile,
 	@orders: ordersProfile,
-	@emptyOrders: emptyOrdersProfile}
+	@emptyOrders: emptyOrdersProfile,
+	@reportTest: reportstestProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
