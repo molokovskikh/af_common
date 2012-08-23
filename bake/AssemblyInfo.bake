@@ -24,6 +24,14 @@ def GetProjects():
 			and not Path.GetFileName(dir).ToLower().Contains("test"):
 			yield Path.GetFileName(dir)
 
+def GetRevision():
+	#если не сделать git status то на devsrv git show HEAD вернет пустоту
+	head = ExecuteProcess("git", "status")
+	head = ExecuteProcess("git", "show HEAD")
+	lines = head.Split(("\n",), StringSplitOptions.RemoveEmptyEntries)
+	return lines[0].Trim().Replace("commit ", "")
+
+
 task @UpdateRevision:
 	version = GetVersion()
 	output = ExecuteProcess("git", "status")
@@ -47,20 +55,24 @@ task @UpdateRevision:
 
 task @GenerateAssemblyInfo:
 	version = GetVersion()
+	revision = GetRevision()
+	fileVersion = version
+	if /\./.Matches(version).Count == 2:
+		fileVersion = "$version.$revision"
 	for project in GetProjects():
 		path = "src/${project}"
 		assemblyInfo = "${path}/Properties/AssemblyInfo.cs"
 		if not UnderSourceControl(assemblyInfo) and Exist("src/$project/$project.csproj"):
 			dir = Path.GetDirectoryName(assemblyInfo)
 			MkDir(dir) if not Exist(dir)
-			File.WriteAllText(assemblyInfo, """
-using System.Reflection;
+			File.WriteAllText(assemblyInfo, """using System.Reflection;
 
 [assembly: AssemblyTitle("${project}")]
 [assembly: AssemblyProduct("${project}")]
 [assembly: AssemblyCompany("Инфорум")]
+[assembly: AssemblyCopyright("$revision")]
 [assembly: AssemblyVersion("${version}")]
-[assembly: AssemblyFileVersion("${version}")]
+[assembly: AssemblyFileVersion("$fileVersion")]
 [assembly: AssemblyInformationalVersion("${version}")]
 """)
 			print "generated ${assemblyInfo}"
