@@ -56,7 +56,7 @@ customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "custome
 customersProfile.Tables(("farm.CostFormRules", "farm.FormRules", "farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers"))
 
 reportTypesProfile = DbProfile(emptyProfile)
-reportTypesProfile.Tables(("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes"))
+reportTypesProfile.Tables(("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes", "billing.Payers"))
 
 reportsProfile = DbProfile(customersProfile, reportTypesProfile)
 
