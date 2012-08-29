@@ -96,6 +96,13 @@ ordersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList",
 	"Billing.Payers",
 	"Billing.LegalEntities"))
 
+documentsProfile = DbProfile(catalogProfile)
+documentsProfile.Tables(("documents.documentheaders", "documents.documentbodies",
+	"documents.certificates", "documents.CertificateFiles",
+	"documents.CertificateTasks", "documents.CertificateSources", "Customers.Suppliers",
+	"Customers.Clients", "Usersettings.RetClientsSet",
+	"Billing.Payers", "logs.document_logs"))
+
 emptyOrdersProfile = DbProfile()
 emptyOrdersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList"))
 
@@ -115,7 +122,8 @@ profiles = {@empty: emptyProfile,
 	@customers: customersProfile,
 	@orders: ordersProfile,
 	@emptyOrders: emptyOrdersProfile,
-	@reportTest: reportstestProfile}
+	@reportTest: reportstestProfile,
+	@documents: documentsProfile}
 
 task @MakePricesActual:
 	Db.Execute("""
