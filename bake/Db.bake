@@ -97,11 +97,8 @@ ordersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList",
 	"Billing.LegalEntities"))
 
 documentsProfile = DbProfile(catalogProfile)
-documentsProfile.Tables(("documents.documentheaders", "documents.documentbodies",
-	"documents.certificates", "documents.CertificateFiles",
-	"documents.CertificateTasks", "documents.CertificateSources", "Customers.Suppliers",
-	"Customers.Clients", "Usersettings.RetClientsSet",
-	"Billing.Payers", "logs.document_logs"))
+documentsProfile.Tables(("documents.documentheaders", "documents.documentbodies", "Customers.Suppliers",
+	"Customers.Clients", "Billing.Payers", "logs.document_logs"))
 
 emptyOrdersProfile = DbProfile()
 emptyOrdersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList"))
