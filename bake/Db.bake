@@ -361,7 +361,7 @@ task @PrepareLocalForPrgData:
 	#список db, для которых не будут экспортироваться данные в таблицах
 	excludesDataDB = ("documents", "orders", "logs", "redmine", "im", "telephony", "reports")
 
-	databases = Db(Globals.Environments[@Development].ToString()).Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
+	databases = Db(Globals.Environments[@Development].ToString()).ReadSql("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
 	#print "databases for struct = ${join(databases)}"
 
 	print "Экспорт схемы БД"
