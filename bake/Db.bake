@@ -97,11 +97,8 @@ ordersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList",
 	"Billing.LegalEntities"))
 
 documentsProfile = DbProfile(catalogProfile)
-documentsProfile.Tables(("documents.documentheaders", "documents.documentbodies",
-	"documents.certificates", "documents.CertificateFiles",
-	"documents.CertificateTasks", "documents.CertificateSources", "Customers.Suppliers",
-	"Customers.Clients", "Usersettings.RetClientsSet",
-	"Billing.Payers", "logs.document_logs"))
+documentsProfile.Tables(("documents.documentheaders", "documents.documentbodies", "Customers.Suppliers",
+	"Customers.Clients", "Billing.Payers", "logs.document_logs"))
 
 emptyOrdersProfile = DbProfile()
 emptyOrdersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList"))
@@ -364,7 +361,7 @@ task @PrepareLocalForPrgData:
 	#список db, для которых не будут экспортироваться данные в таблицах
 	excludesDataDB = ("documents", "orders", "logs", "redmine", "im", "telephony", "reports")
 
-	databases = Db(Globals.Environments[@Development].ToString()).Read("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
+	databases = Db(Globals.Environments[@Development].ToString()).ReadSql("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray()
 	#print "databases for struct = ${join(databases)}"
 
 	print "Экспорт схемы БД"
