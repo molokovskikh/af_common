@@ -160,7 +160,7 @@ def Import():
 				document.Save(file)
 
 def CheckPlatformSpecificVersion(path as string):
-	preferedVersions = ["net40", "NET40ClientProfile", "net35", "20", "2.0", "2", "net20", "net"]
+	preferedVersions = ["net40-full", "net40", "NET40ClientProfile", "net35", "20", "2.0", "2", "net20", "net"]
 	specificVersion = preferedVersions.Select({v| Path.Combine(path, v)}).FirstOrDefault({d| Directory.Exists(d)})
 	if specificVersion:
 		return specificVersion
@@ -186,6 +186,11 @@ def Save(paths as string, path as string, filename as string):
 	libProperties.PropertyGroup.ReferencePath = paths
 	using stream = File.OpenWrite(filename):
 		serializer.Serialize(stream, libProperties)
+
+def Serialize(filename as string, value):
+	serializer = XmlSerializer(value.GetType())
+	using stream = File.OpenWrite(filename):
+		serializer.Serialize(stream, value)
 
 desc """
 Устанавливает библиотеку, пример bake lib name=NUnit
@@ -227,6 +232,14 @@ task @packages:
 	filename = "src/SrcLib.properties"
 	path = "..\\..\\..\\.."
 	Save(paths, path, filename)
+
+	doc = XDocument()
+	root = XElement(@packages)
+	doc.Add(root)
+	for id, version in Directory.GetDirectories(@packages).Select({d| ParseFromPackageName(d).Split(char('/'))}):
+		packageElement = XElement(@package, XAttribute(@id, id), XAttribute(@version, version))
+		root.Add(packageElement)
+	doc.Save("packages/packages.config")
 
 	Import()
 
