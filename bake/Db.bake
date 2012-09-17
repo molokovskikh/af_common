@@ -45,7 +45,9 @@ emptyProfile = DbProfile(\
 		"internet.Services",
 		"internet.statuscorrelation",
 		"internet.connectbrigads",
-		"internet.partners")
+		"internet.partners",
+		"internet.tariffs",
+		"internet.networkzones")
 )
 
 catalogProfile = DbProfile(emptyProfile)
