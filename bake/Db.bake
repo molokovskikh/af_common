@@ -59,7 +59,7 @@ catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.cata
 
 customersProfile = DbProfile(emptyProfile)
 customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "customers", "ordersendrules", "usersettings"))
-customersProfile.Tables(("farm.CostFormRules", "farm.FormRules", "farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers"))
+customersProfile.Tables(("farm.CostFormRules", "farm.FormRules", "farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers", "reports.general_reports"))
 
 reportTypesProfile = DbProfile(emptyProfile)
 reportTypesProfile.Tables(("reports.enum_values", "reports.general_reports", "reports.property_enums", "reports.report_properties", "reports.report_property_values", "reports.report_type_properties", "reports.reports", "reports.reporttypes", "billing.Payers", "customers.Clients", "customers.Users"))
