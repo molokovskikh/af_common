@@ -78,7 +78,10 @@ def GetMaxLibVersion(libPath as string):
 				version = name
 	return version
 
-def InstallLib(lib as string, installed as List of string):
+def GetName(lib as string) as string:
+	return lib[:lib.IndexOf("/")]
+
+def InstallLib(lib as string, installed as List of string) as void:
 	if lib.Contains(" "):
 		lib = lib.Replace(" ", "/")
 
@@ -99,6 +102,10 @@ def InstallLib(lib as string, installed as List of string):
 	installPath = Path.GetFullPath("lib/$lib")
 
 	if installed.Contains(lib):
+		return
+
+	if installed.Select({l| GetName(l)}).Contains(GetName(lib)):
+		print "внимание, установлена другая версия библиотеки $lib, возможно для работы потребуется binding redirection"
 		return
 
 	Cp(FileSet("**.*", BaseDirectory : libPath, Excludes : ["**/.svn/**", "deps"]), installPath, true)
