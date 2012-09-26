@@ -67,5 +67,5 @@ task @RunMySql:
 			mysqlProcess = Process.GetProcesses().FirstOrDefault({p| p.Id == pid})
 
 	unless mysqlProcess:
-		Process.Start("mysqld", "--console --standalone --port=$port --datadir=$datadir")
+		Process.Start("mysqld", "--console --standalone --port=$port --datadir=\"$datadir\"")
 		Thread.Sleep(2000)
