@@ -268,7 +268,7 @@ task @PrepareLocal:
 	mysql = "mysql -h$destination -uroot"
 	local = Globals.Environments[@Local].ToString()
 	if Environment.MachineName.ToLower() == "devsrv":
-		port = Globals.Maybe.Port
+		port = Globals.Maybe.Port or Configuration.Maybe.Port
 		mysql = "$mysql --port=$port" if port
 		local += ";port=$port" if port and not local.Contains("port")
 

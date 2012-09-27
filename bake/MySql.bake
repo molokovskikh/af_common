@@ -46,16 +46,19 @@ def InitMySql(datadir, port):
 	for file in initScriptFiles:
 		initSql += File.ReadAllText(Path.Combine(mysqlDir, file))
 
-	Run("mysqld", "--console --standalone --port=$port --datadir=$datadir --bootstrap", initSql)
+	Run("mysqld", "--console --standalone --port=$port --datadir=\"$datadir\" --bootstrap", initSql)
 
 task @RunMySql:
-	dataRoot = "../data"
+	dataRoot = Configuration.Maybe.path or "../data"
 	datadir = Path.GetFullPath("$dataRoot/${Globals.Project}").Replace("\\", "/")
 	MkDir(dataRoot) unless Exist(dataRoot)
-	port = Globals.Port
+	port = Random().Next(10000, 20000) if Configuration.Maybe.randomPort
+	print port
+	port = Globals.Port unless port
 	InitMySql(datadir, port)
 
 	pidFile = Directory.GetFiles(datadir, "*.pid")
+	File.WriteAllText(Path.Combine(datadir, "port"), port.ToString())
 	mysqlProcess as Process
 	if pidFile.Length:
 		text = File.ReadAllText(pidFile[0])
@@ -64,5 +67,5 @@ task @RunMySql:
 			mysqlProcess = Process.GetProcesses().FirstOrDefault({p| p.Id == pid})
 
 	unless mysqlProcess:
-		Process.Start("mysqld", "--console --standalone --port=$port --datadir=$datadir")
+		Process.Start("mysqld", "--console --standalone --port=$port --datadir=\"$datadir\"")
 		Thread.Sleep(2000)
