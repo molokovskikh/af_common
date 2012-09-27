@@ -46,7 +46,7 @@ def InitMySql(datadir, port):
 	for file in initScriptFiles:
 		initSql += File.ReadAllText(Path.Combine(mysqlDir, file))
 
-	Run("mysqld", "--console --standalone --port=$port --datadir=$datadir --bootstrap", initSql)
+	Run("mysqld", "--console --standalone --port=$port --datadir=\"$datadir\" --bootstrap", initSql)
 
 task @RunMySql:
 	dataRoot = Configuration.Maybe.path or "../data"
