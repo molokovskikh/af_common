@@ -107,6 +107,8 @@ Globals.deployTo = "\\\\$_rootServer\\$project"
 
 task @ServiceDeployPipeline, [@CheckScmChanges, @BuildService, @StopServices, @Production, @Migrate, @Backup, @SimpleDeployService, @SendDeployNotification]
 
+task @ServiceDeployPipeline2, [@CheckScmChanges, @Build, @StopServices, @Production, @Migrate, @Backup, @DeployApp, @Start, @SendDeployNotification]
+
 task @BuildService, [@CleanService]:
 	MsBuild(projectFile,
 			Target : "build",
@@ -172,6 +174,27 @@ task @DeployService, [@BuildService]:
 				System.Threading.Thread.Sleep(1000)
 
 		StartServices(services)
+
+task @NakedDeployService:
+	servers = GetServers()
+	rootServer = servers.First()
+	deployTo = "\\\\$rootServer\\$project"
+	if Globals.Maybe.DeployTo:
+		deployTo = Globals.DeployTo
+
+	fin = false
+	interation = 0
+	while not fin:
+		try:
+			Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
+			fin = true
+		except e:
+			raise if not e.Message.Contains("The process cannot access the file")
+			interation++
+			if interation >= 3:
+				raise
+			print "can`t access files, sleep..."
+			System.Threading.Thread.Sleep(1000)
 
 task @SimpleDeployService:
 	servers = GetServers()
