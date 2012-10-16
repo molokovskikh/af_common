@@ -218,6 +218,6 @@ task @SimpleDeployService:
 				if interation >= 3:
 					raise
 				print "can`t access files, sleep..."
-				System.Threading.Thread.Sleep(1000)
+				System.Threading.Thread.Sleep(3000)
 
 		StartServices(services)
