@@ -11,6 +11,7 @@ import System.Net.Mail
 import Mono.Cecil
 import file from Config.bake
 import file from Tools.boo
+import file from MySql.bake
 
 class Project:
 	_project as string
