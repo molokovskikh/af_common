@@ -1,0 +1,1 @@
+git pull && git clean -fxd && grep -ilr --include=*.cs --include=*.vb --include=*.config mail.adc.analit.net . | xargs perl -i -pe 's/mail.adc.analit.net/box\.analit\.net/gi' && find -iname *.bak | xargs rm && git commit -am "исправил mail.adc.analit.net на box.analit.net" && git push
