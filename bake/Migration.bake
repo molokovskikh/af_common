@@ -192,7 +192,7 @@ def Apply(fileName as string):
 			compiler = BooCompiler()
 			compiler.Parameters.Input.Add(FileInput(fileName))
 			compiler.Parameters.Pipeline = CompileToMemory()
-			#compiler.Parameters.Pipeline.Insert(1, AutoReferenceFilesCompilerStep(AppDomain.CurrentDomain.BaseDirectory, MemoryCache()));
+			compiler.Parameters.Pipeline.Insert(1, AutoReferenceFilesCompilerStep(AppDomain.CurrentDomain.BaseDirectory, MemoryCache()));
 			if ImInProject():
 				compiler.Parameters.LibPaths.Add("lib")
 				for dir in Directory.GetDirectories("lib/"):
