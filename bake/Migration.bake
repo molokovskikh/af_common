@@ -100,30 +100,30 @@ class Migration:
 activeRecordInitalized = false
 
 def FindAssembly(name as string):
-	if Exist("src/${Globals.Project}/bin/$name.dll"):
-		return "src/${Globals.Project}/bin/$name.dll"
-	elif Exist("src/${Globals.Project}/bin/Debug/$name.dll"):
-		return "src/${Globals.Project}/bin/Debug/$name.dll"
-	elif Exist("src/${Globals.Project}/bin/Debug/$name.exe"):
-		return "src/${Globals.Project}/bin/Debug/$name.exe"
-	elif Exist("src/$name/bin/debug/$name.exe"):
-		return "src/$name/bin/debug/$name.exe"
-	elif Exist("src/$name/bin/debug/$name.dll"):
-		return "src/$name/bin/debug/$name.dll"
+	paths = ("src/${Globals.Project}/bin/$name.dll",
+		"src/${Globals.Project}/bin/Debug/$name.dll",
+		"src/${Globals.Project}/bin/Debug/$name.exe",
+		"src/$name/bin/debug/$name.exe",
+		"src/$name/bin/debug/$name.dll",
+		"src/$name/bin/$name.dll")
+	for path in paths:
+		return path if Exist(path)
 
 def GetConfiguration():
 	assemblies = List of string()
-	if assembly = FindAssembly(Globals.Project):
-		assemblies.Add(assembly)
-
-	if not assemblies.Count:
-		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
-			+ " Is ${Globals.Project} correct project name and project live at 'src/${Globals.Project}'?"
+	if not Globals.Maybe.SkipDefaultLib == true:
+		name = Globals.Project
+		if assembly = FindAssembly(name):
+			assemblies.Add(assembly)
+		else:
+			print "can`t find assembly $name"
 
 	if Globals.Maybe.AdditionalAssemblies:
 		for name in Globals.AdditionalAssemblies:
 			if assembly = FindAssembly(name):
 				assemblies.Add(assembly)
+			else:
+				print "can`t find assembly $name"
 
 	if Configuration.Maybe.assemblies:
 		for name in Configuration.assemblies.Split(char(',')):
@@ -131,6 +131,10 @@ def GetConfiguration():
 				assemblies.Add(assembly)
 			else:
 				print "can`t find assembly $name"
+
+	if not assemblies.Count:
+		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
+			+ " Is ${Globals.Project} correct project name and project live at 'src/${Globals.Project}'?"
 
 	return GetActiveRecordConfiguration(assemblies.ToArray())
 
