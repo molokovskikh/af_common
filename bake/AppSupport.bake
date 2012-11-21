@@ -18,7 +18,8 @@ Task @BuildApp, [@CleanApp]:
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/*.xml")
-	Cp("src/${project}/App.release.config", "${buildTo}/${project}.exe.config", true)
+	config = "${buildTo}/${project}.exe.config"
+	Cp("src/${project}/App.release.config", config, true) if Exist(config)
 
 Task @CleanApp:
 	project = Globals.Project
