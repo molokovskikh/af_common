@@ -107,9 +107,10 @@ Globals.deployTo = "\\\\$_rootServer\\$project"
 
 task @ServiceDeployPipeline, [@CheckScmChanges, @BuildService, @StopServices, @Production, @Migrate, @Backup, @SimpleDeployService, @SendDeployNotification]
 
-task @ServiceDeployPipeline2, [@CheckScmChanges, @Build, @StopServices, @Production, @Migrate, @Backup, @DeployApp, @Start, @SendDeployNotification]
+task @ServiceDeployPipeline2, [@CheckScmChanges, @Build, @StopServices, @Production, @Migrate, @Backup, @DeployApp, @StartServices, @SendDeployNotification]
 
 task @BuildService, [@CleanService]:
+	project = Globals.Project
 	MsBuild(projectFile,
 			Target : "build",
 			Parameters : params,
