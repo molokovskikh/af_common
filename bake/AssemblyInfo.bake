@@ -56,6 +56,13 @@ task @UpdateRevision:
 task @GenerateAssemblyInfo:
 	version = GetVersion()
 	revision = GetRevision()
+	hash = revision.Trim()
+
+	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
+	builds = tags.Where({t| /b\d+/.Match(t).Success}).ToArray()
+	if builds.Length:
+		revision = builds.Last().Replace("b", "").Trim()
+
 	fileVersion = version
 	if /\./.Matches(version).Count == 2:
 		fileVersion = "$version.$revision"
@@ -67,12 +74,12 @@ task @GenerateAssemblyInfo:
 			MkDir(dir) if not Exist(dir)
 			File.WriteAllText(assemblyInfo, """using System.Reflection;
 
-[assembly: AssemblyTitle("${project}")]
-[assembly: AssemblyProduct("${project}")]
+[assembly: AssemblyTitle("$project")]
+[assembly: AssemblyProduct("$project")]
 [assembly: AssemblyCompany("Инфорум")]
-[assembly: AssemblyCopyright("$revision")]
-[assembly: AssemblyVersion("${version}")]
+[assembly: AssemblyCopyright("$hash")]
+[assembly: AssemblyVersion("$version")]
 [assembly: AssemblyFileVersion("$fileVersion")]
-[assembly: AssemblyInformationalVersion("${version}")]
+[assembly: AssemblyInformationalVersion("$version")]
 """)
 			print "generated ${assemblyInfo}"
