@@ -35,7 +35,7 @@ def CopyAssets(output as string):
 
 task @BuildWebSite, [@CleanWebSite]:
 	MkDir(buildTo) if not Exist(buildTo)
-	MsBuild(projectFile, "/verbosity:quiet",
+	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
 			Target : "build",
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						"OutputPath" : "${buildTo}\\bin\\",
@@ -76,7 +76,7 @@ task @BuildWebSite, [@CleanWebSite]:
 	CopyAssets(buildTo)
 
 task @CleanWebSite:
-	MsBuild(projectFile, "/verbosity:quiet",
+	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
 			Target : "clean",
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						"Configuration" : "release" },

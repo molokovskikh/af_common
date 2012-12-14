@@ -13,7 +13,7 @@ Task @BuildApp, [@CleanApp]:
 	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot, project))
 	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
 
-	MsBuild(projectFile, "/verbosity:quiet",
+	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
 			Target : "build",
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
@@ -26,7 +26,7 @@ Task @CleanApp:
 	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot, project))
 	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
 
-	MsBuild(projectFile, "/verbosity:quiet",
+	MsBuild(projectFile, "/nologo", "/verbosity:quiet",
 			Target : "clean",
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
