@@ -78,8 +78,8 @@ task @GenerateAssemblyInfo:
 [assembly: AssemblyProduct("$project")]
 [assembly: AssemblyCompany("Инфорум")]
 [assembly: AssemblyCopyright("$hash")]
-[assembly: AssemblyVersion("$version")]
+[assembly: AssemblyVersion("$fileVersion")]
 [assembly: AssemblyFileVersion("$fileVersion")]
-[assembly: AssemblyInformationalVersion("$version")]
+[assembly: AssemblyInformationalVersion("$fileVersion")]
 """)
 			print "generated ${assemblyInfo}"
