@@ -183,18 +183,29 @@ task @RollbackDeploy, [@WebClean]:
 	backupDate = DateTime.ParseExact(backup[backup.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)
 	print "rollback to $project at $backupDate"
 	Rm(backup, true)
+	
+def GetExcludes():
+	excludes = List()
+	if Globals.Maybe.ExcludesDeployDirectory:
+		for directory in Globals.ExcludesDeployDirectory:
+			excludes.Add(directory)
+	return excludes
+		
 
 task @WebDeploy, [@WebClean]:
 	deployTo = GetDeployTo(Globals.Project.ToString())
 	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project))
-
-	files = FileSet("**/*.*", BaseDirectory : buildTo)
+	
+	files = FileSet("**/*.*", Excludes : GetExcludes(), BaseDirectory : buildTo)
+		
 	Cp(files, deployTo, true)
 	print "${files.Files.Count} files deployed to $deployTo"
 
 task @WebClean:
 	deployTo = GetDeployTo(Globals.Project.ToString())
-	Rm(FileSet("**/*.*", Excludes : ["*.log"], BaseDirectory : deployTo))
+	excludes = GetExcludes();
+	excludes.Add("*.log")
+	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
 
 def CheckRepository(path as string):
 	if DetectScm() == "git":
