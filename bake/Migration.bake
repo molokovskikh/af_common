@@ -178,8 +178,8 @@ def FindMigration(migration as string):
 	return fileName
 
 def FindMigrations(migration as string):
-	files = Directory.GetFiles("migrations", "*$migration*.sql")
-	return files.Where({f| not f.EndsWith("_rollback.sql")}).Select({f| Path.GetFileNameWithoutExtension(f)}).ToList()
+	files = Directory.GetFiles("migrations", "*$migration*.*")
+	return files.Where({f| not f.Contains("_rollback.")}).Select({f| Path.GetFileNameWithoutExtension(f)}).ToList()
 
 def FindMigrationsEntity(id as string):
 	return FindMigrations(id).Select({f| Migration(FileName:f)}).ToArray()
