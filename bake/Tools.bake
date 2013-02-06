@@ -163,8 +163,10 @@ desc """
 """
 task @LoadProject:
 	assembly = "src/${Globals.Project}/bin/${Globals.Project}.dll"
-	return unless Exist(assembly)
-	Assembly.LoadFrom(assembly)
+	Assembly.LoadFrom(assembly) if Exist(assembly)
+	assembly = "src/${Globals.Project}/bin/debug/${Globals.Project}.dll"
+	Assembly.LoadFrom(assembly) if Exist(assembly)
+
 	if Exist("tasks"):
 		for file in Directory.GetFiles("tasks", "*.bake"):
 			using reader = File.OpenText(file):
