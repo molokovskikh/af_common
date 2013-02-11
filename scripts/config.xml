@@ -64,21 +64,20 @@
   <concurrentBuild>false</concurrentBuild>
   <builders>
     <hudson.tasks.Shell>
-      <command>mysqladmin --user=root --port=$(cat data/$JOB_NAME/port) shutdown 2&gt; /dev/null &amp;&amp; sleep 2 || :
+      <command>mysqladmin --user=root --port=$(cat data/port) shutdown 2&gt; /dev/null &amp;&amp; sleep 2 || :
 git clean -fdx
 git submodule foreach git clean -fdx
 
-bake RunMySql path=data randomPort=true
-port=$(cat data/$JOB_NAME/port)
-port=$(cat data/$JOB_NAME/port)
+bake RunMySql path=data randomPort=true notInteractive=true
+port=$(cat data/port)
 grep &quot;(Data Source|server)=localhost&quot; src -lRP | xargs perl -i -pe &quot;s/connectionString=\&quot;([^\&quot;]*)?port=\d+;([^\&quot;]*)?\&quot;/connectionString=\&quot;port=&quot;$port&quot;;\1\2\&quot;/gi&quot;
-grep &quot;(Data Source|server)=localhost&quot; src -lRP | xargs perl -i -pe &apos;s/(Data Source|server)=localhost/Data Source=localhost;port=&apos;$(cat data/$JOB_NAME/port)&apos;/gi&apos;
+grep &quot;(Data Source|server)=localhost&quot; src -lRP | xargs perl -i -pe &apos;s/(Data Source|server)=localhost/Data Source=localhost;port=&apos;$port&apos;/gi&apos;
 
 
-bake InstallPackages
-bake TryToBuild
-bake PrepareLocal Port=$(cat data/$JOB_NAME/port)
-bake Migrate Port=$(cat data/$JOB_NAME/port)</command>
+bake InstallPackages notInteractive=true
+bake TryToBuild notInteractive=true
+bake PrepareLocal Port=$port
+bake Migrate Port=$port</command>
     </hudson.tasks.Shell>
     <hudson.tasks.BatchFile>
       <command>bake integration notInteractive=true</command>
@@ -86,7 +85,7 @@ bake Migrate Port=$(cat data/$JOB_NAME/port)</command>
     <hudson.tasks.Shell>
       <command>git checkout .
 git submodule foreach git checkout .
-mysqladmin --user=root --port=$(cat data/$JOB_NAME/port) shutdown</command>
+mysqladmin --user=root --port=$(cat data/port) shutdown</command>
     </hudson.tasks.Shell>
   </builders>
   <publishers>
