@@ -111,7 +111,7 @@ task @ServiceDeployPipeline2, [@CheckScmChanges, @Build, @StopServices, @Product
 
 task @BuildService, [@CleanService]:
 	project = Globals.Project
-	MsBuild(projectFile,
+	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
 			Target : "build",
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
@@ -119,7 +119,7 @@ task @BuildService, [@CleanService]:
 	Cp("src/${project}/App.release.config", "${buildTo}/${project}.exe.config", true)
 
 task @CleanService:
-	MsBuild(projectFile,
+	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
 			Target : "clean",
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
