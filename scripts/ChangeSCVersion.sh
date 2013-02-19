@@ -7,10 +7,11 @@ cd "$m/.."
 for l in $(find -name *.csproj);
 do
 sed -i -e ' s/StyleCopAddOn.'$1'/StyleCopAddOn.'$2'/i;' $l;
+unix2dos $l;
 if [ -f $l/../../../packages/packages.config ]
 then
-  sed -i -e 's/^.*\<package id="StyleCopAddOn" [^>]*>//i;' $l/../../../packages/packages.config
-  sed -i -e 's/<\/packages>/<package id="StyleCopAddOn" version="'$2'" \/>\n<\/packages>/i;' $l/../../../packages/packages.config
+  sed -i -e 's/id="StyleCopAddOn" version="'$1'"/id="StyleCopAddOn" version="'$2'"/i;' $l/../../../packages/packages.config
+  unix2dos $l/../../../packages/packages.config;
 fi
 done
 
