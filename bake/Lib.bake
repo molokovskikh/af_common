@@ -42,9 +42,9 @@ libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
 def ParseFromPackageName(dir as string):
 	name = Path.GetFileName(dir)
-	match = /(\.\d+){2,4}(-beta)?$/.Match(name)
+	match = /(\.\d+){2,4}(-\w+)?$/.Match(name)
 	return null unless match.Success
-	return /(\.\d+){2,4}(-beta)?$/.Replace(name, /^\./.Replace(match.Value, "/"))
+	return /(\.\d+){2,4}(-\w+)?$/.Replace(name, /^\./.Replace(match.Value, "/"))
 
 def ParseFromLib(dir as string):
 	posibleVersion = Directory.GetDirectories(dir).FirstOrDefault()
