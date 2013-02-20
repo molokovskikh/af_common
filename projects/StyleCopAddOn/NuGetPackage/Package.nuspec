@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+  <metadata>
+    <id>StyleCopAddOn</id>
+    <version>1.0.7</version>
+    <title>StyleCopAddOn</title>
+    <authors>Alexander Shilin</authors>
+    <owners>Alexander Shilin</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Package description</description>
+    <tags>StyleCop</tags>
+  </metadata>
+</package>

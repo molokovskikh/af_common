@@ -1,0 +1,25 @@
+﻿<SourceAnalyzer Name="AddOn Rules">
+  <Description>
+    Дополнительные правила для StyleCop.
+  </Description>
+  <Rules>
+    <RuleGroup Name="Fun Rules You Will Love">
+      <Rule Name="OpenCurlyBraketOnTheSameLine" CheckId="EX1000">
+        <Context>Открывающаяся фигурная скобка должна быть на той же строке, что и соответствующее выражение.</Context>
+        <Description>Проверяет, что открывающаяся фигурная скобка, следующая после циклов, ветвлений и т.д. не переносится на следующую строку..</Description>
+      </Rule>
+      <Rule Name="MoreOrLessThenOneTabToRightPosition" CheckId="EX1001">
+        <Context>Сдвиг относительно родительского выражения не может быть отличен от одной табуляции.</Context>
+        <Description>Сдвиг относительно родительского выражения не может быть отличен от одной табуляции.</Description>
+      </Rule>
+      <Rule Name="CloseCurlyBraketMustBeOnTheSameColumn" CheckId="EX1002">
+        <Context>Закрывающаяся фигурная скобка должна располагаться под соответствующим выражением.</Context>
+        <Description>Закрывающаяся фигурная скобка должна располагаться под соответствующим выражением.</Description>
+      </Rule>
+      <Rule Name="ElseIfStatementMustBeWithoutBlock" CheckId="EX1003">
+        <Context>Выражение else-if должно записываться без блока фигурных скобок.</Context>
+        <Description>Выражение else-if должно записываться без блока фигурных скобок.</Description>
+      </Rule>
+    </RuleGroup>
+  </Rules>
+</SourceAnalyzer>
