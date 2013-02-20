@@ -37,6 +37,8 @@ class PropertyGroup:
 	property LibPath as string
 	property PackagePath as string
 	property ReferencePath as string
+	property StylecopPath as string
+	property StylecopAddonPath as string
 
 libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
@@ -188,9 +190,19 @@ def Save(paths as string, path as string, filename as string):
 	if Exist(filename):
 		using stream = File.OpenRead(filename):
 			libProperties = cast(Project, serializer.Deserialize(stream))
+
 	libProperties.PropertyGroup.LibPath = path
 	libProperties.PropertyGroup.PackagePath = path
 	libProperties.PropertyGroup.ReferencePath = paths
+	dir = Directory.GetDirectories(@packages)\
+		.Select({d| Path.GetFileName(d)})\
+		.FirstOrDefault({d| d.StartsWith("StyleCop.MSBuild.")})
+	libProperties.PropertyGroup.StylecopPath = "\$(PackagePath)\\packages\\$dir"
+	dir = Directory.GetDirectories(@packages)\
+		.Select({d| Path.GetFileName(d)})\
+		.FirstOrDefault({d| d.StartsWith("StyleCopAddOn.")})
+	libProperties.PropertyGroup.StylecopAddonPath = "\$(PackagePath)\\packages\\$dir"
+
 	using stream = File.OpenWrite(filename):
 		serializer.Serialize(stream, libProperties)
 
