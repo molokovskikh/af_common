@@ -2,12 +2,23 @@
 import System.Diagnostics
 import System.IO
 import System.Text
+import System.Net
 import System.Net.Mail
+import System.Xml.Linq
+import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Globalization
 import file from Config.bake
 import System.Text.RegularExpressions
 import file from Db.boo
+
+class JenkinsStatus:
+	property Number as string
+	property Status as string
+
+	def constructor(element as XElement):
+		Number = cast(string, element.XPathSelectElement("number"))
+		Status = cast(string, element.XPathSelectElement("result"))
 
 class GitStatus:
 	public Branch as string
@@ -153,6 +164,8 @@ def FindLastBackup():
 task @SendDeployNotification:
 	return if Globals.Environment == @Test
 
+	to = Configuration.Maybe.NotifyTo or "UpdatesList@subscribe.analit.net"
+
 	deployRecord = Db.Read("select GitHash from Logs.Deploys where Project = '$project' order by DeployedOn  desc limit 1").FirstOrDefault()
 	if deployRecord:
 		lastDeployHash = deployRecord.GitHash
@@ -162,10 +175,26 @@ task @SendDeployNotification:
 	user = Environment.UserName
 	smtp = SmtpClient("box.analit.net")
 	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project) values('$user', now(), '$head', '$project')")
+	jenkinsStatus = ""
+	try:
+		uri = "http://devsrv.adc.analit.net:8080/job/$project/api/xml?depth=1"
+		doc = XDocument.Load(uri)
+		query = "freeStyleProject/build[action/lastBuiltRevision/SHA1[text() = \"$head\"]]"
+		elements = doc.XPathSelectElements(query).Select({e| JenkinsStatus(e)}).ToArray()
+		if elements.Length:
+			element = elements.Where({s| s.Status == "SUCCESS"}).DefaultIfEmpty(elements.First()).First()
+			build = element.Number
+			result = element.Status
+			jenkinsStatus = "Номер сборки $build результат тестирования $result"
+		else:
+			jenkinsStatus = "Тесты не запускались"
+	except e:
+		print "не удалось проверить результаты тестов в jenkins"
+		print e
 	smtp.Send("r.kvasov@analit.net",
-		"UpdatesList@subscribe.analit.net",
+		to,
 		"Обновление ${humanReadableName}",
-		"Релиз подготовил $user\nРевизия $head\n$logs")
+		"Релиз подготовил $user\nРевизия $head\n$jenkinsStatus\n$logs")
 
 task @Backup:
 	return if Globals.Environment == @Test
