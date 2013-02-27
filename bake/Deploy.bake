@@ -147,8 +147,8 @@ def GetGitStatus():
 	return GetGit("status")
 
 def GetGitHead(path as string):
-	localHead = GetGitDir("show --pretty=format:%H HEAD", path)
-	lines = localHead.Trim().Split(char('\n'))
+	localHead = GetGitDir("show-ref HEAD", path)
+	lines = localHead.Trim().Split(char(' '))
 	return lines[0].Trim()
 
 
