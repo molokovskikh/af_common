@@ -177,7 +177,8 @@ task @SendDeployNotification:
 	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project) values('$user', now(), '$head', '$project')")
 	jenkinsStatus = ""
 	try:
-		uri = "http://devsrv.adc.analit.net:8080/job/$project/api/xml?depth=1"
+		jenkinsProject = Environment.Maybe.JenkinsProject or project
+		uri = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject/api/xml?depth=1"
 		doc = XDocument.Load(uri)
 		query = "freeStyleProject/build[action/lastBuiltRevision/SHA1[text() = \"$head\"]]"
 		elements = doc.XPathSelectElements(query).Select({e| JenkinsStatus(e)}).ToArray()
