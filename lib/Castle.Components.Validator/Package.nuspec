@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Castle.Components.Validator</id>
+    <version>2.5.4</version>
+    <authors>kvasov</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Castle Validator</description>
+    <dependencies>
+    </dependencies>
+  </metadata>
+</package>

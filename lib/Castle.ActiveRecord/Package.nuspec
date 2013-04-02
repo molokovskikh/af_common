@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Castle.ActiveRecord</id>
+    <version>3.0.1</version>
+    <authors>kvasov</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Castle ActiveRecord</description>
+    <dependencies>
+      <dependency id="NHibernate" version="3.1" />
+      <dependency id="NHibernate.Castle" version="3.1" />
+      <dependency id="Castle.Components.Validator" version="2.5.4" />
+    </dependencies>
+  </metadata>
+</package>
