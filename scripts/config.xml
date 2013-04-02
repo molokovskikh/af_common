@@ -73,8 +73,14 @@ port=$(cat data/port)
 grep &quot;(Data Source|server)=localhost&quot; src -lRP | xargs perl -i -pe &quot;s/connectionString=\&quot;([^\&quot;]*)?port=\d+;([^\&quot;]*)?\&quot;/connectionString=\&quot;port=&quot;$port&quot;;\1\2\&quot;/gi&quot;
 grep &quot;(Data Source|server)=localhost&quot; src -lRP | xargs perl -i -pe &apos;s/(Data Source|server)=localhost/Data Source=localhost;port=&apos;$port&apos;/gi&apos;
 
-
+if [ -e ./scripts/prepare.sh ]
+then
+PATH=/cygdrive/c/Windows/Microsoft.NET/Framework/v4.0.30319/:$PATH
+./scripts/prepare.sh
+else
 bake InstallPackages notInteractive=true
+bake packages notInteractive=true
+fi
 bake TryToBuild notInteractive=true
 bake PrepareLocal Port=$port
 bake Migrate Port=$port</command>
