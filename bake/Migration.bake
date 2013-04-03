@@ -109,7 +109,7 @@ def FindAssembly(name as string):
 	for path in paths:
 		return path if Exist(path)
 
-def GetConfiguration():
+def LoadProjectAssemblies():
 	assemblies = List of string()
 	if not Globals.Maybe.SkipDefaultLib == true:
 		name = Globals.Project
@@ -132,11 +132,14 @@ def GetConfiguration():
 			else:
 				print "can`t find assembly $name"
 
-	if not assemblies.Count:
+	return assemblies.Select({a| Assembly.LoadFrom(a)}).ToArray()
+
+def GetConfiguration():
+	assemblies = LoadProjectAssemblies()
+	unless assemblies.Count:
 		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
 			+ " Is ${Globals.Project} correct project name and project live at 'src/${Globals.Project}'?"
-
-	return GetActiveRecordConfiguration(assemblies.ToArray())
+	return GetActiveRecordConfiguration(assemblies)
 
 def SetupActiveRecord():
 	return if activeRecordInitalized

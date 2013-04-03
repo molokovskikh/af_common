@@ -18,7 +18,7 @@ import log4net.Config
 
 import file from Db.boo
 
-def GetActiveRecordConfiguration(assemblyPaths as (string)):
+def GetActiveRecordConfiguration(assemblies as (Assembly)):
 	config = InPlaceConfigurationSource()
 	config.PluralizeTableNames = true
 	dict = Dictionary[of string, string]()
@@ -31,10 +31,7 @@ def GetActiveRecordConfiguration(assemblyPaths as (string)):
 	dict.Add(Environment.Hbm2ddlKeyWords, "none")
 	config.Add(ActiveRecordBase, dict)
 
-	assemblies = assemblyPaths.Select({a| Assembly.LoadFrom(a)}).ToArray()
-
 	DefaultInitializer(config, assemblies) unless BuiltinInitializer(config, assemblies.First())
-
 	return ActiveRecordMediator.GetSessionFactoryHolder().GetAllConfigurations()[0]
 
 def BuiltinInitializer(config as IConfigurationSource, assembly as Assembly):

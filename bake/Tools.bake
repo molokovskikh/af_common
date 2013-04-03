@@ -15,6 +15,41 @@ import Boo.Lang.Compiler
 import Boo.Lang.Compiler.TypeSystem.Reflection
 import file from Shell.boo
 
+def FindAssembly(name as string):
+	paths = ("src/${Globals.Project}/bin/$name.dll",
+		"src/${Globals.Project}/bin/Debug/$name.dll",
+		"src/${Globals.Project}/bin/Debug/$name.exe",
+		"src/$name/bin/debug/$name.exe",
+		"src/$name/bin/debug/$name.dll",
+		"src/$name/bin/$name.dll")
+	for path in paths:
+		return path if Exist(path)
+
+def LoadProjectAssemblies():
+	assemblies = List of string()
+	if not Globals.Maybe.SkipDefaultLib == true:
+		name = Globals.Project
+		if assembly = FindAssembly(name):
+			assemblies.Add(assembly)
+		else:
+			print "can`t find assembly $name"
+
+	if Globals.Maybe.AdditionalAssemblies:
+		for name in Globals.AdditionalAssemblies:
+			if assembly = FindAssembly(name):
+				assemblies.Add(assembly)
+			else:
+				print "can`t find assembly $name"
+
+	if Configuration.Maybe.assemblies:
+		for name in Configuration.assemblies.Split(char(',')):
+			if assembly = FindAssembly(name):
+				assemblies.Add(assembly)
+			else:
+				print "can`t find assembly $name"
+
+	return assemblies.Select({a| Assembly.LoadFrom(a)}).ToArray()
+
 desc """
 Заменяет TargetFramework во всех проектах на параметер указанный в Version
 """
@@ -162,14 +197,10 @@ desc """
 загружает сборку проекта и bake скрипты которые хранятся в папке tasks
 """
 task @LoadProject:
-	assembly = "src/${Globals.Project}/bin/${Globals.Project}.dll"
-	r = Assembly.LoadFrom(assembly) if Exist(assembly)
-	assembly = "src/${Globals.Project}/bin/debug/${Globals.Project}.dll"
-	r = Assembly.LoadFrom(assembly) if Exist(assembly)
-	return unless r
+	assemblies = LoadProjectAssemblies()
+	return unless assemblies.Length
 
 	if Exist("tasks"):
 		for file in Directory.GetFiles("tasks", "*.bake"):
 			using reader = File.OpenText(file):
 				Engine.Loader.Load(reader, file)
-

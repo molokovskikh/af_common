@@ -8,27 +8,6 @@ import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
 import file from Svn.boo
 
-class Library:
-	property Name as string
-	property LibVersion as string
-	property InstallPath as string
-
-	def constructor(name as string):
-		Name = name
-		if Name.Contains("/"):
-			LibVersion = Name[Name.IndexOf("/") + 1:]
-			Name = Name[:Name.IndexOf("/")]
-
-	def RemoveOldVersion():
-		return unless LibVersion
-		path = Path.GetDirectoryName(InstallPath)
-		for dir in Directory.GetDirectories(path):
-			version as Version
-			if Version.TryParse(Path.GetFileName(dir), version):
-				if Version(LibVersion) != version:
-					print "Remove old $Name $version"
-					RmDir(dir, true)
-
 [XmlRoot(Namespace: "http://schemas.microsoft.com/developer/msbuild/2003")]
 class Project:
 	property PropertyGroup as PropertyGroup
@@ -47,77 +26,6 @@ def ParseFromPackageName(dir as string):
 	match = /(\.\d+){2,4}(-\w+)?$/.Match(name)
 	return null unless match.Success
 	return /(\.\d+){2,4}(-\w+)?$/.Replace(name, /^\./.Replace(match.Value, "/"))
-
-def ParseFromLib(dir as string):
-	posibleVersion = Directory.GetDirectories(dir).FirstOrDefault()
-	versionValue as Version
-	return null unless Version.TryParse(posibleVersion, versionValue)
-	name = Path.GetFileName(dir)
-	version = posibleVersion
-	return "$name/$version"
-
-def ReadInstalled():
-	libs = List of string()
-	if Exist("packages"):
-		libs.AddRange(Directory.GetDirectories("packages")\
-			.Select({d| ParseFromPackageName(d)})\
-			.Where({d| d is not null}))
-	if Exist("lib"):
-		libs.AddRange(Directory.GetDirectories("lib")\
-			.Select({d| ParseFromPackageName(d)})\
-			.Where({d| d is not null}))
-	return libs
-
-def GetMaxLibVersion(libPath as string):
-	version as string
-	if not Directory.GetFiles(libPath).Length:
-		for d in Directory.GetDirectories(libPath):
-			name = Path.GetFileName(d)
-			currentVersion = Version(name)
-			if not version:
-				version = name
-			elif Version(version) < currentVersion:
-				version = name
-	return version
-
-def GetName(lib as string) as string:
-	return lib[:lib.IndexOf("/")]
-
-def InstallLib(lib as string, installed as List of string) as void:
-	if lib.Contains(" "):
-		lib = lib.Replace(" ", "/")
-
-	libPath = Path.GetFullPath(Path.Combine(libRoot, lib))
-	if not Exist(libPath):
-		raise "Library ${libPath} not exists"
-
-	version as string
-	if lib.Contains("/"):
-		version = lib[lib.IndexOf("/") + 1:]
-
-	unless version:
-		version = GetMaxLibVersion(libPath)
-		if version:
-			lib += "/" + version
-
-	libPath = Path.Combine(libRoot, lib)
-	installPath = Path.GetFullPath("lib/$lib")
-
-	if installed.Contains(lib):
-		return
-
-	if installed.Select({l| GetName(l)}).Contains(GetName(lib)):
-		print "внимание, установлена другая версия библиотеки $lib, возможно для работы потребуется binding redirection"
-		return
-
-	Cp(FileSet("**.*", BaseDirectory : libPath, Excludes : ["**/.svn/**", "deps"]), installPath, true)
-	installed.Add(lib)
-	print "Library ${lib} installed into $installPath"
-	Library(lib, InstallPath: installPath).RemoveOldVersion()
-	depFile = "${libPath}/deps"
-	if Exist(depFile):
-		for dep in File.ReadAllLines(depFile):
-			InstallLib(dep, installed)
 
 def IsValidPath(path as string, libPath as string):
 	return true if path.IndexOf("\\packages\\") < 0
@@ -212,21 +120,9 @@ def Serialize(filename as string, value):
 		serializer.Serialize(stream, value)
 
 desc """
-Устанавливает библиотеку, пример bake lib name=NUnit
-"""
-task @lib:
-	lib = Configuration.name
-	installed = ReadInstalled()
-	InstallLib(lib, installed)
-	paths = installed.Select({l| l.Replace("/", "\\")})
-	BuildLibProperties("LibPath", "src/Lib.properties", "..\\..\\..\\lib", paths)
-	BuildLibProperties("LibPath", "src/ProjectLib.properties", "..\\..\\lib", paths)
-	Import()
-
-desc """
 импортирует библиотки из packages в файлы проектов
 """
-task @packages:
+task @packages, [@InstallPackages]:
 	return unless Exist(@packages)
 
 	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
@@ -263,18 +159,11 @@ task @packages:
 	Import()
 
 desc """
-Выводит список доступных библиотек
-"""
-task @list:
-	for lib in Directory.GetDirectories(libRoot):
-		print Path.GetFileName(lib) unless Path.GetFileName(lib) == ".svn"
-
-desc """
 Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
 """
 task @ImportLibs:
 	for lib in Configuration.libs.ToString().Split(char(',')):
-		Sh("git submodule add ssh://git.analit.net/var/www/git/${lib} src/${lib}") if not Exist("src/${lib}")
+		Sh("git submodule add ssh://git.analit.net/var/git/${lib} src/${lib}") if not Exist("src/${lib}")
 
 desc """
 устанавливает недостающие пакеты
