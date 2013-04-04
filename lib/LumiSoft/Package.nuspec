@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>LumiSoft.Net</id>
+    <version>2.0.3679</version>
+    <authors>kvasov</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>LumiSoft.Net</description>
+    <dependencies>
+    </dependencies>
+  </metadata>
+</package>

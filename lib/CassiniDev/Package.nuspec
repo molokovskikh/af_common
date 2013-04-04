@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>CassiniDev</id>
+    <version>3.5.1.2</version>
+    <authors>kvasov</authors>
+    <owners>kvasov</owners>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Cassini web server</description>
+    <dependencies>
+    </dependencies>
+  </metadata>
+</package>
