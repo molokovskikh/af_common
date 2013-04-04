@@ -136,7 +136,7 @@ def LoadProjectAssemblies():
 
 def GetConfiguration():
 	assemblies = LoadProjectAssemblies()
-	unless assemblies.Count:
+	unless assemblies.Length:
 		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
 			+ " Is ${Globals.Project} correct project name and project live at 'src/${Globals.Project}'?"
 	return GetActiveRecordConfiguration(assemblies)
