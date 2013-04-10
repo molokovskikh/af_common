@@ -2,7 +2,7 @@ import System
 import System.Collections.Generic
 import Boo.Lang.PatternMatching
 import System.Linq.Enumerable
-import Castle.ActiveRecord.Framework.Internal from Castle.ActiveRecord
+import InflectorStringExtension from "inflector_extension"
 import file from Tools.boo
 import file from Db.boo
 
@@ -12,7 +12,7 @@ def GetLogTriggerTemplate(action as string, fields as string, database as string
 	operation = 1 if action == "UPDATE"
 	operation = 0 if action == "INSERT"
 	logTable = GetLogTableName(table)
-	SingularizedTable = Inflector.Singularize(ToPascal(table))
+	SingularizedTable = InflectorStringExtension.InflectTo(ToPascal(table)).Singularized
 	if (SingularizedTable != null):
 		triggerName = ToPascal(SingularizedTable) + "Log" + ToPascal(action)
 	else:
@@ -34,7 +34,7 @@ END;
 
 def GetLogTableName(table as string):
 	table = ToPascal(table)
-	singulized = Inflector.Singularize(table)
+	singulized = InflectorStringExtension.InflectTo(table).Singularized
 	singulized = table unless singulized
 	return singulized + "Logs"
 
@@ -49,7 +49,7 @@ def GetTableFields(db as string, table as string, getLine as Func[of duck, strin
 	return join(fields, ",\r\n")
 
 def LogId(table as string):
-	SingularizedTable = Inflector.Singularize(ToPascal(table))
+	SingularizedTable = InflectorStringExtension.InflectTo(ToPascal(table)).Singularized
 	if (SingularizedTable == null):
 		return LastWord(ToPascal(table)) + "Id"
 	return LastWord(SingularizedTable) + "Id"
