@@ -59,9 +59,12 @@ task @GenerateAssemblyInfo:
 	hash = revision.Trim()
 
 	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
-	builds = tags.Where({t| /b\d+/.Match(t).Success}).ToArray()
+	builds = tags.Where({t| /b\d+/.Match(t).Success})\
+		.Select({t| Convert.ToInt32(t.Replace("b", "").Trim())})\
+		.OrderBy({t| return t})\
+		.ToArray()
 	if builds.Length:
-		revision = builds.Last().Replace("b", "").Trim()
+		revision = builds.Last().ToString()
 
 	fileVersion = version
 	if /\./.Matches(version).Count == 2:
