@@ -42,7 +42,7 @@ def InitMySql(datadir, port):
 	raise "Не могу найти mysql в папке $mysqlPath" unless mysqlDir
 	mysqlDir = Path.Combine(mysqlDir, "share")
 	initScriptFiles = ("mysql_system_tables.sql", "mysql_system_tables_data.sql")
-	initSql = "use mysql;"
+	initSql = "use mysql;\n"
 	for file in initScriptFiles:
 		initSql += File.ReadAllText(Path.Combine(mysqlDir, file))
 
