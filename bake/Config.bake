@@ -1,4 +1,5 @@
 ﻿import System
+import System.Collections
 import System.IO
 import file from Db.boo
 import file from Tools.boo
@@ -10,6 +11,14 @@ def GetMigrationPath():
 	baseDirectory = Path.Combine(parent.FullName, "Migrations")
 	raise "Не найдена директория с миграциями ${baseDirectory}" if not Directory.Exists(baseDirectory)
 	return baseDirectory + "\\"
+
+def UpdateGlobals():
+	if Globals.Maybe.Variables:
+		vars = Globals.Variables[Globals.Environment]
+		if vars:
+			for k in vars:
+				Globals[k.Key] = k.Value
+
 
 Globals.Environment = @Local unless Globals.Maybe.Environment
 if Configuration.Maybe.env:
@@ -37,6 +46,8 @@ Global(
 if Globals.Environment == @Test:
 	Globals.DeployRoot = """\\acdcserv.adc.analit.net\WWWRoot\TEST"""
 
+UpdateGlobals()
+
 def EnvByName(name as string) as string:
 	connectionString = Globals.Environments[name]
 	if not (connectionString.ToLower().Contains("user=") or connectionString.ToLower().Contains("user id=")):
@@ -62,4 +73,3 @@ def Env() as string:
 	return EnvByName(name)
 
 Db.Current = Db(Env)
-
