@@ -281,7 +281,7 @@ task @PrepareLocal:
 	user = "system"
 	password = "newpass"
 
-	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false"
+	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --set-gtid-purged=OFF"
 	mysql = "mysql -h$destination -uroot"
 	local = Globals.Environments[@Local].ToString()
 	if Environment.MachineName.ToLower() == "devsrv":
