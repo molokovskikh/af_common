@@ -281,7 +281,12 @@ task @PrepareLocal:
 	user = "system"
 	password = "newpass"
 
-	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false --set-gtid-purged=OFF"
+
+	version = ExecuteProcess("mysqldump", "--version")
+	mysql56fix = ""
+	if version.Contains("5.6"):
+		mysql56fix = "--set-gtid-purged=OFF"
+	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false $mysql56fix"
 	mysql = "mysql -h$destination -uroot"
 	local = Globals.Environments[@Local].ToString()
 	if Environment.MachineName.ToLower() == "devsrv":

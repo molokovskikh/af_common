@@ -75,14 +75,6 @@ def LastWord(table as string):
 		word = c + word
 	return ToPascal(word)
 
-#def Lastify(text as string):
-#	return Inflector.Singularize(text)
-	#if text[-3:] == "ses":
-	#	return text[0:-2]
-	#if text[-1:] == "s":
-	#	return text[0:-1]
-	#return text
-
 def ToPascal(text as string):
 	pascaled = ""
 	toUpper = true
