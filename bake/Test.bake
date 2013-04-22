@@ -221,8 +221,7 @@ def Notify(result as TestResults):
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
 #boo миграции которые используют классы из проекта
 task @TryToBuild, [@PrepareBuild, @TryBeforeTest]:
-	projectPath = Path.GetFullPath("src/${Globals.Project}")
-	projectFile = FileSet("${projectPath}/${Globals.Project}.*proj").Files.First()
+	projectFile = FileSet("src/*.sln").Files.First()
 	MsBuild(projectFile, "/verbosity:quiet",
 			Target: "build",
 			FrameworkVersion: Globals.FrameworkVersion).Execute()
