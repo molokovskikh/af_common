@@ -127,9 +127,8 @@ emptyOrdersProfile = DbProfile()
 emptyOrdersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList"))
 
 InternetProfile = DbProfile(\
-	ImportDbs: ("accessright", "analit", "contacts",
-		"internet", "telephony"),
-	ImportTables : ("logs.internetsessionslogs", "logs.clientendpointinternetlogs").Concat(emptyProfile.ImportTables).ToArray()
+	ImportDbs: ("accessright", "analit", "internet"),
+	ImportTables : emptyProfile.ImportTables
 )
 
 profiles = {@empty: emptyProfile,
