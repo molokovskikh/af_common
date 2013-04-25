@@ -198,7 +198,7 @@ task @SendDeployNotification:
 		"Релиз подготовил $user\nРевизия $head\n$jenkinsStatus\n$logs")
 
 task @Backup:
-	return if Globals.Environment == @Test
+	return if Globals.Environment == @Test or Configuration.Maybe.Simulate
 
 	deployTo = GetDeployTo(project)
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
@@ -227,7 +227,9 @@ task @WebDeploy, [@WebClean]:
 	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project))
 	
 	files = FileSet("**/*.*", Excludes : GetExcludes(), BaseDirectory : buildTo)
-		
+	if Configuration.Maybe.Simulate:
+		print "${files.Files.Count} files deployed to $deployTo"
+		return
 	Cp(files, deployTo, true)
 	print "${files.Files.Count} files deployed to $deployTo"
 
