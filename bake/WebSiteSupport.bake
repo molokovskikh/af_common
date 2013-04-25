@@ -70,8 +70,9 @@ task @BuildWebSite, [@CleanWebSite]:
 				BaseDirectory: projectPath),
 		buildTo, true)
 	config = "Web.release.config"
-	if Globals.Environment == @Test:
-		config = "Web.test.config"
+	if Globals.Environment != @Local:
+		env = Globals.Environment.ToLower()
+		config = "Web.$env.config"
 	Cp("$projectPath/$config", "${buildTo}/Web.config")
 	CopyAssets(buildTo)
 
