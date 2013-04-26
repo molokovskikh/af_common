@@ -9,6 +9,8 @@ import System.ComponentModel
 import System.Security.Principal
 import System.Runtime.InteropServices
 import file from Tools.boo
+import file from Migration.bake
+import file from Deploy.bake
 
 [DllImport("advapi32.dll", SetLastError: true, CharSet: CharSet.Unicode)]
 def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as String, dwLogonType as int, dwLogonProvider as int, ref phToken as IntPtr) as bool:
