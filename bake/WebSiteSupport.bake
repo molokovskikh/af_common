@@ -66,7 +66,9 @@ task @BuildWebSite, [@CleanWebSite]:
 				"**/*.ico",
 				"**/*.odt",
 				"**/*.doc",
-				"**/*.svc"],
+				"**/*.svc",
+				"robots.txt",
+				"crossdomain.xml"],
 				BaseDirectory: projectPath),
 		buildTo, true)
 	config = "Web.release.config"
