@@ -234,8 +234,9 @@ task @WebDeploy, [@WebClean]:
 	print "${files.Files.Count} files deployed to $deployTo"
 	
 task @CopyTiny:
-	deployTo = GetDeployTo(Global.Project)
-	Cp("packages/TinyMCE.3.4.5/content/Scripts/*", deployTo + "/Assets/Javascripts/", true)
+	deployTo = GetDeployTo(Globals.Project.ToString())
+	files = FileSet("**/*.*", Excludes : [], BaseDirectory : "packages/TinyMCE.3.4.5/content/Scripts/")
+	Cp(files, deployTo + "/Assets/Javascripts/", true)
 
 task @WebClean:
 	deployTo = GetDeployTo(Globals.Project.ToString())
