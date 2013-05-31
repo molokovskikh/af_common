@@ -129,6 +129,7 @@ task @packages, [@InstallPackages]:
 		.Select({d| CheckPlatformSpecificVersion(d)})\
 		.Select({d| '$(PackagePath)\\' + d})
 	if Exist(@lib):
+		packages = packages.Concat(('$(LibPath)\\lib', ))
 		libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
 			.Select({d| GetLibPath(d)})\
 			.Select({d| '$(LibPath)\\' + d})
