@@ -42,7 +42,10 @@ class Db:
 				transaction.Commit()
 				return result
 			except:
-				transaction.Rollback()
+				try:
+					transaction.Rollback()
+				except:
+					pass
 				raise
 
 	static def Read(sql as string):
