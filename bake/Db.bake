@@ -266,7 +266,8 @@ def ImportSchema(mysqldump as string, mysql as string):
 	Sh("$mysqldump --databases $databases --add-drop-database --skip-triggers --no-data > schema.txt")
 	Sh("$mysqldump --databases $databases --events --routines --triggers --no-data --no-create-db --no-create-info > schema.routnies.txt")
 	Sh("$mysql < schema.txt")
-	Rm("schema.txt")
+	unless Configuration.Maybe.DoNotClean:
+		Rm("schema.txt")
 
 def ImportDatabases(mysqldump as string, mysql as string, databases as (string), ignoreTables as string*):
 	ignoreTablesOption = join(ignoreTables.Select({t| "--ignore-table=" + t}).ToArray())
@@ -274,10 +275,12 @@ def ImportDatabases(mysqldump as string, mysql as string, databases as (string),
 	i = 0
 	for database in databases:
 		print "export $database ${++i} of ${len(databases)}"
-		Sh("$mysqldump --skip-triggers --no-create-db --no-create-info $database $ignoreTablesOption > dump.txt")
+		filename = "db.data.$database.txt"
+		Sh("$mysqldump --skip-triggers --no-create-db --no-create-info $database $ignoreTablesOption > $filename")
 		print "import $database"
-		Sh("$mysql -D$database < dump.txt")
-		Rm("dump.txt")
+		Sh("$mysql -D$database < $filename")
+		unless Configuration.Maybe.DoNotClean:
+			Rm(filename)
 
 def ImportTables(mysqldump as string, mysql as string, tables as (string)):
 	return unless tables
@@ -285,10 +288,12 @@ def ImportTables(mysqldump as string, mysql as string, tables as (string)):
 	for table in tables:
 		database, tableName = table.Split(char('.'))
 		print "export $table ${++i} of ${len(tables)}"
-		Sh("$mysqldump --skip-triggers --no-create-db --no-create-info --tables $database $tableName > dump.txt")
+		filename = "table.data.$table.txt"
+		Sh("$mysqldump --skip-triggers --no-create-db --no-create-info --tables $database $tableName > $filename")
 		print "import $table"
-		Sh("$mysql -D$database < dump.txt")
-		Rm("dump.txt")
+		Sh("$mysql -D$database < $filename")
+		unless Configuration.Maybe.DoNotClean:
+			Rm(filename)
 
 def ReadEnvVariable(name as string, defaultValue):
 	return Configuration[name] if Configuration.IsDefined(name)
@@ -303,6 +308,9 @@ task @CleanDb, [@PrepareLocal, @Migrate]
 desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
 параметры:
+SkipBeforeSql - игнорируется sql запрос который указан в профиле который нужно выполнить перед
+экспортом
+DoNotClean - не удаляет файлы дампа
 profile - название профиля для загрузки, профиль определяет какие таблицы кроме стандартных
 будут загружены
 значения:
@@ -360,8 +368,10 @@ task @PrepareLocal:
 		localLongDb.ExecuteSql(profile.AfterImportSql)
 
 	unless Configuration.Maybe.SkipSchema:
-		Sh("$mysql < schema.routnies.txt")
-		Rm("schema.routnies.txt")
+		filename = "schema.routnies.txt"
+		Sh("$mysql < $filename")
+		unless Configuration.Maybe.DoNotClean:
+			Rm(filename)
 
 task @KillBrokenConnections:
 	ids = List[of int]()
