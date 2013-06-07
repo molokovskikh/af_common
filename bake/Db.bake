@@ -328,8 +328,8 @@ task @PrepareLocal:
 		port = Globals.Maybe.Port or Configuration.Maybe.Port
 		if port:
 			mysql = "$mysql --port=$port"
-			local += ";port=$port" unless not local.Contains("port")
-			localLong += ";port=$port" unless not localLong.Contains("port")
+			local += ";port=$port" unless local.Contains("port")
+			localLong += ";port=$port" unless localLong.Contains("port")
 
 	profileName = ReadEnvVariable(@profile, @empty)
 	profile = profiles[profileName]
