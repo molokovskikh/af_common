@@ -323,10 +323,13 @@ task @PrepareLocal:
 	mysqldump = "mysqldump -h${sourceDb} -u${user} -p${password} --lock-tables=false $mysql56fix --default-character-set=cp1251 --allow-keywords --max_allowed_packet=32M"
 	mysql = "mysql -h$destination -uroot"
 	local = Globals.Environments[@Local].ToString()
+	localLong = Globals.Environments[@LocalLong].ToString()
 	if Environment.MachineName.ToLower() == "devsrv":
 		port = Globals.Maybe.Port or Configuration.Maybe.Port
-		mysql = "$mysql --port=$port" if port
-		local += ";port=$port" if port and not local.Contains("port")
+		if port:
+			mysql = "$mysql --port=$port"
+			local += ";port=$port" unless not local.Contains("port")
+			localLong += ";port=$port" unless not localLong.Contains("port")
 
 	profileName = ReadEnvVariable(@profile, @empty)
 	profile = profiles[profileName]
@@ -336,7 +339,7 @@ task @PrepareLocal:
 
 	db = Db(Globals.Environments[@Development].ToString())
 	localDb = Db(local)
-	localLongDb = Db(Globals.Environments[@LocalLong].ToString())
+	localLongDb = Db(localLong)
 
 	if not Configuration.Maybe.SkipBeforeSql and profile.BeforeExportSql:
 		print "execute before export sql"
