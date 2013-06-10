@@ -137,7 +137,8 @@ InternetProfile = DbProfile(\
 PrgDataProfile = DbProfile(\
 	ImportTables: ("logs.SchemaMigrations", "accessright.permissions",
 		"documents.waybill_source_types", "documents.waybill_sources",
-		"billing.Recipients", "billing.payers", "billing.legalentities", "billing.payerclients"),
+		"billing.Recipients", "billing.payers", "billing.legalentities", "billing.payerclients",
+		"billing.accounts"),
 	ImportDbs: ("usersettings", "customers", "farm", "contacts", "ordersendrules", "catalogs"),
 	IgnoreTables: ("farm.core0", "farm.corecosts", "farm.CoreArchive", "farm.synonymarchive", "farm.usedsynonymlogs", "farm.usedsynonymfirmcrlogs", "farm.unrecexp", "farm.forb", "farm.forbidden"),
 	BeforeExportSql: """
