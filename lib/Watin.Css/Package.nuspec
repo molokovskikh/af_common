@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Watin.Css</id>
+    <version>0.2.0.0</version>
+    <authors>kvasov</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Watin.Css</description>
+    <dependencies>
+    </dependencies>
+  </metadata>
+</package>
