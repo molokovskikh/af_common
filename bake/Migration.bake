@@ -310,6 +310,10 @@ def GetMigrations():
 	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
 	return migrations
 
+def StartEditor(fileName as string):
+	editor = Environment.GetEnvironmentVariable("EDITOR") or Globals.Editor.ToString()
+	Process.Start(editor, fileName)
+
 def ProcessMigration(migration as Migration):
 	migration.Print()
 	if Configuration.Maybe.file:
@@ -334,12 +338,9 @@ def ProcessMigration(migration as Migration):
 			migration.Save()
 		case "e":
 			migration.Save()
-			Process.Start(Globals.Editor, migration.FileName)
+			StartEditor(migration.FileName)
 		otherwise:
 			return
-
-def StartEditor(fileName as string):
-	Process.Start(Globals.Editor, fileName)
 
 task @LoadAssemblies:
 	LoadProjectAssemblies()
