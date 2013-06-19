@@ -77,7 +77,7 @@ def Import():
 				document.Save(file)
 
 def CheckPlatformSpecificVersion(path as string):
-	preferedVersions = ["net40-full", "net4", "net40", "NET40ClientProfile", "net35", "20", "2.0", "2", "net20", "net"]
+	preferedVersions = ["net40-full", "net-4.0", "net4", "net40", "NET40ClientProfile", "net35", "20", "2.0", "2", "net20", "net"]
 	specificVersion = preferedVersions.Select({v| Path.Combine(path, v)}).FirstOrDefault({d| Directory.Exists(d)})
 	if specificVersion:
 		return specificVersion
