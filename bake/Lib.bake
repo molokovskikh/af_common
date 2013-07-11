@@ -91,9 +91,14 @@ def GetLibPath(dir as string):
 	return subdirs[0] if version.TryParse(Path.GetFileName(subdirs[0]), version)
 	return dir
 
+def Serialize(filename as string, value):
+	serializer = XmlSerializer(value.GetType())
+	using stream = File.OpenWrite(filename):
+		serializer.Serialize(stream, value)
+
 def Save(paths as string, path as string, filename as string):
-	serializer = XmlSerializer(Project)
 	libProperties = Project()
+	serializer = XmlSerializer(libProperties.GetType())
 	libProperties.PropertyGroup = PropertyGroup()
 	if Exist(filename):
 		using stream = File.OpenRead(filename):
@@ -110,14 +115,7 @@ def Save(paths as string, path as string, filename as string):
 		.Select({d| Path.GetFileName(d)})\
 		.FirstOrDefault({d| d.StartsWith("StyleCopAddOn.")})
 	libProperties.PropertyGroup.StylecopAddonPath = "\$(PackagePath)\\packages\\$dir"
-
-	using stream = File.OpenWrite(filename):
-		serializer.Serialize(stream, libProperties)
-
-def Serialize(filename as string, value):
-	serializer = XmlSerializer(value.GetType())
-	using stream = File.OpenWrite(filename):
-		serializer.Serialize(stream, value)
+	Serialize(filename, libProperties)
 
 desc """
 импортирует библиотки из packages в файлы проектов
