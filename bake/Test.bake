@@ -195,6 +195,9 @@ task @BuildTests, [@PrepareBuild]:
 
 task @TestJs:
 	return unless Exist("test")
+	if Exist("Gruntfile.js"):
+		Sh("grunt")
+		return
 
 	root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../tools/phantomjs-1.2.0")
 	root = Path.GetFullPath(root)
