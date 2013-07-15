@@ -266,7 +266,7 @@ task @integration, [@PrepareBuild]:
 
 		if Exist("test"):
 			if Exist("Gruntfile.js"):
-				grunt = Exec("cmd.exe /C", "grunt --no-color", GrubOutput: true)
+				grunt = Exec("cmd.exe", "/C grunt --no-color", GrubOutput: true)
 				try:
 					grunt.Execute()
 				except e as BuildException:
