@@ -58,7 +58,7 @@ port - задать порт
 task @RunMySql:
 	dataRoot = Configuration.Maybe.path or "data"
 	datadir = Path.GetFullPath(dataRoot).Replace("\\", "/")
-	port = Random().Next(10000, 20000) if Configuration.Maybe.randomPort
+	port = Random().Next(10000, 20000).ToString() if Configuration.Maybe.randomPort
 	port = Globals.Maybe.Port or Configuration.Maybe.port unless port
 	print port
 
