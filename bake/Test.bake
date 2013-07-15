@@ -265,31 +265,24 @@ task @integration, [@PrepareBuild]:
 				result.Output(project.TestOutput)
 
 		if Exist("test"):
-			root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../tools/phantomjs-1.2.0")
-			root = Path.GetFullPath(root)
-			phantom = "phantomjs"
-			run = Path.Combine(root, "examples", "run-qunit.js")
-			for file in Directory.GetFiles("test", "*.html"):
-				phantomExec = Exec(phantom, "$run $file", GrubOutput: true)
-				try:
-					phantomExec.Execute()
-				except e as BuildException:
-					success = false
-				result.Output(phantomExec.Output.ToString())
+			if Exist("Gruntfile.js"):
+				grunt = Exec("grunt", "--no-color", GrubOutput: true)
+				grunt.Execute()
+				result.Output(grunt.Output.ToString())
+			else:
+				root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../tools/phantomjs-1.2.0")
+				root = Path.GetFullPath(root)
+				phantom = "phantomjs"
+				run = Path.Combine(root, "examples", "run-qunit.js")
+				for file in Directory.GetFiles("test", "*.html"):
+					phantomExec = Exec(phantom, "$run $file", GrubOutput: true)
+					try:
+						phantomExec.Execute()
+					except e as BuildException:
+						success = false
+					result.Output(phantomExec.Output.ToString())
 
 	except e as Exception:
 		result.Output(e.ToString())
 	ensure:
 		Notify(result)
-
-desc """
-запускает сборку проекта на билд сервере
-опциональный параметр branch - название ветки или номер ревизии
-пример использования bake integrate branch=test
-"""
-task @integrate:
-	url = "http://devsrv.adc.analit.net/god/Projects/Build?id=${Globals.Project}"
-	if branch = Configuration.Maybe.branch:
-		url += "&ref=$branch"
-	request = WebRequest.Create(url)
-	request.GetResponse().Dispose()
