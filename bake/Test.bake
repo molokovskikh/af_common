@@ -266,8 +266,11 @@ task @integration, [@PrepareBuild]:
 
 		if Exist("test"):
 			if Exist("Gruntfile.js"):
-				grunt = Exec("grunt", "--no-color", GrubOutput: true)
-				grunt.Execute()
+				grunt = Exec("cmd.exe /C", "grunt --no-color", GrubOutput: true)
+				try:
+					grunt.Execute()
+				except e as BuildException:
+					success = false
 				result.Output(grunt.Output.ToString())
 			else:
 				root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../tools/phantomjs-1.2.0")
