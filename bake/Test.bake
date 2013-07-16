@@ -172,7 +172,7 @@ def GetProjects():
 
 task @test, [@RunTests]
 
-task @PrepareBuild, [@CheckWritingErrors, @InstallPackages]:
+task @PrepareBuild, [@CheckWritingErrors, "packages:install"]:
 	if Exist("build/version.txt"):
 		Engine.Execute("GenerateAssemblyInfo")
 

@@ -6,6 +6,6 @@ import file from Migration.bake
 
 task @DeployApp, [@WebDeploy]
 
-task @DeployPipeline, [@InstallPackages, @CheckScmChanges, @Production, @Build, @Backup, @Migrate, @DeployApp, @SendDeployNotification]
+task @DeployPipeline, ["packages:install", @CheckScmChanges, @Production, @Build, @Backup, @Migrate, @DeployApp, @SendDeployNotification]
 
 task @WebBuild, [@BuildWebSite]

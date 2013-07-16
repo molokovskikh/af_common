@@ -61,20 +61,33 @@ def BuildLibProperties(prefix as string, filename as string, libPath as string, 
 				XElement(xmlNamespace + @ReferencePath, ReferencePath(prefix, paths)))))
 		document.Save(filename)
 
+def CalculateRelativePath(base as string, dst as string):
+	return Uri(Path.GetFullPath(base)).MakeRelative(Uri(Path.GetFullPath(dst))).Replace("/", "\\")
+
 def Import():
-	importPath = "..\\ProjectLib.properties"
-	for dir in Directory.GetDirectories("src"):
-		for file in Directory.GetFiles(dir, "*.*proj"):
-			document = XDocument.Load(file)
-			projectNode = document.Elements().First()
-			importNode = projectNode.Elements().FirstOrDefault({e| e.Name.LocalName == @Import and\
-				e.Attribute(@Project).Value == importPath})
-			unless importNode:
-				importNode = XElement(projectNode.Name.Namespace + @Import,\
-					XAttribute(@Project, importPath),\
-					XAttribute(@Condition, "Exists('$importPath')"))
-				projectNode.AddFirst(importNode)
-				document.Save(file)
+	files = FileSet("src/**/*.*proj").Files
+	for file in files:
+		importPath = "src/ProjectLib.properties"
+		candidate1 = CalculateRelativePath(file, importPath)
+		if candidate1 == "..\\ProjectLib.properties":
+			importPath = candidate1
+		else:
+			candidate2 = CalculateRelativePath(file, "src/lib.properties")
+			if candidate2 == "..\\..\\lib.properties":
+				importPath = candidate2
+			else:
+				raise "Не знаю как импортировать путь к $file $candidate1 $candidate2"
+
+		document = XDocument.Load(file)
+		projectNode = document.Elements().First()
+		importNode = projectNode.Elements().FirstOrDefault({e| e.Name.LocalName == @Import and\
+			e.Attribute(@Project).Value == importPath})
+		unless importNode:
+			importNode = XElement(projectNode.Name.Namespace + @Import,\
+				XAttribute(@Project, importPath),\
+				XAttribute(@Condition, "Exists('$importPath')"))
+			projectNode.AddFirst(importNode)
+			document.Save(file)
 
 def CheckPlatformSpecificVersion(path as string):
 	preferedVersions = ["net40-full", "net-4.0", "net4", "net40", "NET40ClientProfile", "net35", "20", "2.0", "2", "net20", "net"]
@@ -120,7 +133,7 @@ def Save(paths as string, path as string, filename as string):
 desc """
 импортирует библиотки из packages в файлы проектов
 """
-task @packages, [@InstallPackages]:
+task @packages, ["packages:init", "packages:install"]:
 	return unless Exist(@packages)
 
 	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
@@ -147,6 +160,19 @@ task @packages, [@InstallPackages]:
 	path = "..\\..\\..\\.."
 	Save(paths, path, filename)
 
+	Import()
+
+desc """
+создает файл конфигурации nuget, вызывается автоматически
+"""
+task "packages:init":
+	if not Exist("src/nuget.config"):
+		File.WriteAllText("src/nuget.config", "<settings>\r\n\t<repositoryPath>..\\packages\\</repositoryPath>\r\n</settings>")
+
+desc """
+сохраняет все установленные пакеты в packages/packages.config
+"""
+task "packages:save":
 	doc = XDocument()
 	root = XElement(@packages)
 	doc.Add(root)
@@ -154,8 +180,6 @@ task @packages, [@InstallPackages]:
 		packageElement = XElement(@package, XAttribute(@id, id), XAttribute(@version, version))
 		root.Add(packageElement)
 	doc.Save("packages/packages.config")
-
-	Import()
 
 desc """
 Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
@@ -165,8 +189,26 @@ task @ImportLibs:
 		Sh("git submodule add ssh://git.analit.net/var/git/${lib} src/${lib}") if not Exist("src/${lib}")
 
 desc """
-устанавливает недостающие пакеты
+используй packages:install
 """
-task @InstallPackages:
+task @InstallPackages, ["packages:install"]
+
+def NugetInstall(config as string):
+	print config if Configuration.Maybe.debug
+	if Exist(config):
+		Exec("nuget", "install $config -OutputDirectory packages").Execute()
+
+desc """
+устанавливает пакеты описаные в packages.config
+"""
+task "packages:install":
 	if Exist("packages/packages.config"):
 		Exec("nuget", "install packages.config", BaseDirectory: "packages").Execute()
+
+	for sln in FileSet("src/*.sln").Files:
+		text = File.ReadAllText(sln)
+		matches = /Project.+=[^,]+,([^,]+),/.Matches(text)
+		for m in matches:
+			value = m.Groups[1].Value.Replace("\"", "").Trim()
+			config = Path.Combine("src", Path.GetDirectoryName(value), "packages.config")
+			NugetInstall(config)
