@@ -73,7 +73,12 @@ task @RunMySql:
 		pid = 0
 		if text and int.TryParse(text, pid):
 			mysqlProcess = Process.GetProcesses().FirstOrDefault({p| p.Id == pid})
+	options = ""
+	if Exist("config/my.ini"):
+		print Path.GetFullPath("config/my.ini")
+		config = Path.GetFullPath("config/my.ini").Replace("\\", "/")
+		options += " --defaults-extra-file=$config"
 
 	unless mysqlProcess:
-		Process.Start("mysqld", "--console --standalone --port=$port --datadir=\"$datadir\"")
+		Process.Start("mysqld", "$options --console --standalone --port=$port --datadir=\"$datadir\"")
 		Thread.Sleep(2000)
