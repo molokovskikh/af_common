@@ -1,9 +1,10 @@
 import System.IO
+import System.Linq.Enumerable
 import file from Config.bake
 
 buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project.ToString()))
 projectPath = Path.GetFullPath("src/${Globals.Project}")
-projectFile = Path.GetFullPath("${projectPath}/${Globals.Project}.csproj")
+projectFile = FileSet("${projectPath}/${Globals.Project}.*proj").Files.First()
 
 def CopyAssets(output as string):
 	return unless Exist("packages")
