@@ -74,8 +74,8 @@ task @RunMySql:
 		if text and int.TryParse(text, pid):
 			mysqlProcess = Process.GetProcesses().FirstOrDefault({p| p.Id == pid})
 	options = ""
-	if Exist("config/my.ini"):
-		print Path.GetFullPath("config/my.ini")
+	if Exist("build/my.ini"):
+		print Path.GetFullPath("build/my.ini")
 		config = Path.GetFullPath("config/my.ini").Replace("\\", "/")
 		options += " --defaults-extra-file=$config"
 
