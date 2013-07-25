@@ -135,31 +135,6 @@ desc """
 """
 task @packages, ["packages:init", "packages:install"]:
 	return unless Exist(@packages)
-
-	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
-		.Select({d| CheckPlatformSpecificVersion(d)})\
-		.Select({d| '$(PackagePath)\\' + d})
-	if Exist(@lib):
-		packages = packages.Concat(('$(LibPath)\\lib', ))
-		libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
-			.Select({d| GetLibPath(d)})\
-			.Select({d| '$(LibPath)\\' + d})
-		packages = packages.Concat(libs)
-	
-	paths = String.Join(";", packages.ToArray())
-
-	filename = "src/Lib.properties"
-	path = "..\\..\\.."
-	Save(paths, path, filename)
-
-	filename = "src/ProjectLib.properties"
-	path = "..\\.."
-	Save(paths, path, filename)
-
-	filename = "src/SrcLib.properties"
-	path = "..\\..\\..\\.."
-	Save(paths, path, filename)
-
 	Import()
 
 desc """
@@ -212,3 +187,27 @@ task "packages:install":
 			value = m.Groups[1].Value.Replace("\"", "").Trim()
 			config = Path.Combine("src", Path.GetDirectoryName(value), "packages.config")
 			NugetInstall(config)
+
+	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
+		.Select({d| CheckPlatformSpecificVersion(d)})\
+		.Select({d| '$(PackagePath)\\' + d})
+	if Exist(@lib):
+		packages = packages.Concat(('$(LibPath)\\lib', ))
+		libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
+			.Select({d| GetLibPath(d)})\
+			.Select({d| '$(LibPath)\\' + d})
+		packages = packages.Concat(libs)
+
+	paths = String.Join(";", packages.ToArray())
+
+	filename = "src/Lib.properties"
+	path = "..\\..\\.."
+	Save(paths, path, filename)
+
+	filename = "src/ProjectLib.properties"
+	path = "..\\.."
+	Save(paths, path, filename)
+
+	filename = "src/SrcLib.properties"
+	path = "..\\..\\..\\.."
+	Save(paths, path, filename)
