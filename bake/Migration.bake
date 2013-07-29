@@ -18,11 +18,11 @@ import NHibernate.AdoNet.Util
 import NHibernate.Tool.hbm2ddl
 import NHibernate.Dialect.Schema
 
-import Castle.ActiveRecord
+#import Castle.ActiveRecord
 
 import file from Config.bake
 import file from Db.boo
-import file from ActiveRecord.boo
+#import file from ActiveRecord.boo
 import file from LoggingBuilder.boo
 import file from Svn.boo
 
@@ -135,12 +135,22 @@ def LoadProjectAssemblies():
 
 	return assemblies.Select({a| Assembly.LoadFrom(a)}).ToArray()
 
+def GetNHibernateConfiguration(assemblies as Assembly*) as NHibernate.Cfg.Configuration:
+	name = "Config.Initializers.NHibernate"
+	type = assemblies.SelectMany({a| a.GetTypes()}).FirstOrDefault({t| t.FullName.EndsWith(name)})
+	return unless type
+	initializer = type()
+	initializer.Configuration.Properties.Remove(NHibernate.Cfg.Environment.ConnectionStringName)
+	initializer.Configuration.Properties.Add(NHibernate.Cfg.Environment.ConnectionString, Db.Current.ConnectionString)
+	initializer.Init()
+	return initializer.Configuration
+
 def GetConfiguration():
 	assemblies = LoadProjectAssemblies()
 	unless assemblies.Length:
 		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
 			+ " Is ${Globals.Project} correct project name and project live at 'src/${Globals.Project}'?"
-	return GetActiveRecordConfiguration(assemblies)
+	return GetNHibernateConfiguration(assemblies)# or GetActiveRecordConfiguration(assemblies)
 
 def SetupActiveRecord():
 	return if activeRecordInitalized
@@ -218,20 +228,20 @@ def Apply(fileName as string):
 				print(result.Errors.ToString(true))
 				return
 			main = result.GeneratedAssembly.EntryPoint
-			if ImInProject():
-				holder = ActiveRecordMediator.GetSessionFactoryHolder()
-				sessionFactory = holder.GetSessionFactory(ActiveRecordBase)
-				sessionFactory.Statistics.IsStatisticsEnabled = true;
-				using scope = TransactionScope(OnDispose.Rollback):
-					main.Invoke(null, (null, ))
-					scope.VoteCommit()
-				statistics = sessionFactory.Statistics
-				print "loaded ${statistics.EntityLoadCount}"
-				print "inserted ${statistics.EntityInsertCount} updated ${statistics.EntityUpdateCount} deleted ${statistics.EntityDeleteCount}"
-				print "transactions ${statistics.TransactionCount} sessions ${statistics.SessionOpenCount}"
-				sessionFactory.Statistics.Clear()
-			else:
-				main.Invoke(null, (null, ))
+			#if ImInProject():
+			#	holder = ActiveRecordMediator.GetSessionFactoryHolder()
+			#	sessionFactory = holder.GetSessionFactory(ActiveRecordBase)
+			#	sessionFactory.Statistics.IsStatisticsEnabled = true;
+			#	using scope = TransactionScope(OnDispose.Rollback):
+			#		main.Invoke(null, (null, ))
+			#		scope.VoteCommit()
+			#	statistics = sessionFactory.Statistics
+			#	print "loaded ${statistics.EntityLoadCount}"
+			#	print "inserted ${statistics.EntityInsertCount} updated ${statistics.EntityUpdateCount} deleted ${statistics.EntityDeleteCount}"
+			#	print "transactions ${statistics.TransactionCount} sessions ${statistics.SessionOpenCount}"
+			#	sessionFactory.Statistics.Clear()
+			#else:
+			#	main.Invoke(null, (null, ))
 		case ".sql":
 			sql = File.ReadAllText(fileName)
 			if not sql:
