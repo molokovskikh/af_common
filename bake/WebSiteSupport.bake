@@ -36,11 +36,14 @@ def CopyAssets(output as string):
 
 task @BuildWebSite, [@CleanWebSite]:
 	MkDir(buildTo) if not Exist(buildTo)
+	params = { "OutDir" : "${buildTo}\\bin\\",
+		"OutputPath" : "${buildTo}\\bin\\",
+		"Configuration" : "Release"}
+	if Globals.Maybe.Platform:
+		params.Add("Platform", Globals.Platform)
 	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
 			Target : "build",
-			Parameters : { "OutDir" : "${buildTo}\\bin\\",
-						"OutputPath" : "${buildTo}\\bin\\",
-						"Configuration" : "Release"},
+			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/bin/*.xml")
 	Cp(FileSet(["**/*.as?x",
