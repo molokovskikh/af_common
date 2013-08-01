@@ -107,9 +107,9 @@ _servers = GetServers()
 _rootServer = _servers.First()
 Globals.deployTo = "\\\\$_rootServer\\$project"
 
-task @ServiceDeployPipeline, [@CheckScmChanges, @BuildService, @StopServices, @Production, @Migrate, @Backup, @SimpleDeployService, @SendDeployNotification]
+task @ServiceDeployPipeline, ["packages:install", @CheckScmChanges, @BuildService, @StopServices, @Production, @Migrate, @Backup, @SimpleDeployService, @SendDeployNotification]
 
-task @ServiceDeployPipeline2, [@CheckScmChanges, @Build, @StopServices, @Production, @Migrate, @Backup, @DeployApp, @StartServices, @SendDeployNotification]
+task @ServiceDeployPipeline2, ["packages:install", @CheckScmChanges, @Build, @StopServices, @Production, @Migrate, @Backup, @DeployApp, @StartServices, @SendDeployNotification]
 
 task @BuildService, [@CleanService]:
 	project = Globals.Project

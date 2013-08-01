@@ -161,10 +161,15 @@ def FindLastBackup():
 		.OrderByDescending({d| DateTime.ParseExact(d[d.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)})\
 		.First()
 
-task @SendDeployNotification:
+desc """
+отправляет уведомление о развертывание проекта
+на UpdatesList@subscribe.analit.net
+notifyTo - удрес на который отправлять уведомление вместо стандартного
+"""
+task @SendDeployNotification, ["check:jenkins"]:
 	return if Globals.Environment == @Test
 
-	to = Configuration.Maybe.NotifyTo or "UpdatesList@subscribe.analit.net"
+	to = Configuration.Maybe.notifyTo or "UpdatesList@subscribe.analit.net"
 
 	deployRecord = Db.Read("select GitHash from Logs.Deploys where Project = '$project' order by DeployedOn  desc limit 1").FirstOrDefault()
 	if deployRecord:
@@ -175,23 +180,7 @@ task @SendDeployNotification:
 	user = Environment.UserName
 	smtp = SmtpClient("box.analit.net")
 	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project) values('$user', now(), '$head', '$project')")
-	jenkinsStatus = ""
-	try:
-		jenkinsProject = Globals.Maybe.JenkinsProject or project
-		uri = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject/api/xml?depth=1"
-		doc = XDocument.Load(uri)
-		query = "freeStyleProject/build[action/lastBuiltRevision/SHA1[text() = \"$head\"]]"
-		elements = doc.XPathSelectElements(query).Select({e| JenkinsStatus(e)}).ToArray()
-		if elements.Length:
-			element = elements.Where({s| s.Status == "SUCCESS"}).DefaultIfEmpty(elements.First()).First()
-			build = element.Number
-			result = element.Status
-			jenkinsStatus = "Номер сборки $build результат тестирования $result"
-		else:
-			jenkinsStatus = "Тесты не запускались"
-	except e:
-		print "не удалось проверить результаты тестов в jenkins"
-		print e
+	jenkinsStatus = Globals.Maybe.JenkinsStatus
 	smtp.Send("r.kvasov@analit.net",
 		to,
 		"Обновление ${humanReadableName}",
@@ -260,6 +249,7 @@ task @CheckCurrent:
 
 task @CheckCommon:
 	return if Globals.Environment == @Test
+	return if Configuration.Maybe.skipCheckCommon
 
 	path = AppDomain.CurrentDomain.BaseDirectory
 
@@ -270,3 +260,43 @@ task @CheckCommon:
 	remoteHead = /([0-9,a-f]{5,40})\s+HEAD/.Match(remotes).Groups[1].Value
 	if remoteHead != localHead:
 		raise "Есть обновления скриптов сборки, выполни git pull в $path"
+
+desc """
+проверяет состояние проекта в jenkins
+skipCheckJenkins=true, что бы игнорировать результаты проверки
+"""
+task "check:jenkins":
+	return if Globals.Environment == @Test
+	try:
+		jenkinsProject = Globals.Maybe.JenkinsProject or project
+		url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
+		uri = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject/api/xml?depth=1"
+		try:
+			doc = XDocument.Load(uri)
+		except e:
+			message = "Не удалось проверить состояние проекта в jenkins,"\
+				+ " проверь что имена проектов совпадают"
+			raise Exception(message, e)
+		head = GetGitHead(null)
+		query = "freeStyleProject/build[action/lastBuiltRevision/SHA1[text() = \"$head\"]]"
+		elements = doc.XPathSelectElements(query).Select({e| JenkinsStatus(e)}).ToArray()
+		if elements.Length:
+			element = elements.Where({s| s.Status == "SUCCESS"}).DefaultIfEmpty(elements.First()).First()
+			build = element.Number
+			result = element.Status
+			Globals.JenkinsStatus = "Номер сборки $build результат тестирования $result"
+			if result != "SUCCESS":
+				raise "Некоторые тесты сломаны подробней $url,"\
+					+ " перед развертыванием следует исправить ошибки"
+		else:
+			Globals.JenkinsStatus = "Тесты не запускались"
+			raise "Тесты для ревизии $head не запускались,"\
+				+ " перед развертывание следует прогнать все тесты в jenkins"
+	except e:
+		message = "Не удалось проверить результаты тестов в jenkins,"\
+				+ " skipCheckJenkins=true что бы обойти проверку"
+		if Configuration.Maybe.skipJenkinsCheck:
+			print message
+			print e
+		else:
+			raise Exception(message, e)
