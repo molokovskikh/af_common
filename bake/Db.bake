@@ -31,6 +31,9 @@ class DbProfile:
 	def Dbs(names as string*):
 		ImportDbs = ImportDbs.Concat(names).ToArray()
 
+	def IgnoreTablesProc(names as string*):
+		IgnoreTables = IgnoreTables.Concat(names).ToArray()
+
 def PrintCommand(sql as string):
 	print "----------------------------------------"
 	print sql
@@ -64,6 +67,7 @@ catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.cata
 customersProfile = DbProfile(emptyProfile)
 customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "customers", "ordersendrules", "usersettings"))
 customersProfile.Tables(("farm.CostFormRules", "farm.FormRules", "farm.sources", "documents.waybill_sources", "logs.authorizationdates", "documents.certificatesources", "documents.sourcesuppliers", "reports.general_reports"))
+customersProfile.IgnoreTablesProc(emptyProfile.ImportTables)
 
 reportTypesProfile = DbProfile(catalogProfile)
 reportTypesProfile.Tables(("reports.enum_values",
