@@ -374,6 +374,11 @@ task @UpdateCommon:
 	if process.ExitCode !=0:
 		raise "При обновлении Common возникла ошибка с кодом ${process.ExitCode}"
 
+desc """
+используй db:migrate
+"""
+task @Migrate, ["db:migrate"]
+
 task "db:migrate":
 	migrations as List[of string]
 	if Configuration.Maybe.id:
