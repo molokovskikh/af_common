@@ -115,11 +115,12 @@ task @TestJs:
 		Sh("$phantom $run $file")
 
 task @RunTests, [@TestJs, @BuildTests]:
+	index = 0
 	for project in GetProjects():
+		index++
+		if Exist("TestResult.xml"):
+			Cp("TestResult.xml", "TestResult${index}.xml")
 		project.Test()
-
-def GetProjectName():
-	return Path.GetFileName(Environment.CurrentDirectory)
 
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
 #boo миграции которые используют классы из проекта
