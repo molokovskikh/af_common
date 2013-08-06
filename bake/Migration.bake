@@ -191,11 +191,27 @@ def FindMigration(migration as string):
 	fileName = "migrations/${migration}.boo" if not Exist(fileName)
 	return fileName
 
+def GetMigrations():
+	migrations = List[of string]()
+	if ImInProject():
+		if Exist("migration.txt"):
+			migrations.AddRange(File.ReadAllLines("migrations.txt").Where({l| not String.IsNullOrEmpty(l)}))
+		if Exist("migrations"):
+			migrations.AddRange(Directory.GetFiles("migrations", "*.sql"))
+			migrations.AddRange(Directory.GetFiles("migrations", "*.boo"))
+	else:
+		migrations.AddRange(Directory.GetFiles(".", "*.sql"))
+		migrations.AddRange(Directory.GetFiles(".", "*.boo"))
+	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
+	return migrations
+
+
 def FindMigrations(migration as string):
 	files = Directory.GetFiles("migrations", "*$migration*.*")
 	return files.Where({f| not f.Contains("_rollback.")}).Select({f| Path.GetFileNameWithoutExtension(f)}).ToList()
 
 def FindMigrationsEntity(id as string):
+	GetMigrations().Last() if id == @last
 	return FindMigrations(id).Select({f| Migration(FileName:f)}).ToArray()
 
 def Apply(fileName as string):
@@ -306,20 +322,6 @@ def Save(filename as string, commands as string*):
 	print "saved to ${migrationFile}"
 	return migrationFile
 
-def GetMigrations():
-	migrations = List[of string]()
-	if ImInProject():
-		if Exist("migration.txt"):
-			migrations.AddRange(File.ReadAllLines("migrations.txt").Where({l| not String.IsNullOrEmpty(l)}))
-		if Exist("migrations"):
-			migrations.AddRange(Directory.GetFiles("migrations", "*.sql"))
-			migrations.AddRange(Directory.GetFiles("migrations", "*.boo"))
-	else:
-		migrations.AddRange(Directory.GetFiles(".", "*.sql"))
-		migrations.AddRange(Directory.GetFiles(".", "*.boo"))
-	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
-	return migrations
-
 def StartEditor(fileName as string):
 	editor = Environment.GetEnvironmentVariable("EDITOR") or Globals.Editor.ToString()
 	Process.Start(editor, fileName)
@@ -372,7 +374,7 @@ task @UpdateCommon:
 	if process.ExitCode !=0:
 		raise "При обновлении Common возникла ошибка с кодом ${process.ExitCode}"
 
-task @Migrate:#, [@UpdateCommon]:
+task "db:migrate":
 	migrations as List[of string]
 	if Configuration.Maybe.id:
 		migrations = FindMigrations(Configuration.id.ToString())
@@ -394,7 +396,7 @@ task @Waiting:
 Desc """
 создает новую миграцию
 """
-task @New:
+task "db:migration:init":
 	if ImInProject():
 		MkDir("migrations") if not Exist("migrations")
 		filename = GetMigrationFileNameByRequest()
@@ -413,14 +415,14 @@ task @New:
 
 desc """
 Повторяет миграцию
-"""	
-task @Repeat, [@Rollback, @Migrate]
+"""
+task "db:repeat", ["db:rollback", "db:migrate"]
 
 desc """
 откатывает миграцию с помощью файла отката миграции, пример bake Rollback id=77_01_test
-id - может быть как и полным именем миграции так и его частью
+id - может быть как и полным именем миграции так, его частью или строкой last
 """
-task @Rollback:
+task "db:rollback":
 	id = Configuration.id
 	migrations = FindMigrationsEntity(id)
 	unless migrations.Length:
@@ -428,10 +430,18 @@ task @Rollback:
 	for migration in migrations:
 		migration.DoRollback()
 
-task @CancelLastMigration:
-	migration = GetMigratedMigrations().Last()
-	migration.Cancel()
-	print "canceled $migration"
+desc """
+отменяет миграцию, удаляя запись о том что она была применена
+id - может быть как и полным именем миграции так, его частью или строкой last
+"""
+task "db:migration:cancel":
+	id = Configuration.id
+	migrations = FindMigrationsEntity(id)
+	unless migrations.Length:
+		raise "Не могу найти ни одной миграции"
+	for migration in migrations:
+		migration.Cancel()
+		print "отменена $migration"
 
 def HasKey(metadata as ITableMetadata, key as ForeignKey):
 	field = typeof(AbstractTableMetadata).GetField("foreignKeys", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy)
@@ -460,11 +470,10 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 				return true
 	return false
 
-
 desc """
-Генерирует миграция на основи разницы между мапингом active record и базы данных, пример bake GenerateMigration
+Генерирует миграция на основи разницы между мапингом active record и базы данных
 """
-task @GenerateMigration, [@OnlyInProject]:
+task "db:migration:generate":
 	configuration = GetConfiguration()
 	if not configuration.ClassMappings.Count:
 		raise "Can`t find any class mapping, check active record version and assemblies list"
