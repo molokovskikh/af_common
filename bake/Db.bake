@@ -135,7 +135,8 @@ emptyOrdersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList"))
 
 InternetProfile = DbProfile(\
 	ImportDbs: ("accessright", "analit", "internet"),
-	ImportTables : emptyProfile.ImportTables
+	ImportTables : emptyProfile.ImportTables,
+	IgnoreTables : emptyProfile.ImportTables
 )
 
 PrgDataProfile = DbProfile(\
