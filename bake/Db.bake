@@ -71,22 +71,22 @@ customersProfile.IgnoreTablesProc(emptyProfile.ImportTables)
 
 reportTypesProfile = DbProfile(catalogProfile)
 reportTypesProfile.Tables(("reports.enum_values",
-	 "reports.general_reports",
-	 "reports.property_enums",
-	 "reports.report_properties",
-	 "reports.report_property_values",
-	 "reports.report_type_properties",
-	 "reports.reports",
-	 "reports.reporttypes",
-	 "billing.Payers",
-	 "accessright.regionaladmins",
-	 "accessright.adminspermissions",
-	 "customers.Clients",
-	 "customers.Services",
-	 "customers.Users",
-	 "logs.reportslogs",
-	 "reports.drugs",
-	 "reports.markups"))
+	"reports.general_reports",
+	"reports.property_enums",
+	"reports.report_properties",
+	"reports.report_property_values",
+	"reports.report_type_properties",
+	"reports.reports",
+	"reports.reporttypes",
+	"billing.Payers",
+	"accessright.regionaladmins",
+	"accessright.adminspermissions",
+	"customers.Clients",
+	"customers.Services",
+	"customers.Users",
+	"logs.reportslogs",
+	"reports.drugs",
+	"reports.markups"))
 
 reportsProfile = DbProfile(customersProfile, reportTypesProfile)
 
@@ -188,78 +188,11 @@ profiles = {@empty: emptyProfile,
 	@documents: documentsProfile,
 	@PrgData: PrgDataProfile}
 
-task @MakePricesActual:
-	Db.Execute("""
-update PriceItems
-set PriceDate = now(),
-	LastFormalization = now();
-""")
-
-task @BuildLogTriggers, [@BuildDeleteTrigger, @BuildUpdateTrigger, @BuildInsertTrigger]
-
-task @SetupLog, [@CreateLogTable, @BuildLogTriggers]
-
-Desc """
-добавляет в таблицу логов отсутствующие колонки и пересоздает триггеры,
-нужна что бы сделать логи актуальными после внесения изменений в таблицу
-Database - база данных
-Table - таблица
-"""
-task @UpdateLog, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
-
-task @UpdateLogTable:
-	sql = GetUpdateLogTableCommand(Configuration.Database, Configuration.Table)
-	PrintCommand(sql)
-	Db.Execute(sql)
-
-#при обновлении логирования, нужно пересоздать триггеры, для этого ставим force
-task @Prepare:
-	Configuration.Force = true
-
-task @CreateLogTable:
-	sql = GetCreateLogTableCommand(Configuration.Database, Configuration.Table)
-	PrintCommand(sql)
-	Db.Execute(sql)
-
-task @BuildInsertTrigger:
-	sql = GetLogTriggerCommand("INSERT", Configuration.Database, Configuration.Table)
-	PrintCommand(sql)
-	Db.Execute(sql)
-
-task @BuildUpdateTrigger:
-	sql = GetLogTriggerCommand("UPDATE", Configuration.Database, Configuration.Table)
-	PrintCommand(sql)
-	Db.Execute(sql)
-
-task @BuildDeleteTrigger:
-	sql = GetLogTriggerCommand("DELETE", Configuration.Database, Configuration.Table)
-	PrintCommand(sql)
-	Db.Execute(sql)
-
-task @UpdateSchema:
-	Exec("mysql", "--host=localhost --user=root -e\"drop database if exists farm\"").Execute()
-	Exec("mysql", "--host=localhost --user=root -e\"drop database if exists catalogs\"").Execute()
-	Exec("mysql", "--host=localhost --user=root -e\"create database catalogs\"").Execute()
-	Exec("mysql", "--host=localhost --user=root -e\"drop user 'RootDBMS'@'127.0.0.1'\"").Execute()
-	Exec("mysql", "--host=localhost --user=root -e\"create user 'RootDBMS'@'127.0.0.1'\"").Execute()
-	Exec("mysql", "--host=localhost --user=root -e\"grant all on *.* to 'RootDBMS'@'127.0.0.1';\"").Execute()
-	Sh("mysqldump --host=testsql.analit.net --user=system --password=newpass catalogs --no-data | mysql --database=catalogs --host=localhost --user=root")
-
-desc """
-Дампит таблицу из рабочей базы и сохраняет ее в тестовою
-Пример bake Sync Database=Internet Table=ClientEndpoints
-"""
-Task @Sync:
-	user = Ask("user:")
-	password = AskPassword("password:")
-	Sh("mysqldump -hsql.analit.net -u${user} -p${password} --lock-tables=false --tables ${Configuration.Database} ${Configuration.Table} > dump.txt")
-	Sh("mysql -htestsql.analit.net -usystem -pnewpass -D${Configuration.Database} < dump.txt")
-	Rm("dump.txt")
 
 desc """
 дампит полную схему рабочей базы в файл dump.txt удобно если надо поискать что то в схеме, например использование определенных таблиц в триггерах или процедурах
 """
-Task @DumpSchema:
+Task "db:dump":
 	user = Ask("user:")
 	password = AskPassword("password:")
 	host = Ask("host:")
@@ -307,9 +240,19 @@ def ReadEnvVariable(name as string, defaultValue):
 	return defaultValue
 
 desc """
-Вызывает PrepareLocal затем Migrate
+Загружает тестовые данные и применяет не примененные миграции
 """
-task @CleanDb, [@PrepareLocal, @Migrate]
+task "db:setup", ["db:seed", "db:migrate"]
+
+desc """
+используй db:setup
+"""
+task @CleanDb, ["db:setup"]
+
+desc """
+используй db:seed
+"""
+task @PrepareLocal, ["db:seed"]
 
 desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
@@ -324,7 +267,7 @@ empty - только схема и справочные таблицы
 catalogs - загружается вся база дынных catalogs
 customers - customers, billing, usersettings, catalogs, contacts, ordersendrules и источники из farm и documents
 """
-task @PrepareLocal:
+task "db:seed":
 	sourceDb = "testsql.analit.net"
 	destination = "localhost"
 	user = "system"
@@ -378,33 +321,3 @@ task @PrepareLocal:
 		Sh("$mysql < $filename")
 		unless Configuration.Maybe.DoNotClean:
 			Rm(filename)
-
-task @KillBrokenConnections:
-	ids = List[of int]()
-	for row in Db.Read("show full processlist"):
-		id = Convert.ToInt32(row.id)
-		state = row.state.ToString()
-		time = Convert.ToInt32(row.time)
-		if time > 100 and state == "Copying to tmp table":
-			ids.Add(id)
-			print id
-	for id in ids:
-		Db.Execute("kill $id")
-
-task @CreateUser:
-	user = Configuration.user
-	password = "newpass"
-	host = "91.209.124.%"
-	if Configuration.Maybe.host:
-		host = Configuration.host
-	privileges = ["Select_priv", "Update_priv", "Insert_priv", "Delete_priv"]
-	if Configuration.Maybe.permissions == @programmer:
-		privileges = ["Select_priv", "Update_priv", "Insert_priv", "Delete_priv", "Create_priv", "Drop_priv", "Index_priv", "Alter_priv", "Create_tmp_table_priv",
-			"Execute_priv", "Create_routine_priv", "Alter_routine_priv", "Trigger_priv"]
-	if Configuration.Maybe.permissions == @readonly:
-		privileges = ["Select_priv", "Create_tmp_table_priv", "Execute_priv"]
-	privilegesCommand = String.Join(",", privileges.Cast[of string]().ToArray())
-	yCommand = String.Join(",", Enumerable.Repeat("'Y'", privileges.Count))
-	Db.Execute("""insert into mysql.user(Host, User, Password, $privilegesCommand)
-values ('$host', '$user', password('$password'), $yCommand);
-flush privileges;""")
