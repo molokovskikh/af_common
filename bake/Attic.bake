@@ -1,0 +1,70 @@
+task @UpdateSchema:
+	Exec("mysql", "--host=localhost --user=root -e\"drop database if exists farm\"").Execute()
+	Exec("mysql", "--host=localhost --user=root -e\"drop database if exists catalogs\"").Execute()
+	Exec("mysql", "--host=localhost --user=root -e\"create database catalogs\"").Execute()
+	Exec("mysql", "--host=localhost --user=root -e\"drop user 'RootDBMS'@'127.0.0.1'\"").Execute()
+	Exec("mysql", "--host=localhost --user=root -e\"create user 'RootDBMS'@'127.0.0.1'\"").Execute()
+	Exec("mysql", "--host=localhost --user=root -e\"grant all on *.* to 'RootDBMS'@'127.0.0.1';\"").Execute()
+	Sh("mysqldump --host=testsql.analit.net --user=system --password=newpass catalogs --no-data | mysql --database=catalogs --host=localhost --user=root")
+
+desc """
+Дампит таблицу из рабочей базы и сохраняет ее в тестовою
+Пример bake Sync Database=Internet Table=ClientEndpoints
+"""
+Task @Sync:
+	user = Ask("user:")
+	password = AskPassword("password:")
+	Sh("mysqldump -hsql.analit.net -u${user} -p${password} --lock-tables=false --tables ${Configuration.Database} ${Configuration.Table} > dump.txt")
+	Sh("mysql -htestsql.analit.net -usystem -pnewpass -D${Configuration.Database} < dump.txt")
+	Rm("dump.txt")
+
+task @KillBrokenConnections:
+	ids = List[of int]()
+	for row in Db.Read("show full processlist"):
+		id = Convert.ToInt32(row.id)
+		state = row.state.ToString()
+		time = Convert.ToInt32(row.time)
+		if time > 100 and state == "Copying to tmp table":
+			ids.Add(id)
+			print id
+	for id in ids:
+		Db.Execute("kill $id")
+
+task @CreateUser:
+	user = Configuration.user
+	password = "newpass"
+	host = "91.209.124.%"
+	if Configuration.Maybe.host:
+		host = Configuration.host
+	privileges = ["Select_priv", "Update_priv", "Insert_priv", "Delete_priv"]
+	if Configuration.Maybe.permissions == @programmer:
+		privileges = ["Select_priv", "Update_priv", "Insert_priv", "Delete_priv", "Create_priv", "Drop_priv", "Index_priv", "Alter_priv", "Create_tmp_table_priv",
+			"Execute_priv", "Create_routine_priv", "Alter_routine_priv", "Trigger_priv"]
+	if Configuration.Maybe.permissions == @readonly:
+		privileges = ["Select_priv", "Create_tmp_table_priv", "Execute_priv"]
+	privilegesCommand = String.Join(",", privileges.Cast[of string]().ToArray())
+	yCommand = String.Join(",", Enumerable.Repeat("'Y'", privileges.Count))
+	Db.Execute("""insert into mysql.user(Host, User, Password, $privilegesCommand)
+values ('$host', '$user', password('$password'), $yCommand);
+flush privileges;""")
+
+Desc """
+добавляет в таблицу логов отсутствующие колонки и пересоздает триггеры,
+нужна что бы сделать логи актуальными после внесения изменений в таблицу
+Database - база данных
+Table - таблица
+"""
+task @UpdateLog, [@UpdateLogTable, @Prepare, @BuildLogTriggers]
+
+task @UpdateLogTable:
+	sql = GetUpdateLogTableCommand(Configuration.Database, Configuration.Table)
+	PrintCommand(sql)
+	Db.Execute(sql)
+
+task @BuildLogTriggers, [@BuildDeleteTrigger, @BuildUpdateTrigger, @BuildInsertTrigger]
+
+task @SetupLog, [@CreateLogTable, @BuildLogTriggers]
+
+#при обновлении логирования, нужно пересоздать триггеры, для этого ставим force
+task @Prepare:
+	Configuration.Force = true

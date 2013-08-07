@@ -29,37 +29,23 @@ class Project:
 		_frameworkVersion = frameworkVersion
 
 	def Build():
-		return Build(false)
-
-	def Build(grubOutput as bool):
-		success = true
 		clean = MsBuild(_projectFile,
 			Target : "clean",
 			Parameters : { "Configuration" : "debug" },
-			FrameworkVersion : _frameworkVersion,
-			GrubOutput : grubOutput)
+			FrameworkVersion : _frameworkVersion)
 		clean.Arguments.Add("/verbosity:minimal")
 
 		build = MsBuild(_projectFile,
 			Target : "build",
 			Parameters : { "Configuration" : "debug" },
-			FrameworkVersion : _frameworkVersion,
-			GrubOutput : grubOutput)
+			FrameworkVersion : _frameworkVersion)
 		build.Arguments.Add("/verbosity:minimal")
-		try:
-			clean.Execute()
-			build.Execute()
-		except e as BuildException:
-			success = false
-			raise unless e.Message.Contains("Command faild with status")
+		clean.Execute()
+		build.Execute()
 
 		BuildOutput = clean.Output.ToString() + "\r\n" + build.Output.ToString()
-		return success
 
 	def Test():
-		return Test(false)
-
-	def Test(grubOutput as bool):
 		assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/${_project}.dll")
 		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
 		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
@@ -68,94 +54,14 @@ class Project:
 		if _isX86:
 			nunitPath = """nunit-console-x86.exe"""
 		nunit = NUnit("\"" + assembly + "\"",
-			ExecutablePath : nunitPath,
-			GrubOutput : grubOutput)
+			ExecutablePath : nunitPath)
 
-		success = true
-		try:
-			nunit.Execute()
-		except e as BuildException:
-			success = false
-			raise unless e.Message.Contains("Command faild with status")
+		nunit.Execute()
 
 		TestOutput = nunit.Output.ToString()
-		return success
 
 	def ToString():
 		return _project
-
-class TestResults:
-	successCount = 0
-	failCount = 0
-	ignoredCount = 0
-	brokenTests = List of XElement()
-	outputs = List of string()
-	totalTime as TimeSpan
-
-	Body as string:
-		get:
-			return Message()
-
-	property Branch as string
-	property RealTotalTime as TimeSpan
-	property Files = List of string()
-
-	def Parse(filename as string):
-		doc = XDocument.Load(filename)
-
-		total as decimal
-		for element in doc.XPathSelectElements("//test-suite[@type='Assembly']"):
-			if attribute = element.Attribute("time"):
-				total += Convert.ToDecimal(attribute.Value, CultureInfo.InvariantCulture)
-		totalTime += TimeSpan.FromSeconds(total)
-
-		successCount += doc.XPathSelectElements("//test-case[@result='Success']").Count()
-		ignoredCount += doc.XPathSelectElements("//test-case[@result='Ignored']").Count()
-
-		failures = doc.XPathSelectElements("//test-case[@result='Failure']")
-		failCount += failures.Count()
-		brokenTests.AddRange(failures)
-		failures = doc.XPathSelectElements("//test-case[@result='Error']")
-		failCount += failures.Count()
-		brokenTests.AddRange(failures)
-
-		index = Files.Count() + 1
-		resultFile = Path.GetFileNameWithoutExtension(filename) + index.ToString() + Path.GetExtension(filename)
-		File.Copy(filename, resultFile, true)
-		Files.Add(resultFile)
-
-	def Message():
-		totalCount = successCount + failCount + ignoredCount
-		message = StringWriter()
-		message.WriteLine("Всего тестов ${totalCount} прошли ${successCount} сломаны ${failCount} в игноре ${ignoredCount}")
-		message.WriteLine("Общее время запуска тестов по мнению nunit $totalTime на самом деле $RealTotalTime")
-		for output in outputs:
-			message.WriteLine(output)
-
-		if not failCount:
-			message.WriteLine("Все тесты прошли успешно")
-		else:
-			message.WriteLine("Сломанные тесты:")
-			for test in brokenTests:
-				name = test.Attribute("name").Value
-				reason = test.XPathSelectElement(".//message").Value
-				stack = test.XPathSelectElement(".//stack-trace").Value
-				message.WriteLine(name.Trim())
-				message.WriteLine(reason.Trim())
-				if stack:
-					message.WriteLine(stack.Trim())
-				if reason.Contains("failed in FixtureSetup"):
-					if failureNode = test.XPathSelectElement("//parent::failure"):
-						reason = failureNode.XPathSelectElement(".//message").Value
-						stack = failureNode.XPathSelectElement(".//stack-trace").Value
-						message.WriteLine(reason.Trim())
-						if stack:
-							message.WriteLine(stack.Trim())
-				message.WriteLine()
-		return message.ToString()
-
-	def Output(output as string):
-		outputs.Add(output)
 
 frameworkVersion = Globals.FrameworkVersion
 
@@ -169,6 +75,8 @@ def GetProjects():
 		"src/**/Unit.*proj"],
 		Excludes: ["**/Test.Support*.*proj"]).Files
 	return files.Select({f| Project(f, isx86, frameworkVersion)}).ToList()
+
+task @integration, [@test]
 
 task @test, [@RunTests]
 
@@ -191,7 +99,7 @@ task @CheckWritingErrors:
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
 	for project in projects:
-		raise "Сборка проекта $project завершилась ошибкой" unless project.Build()
+		project.Build()
 
 task @TestJs:
 	return unless Exist("test")
@@ -207,23 +115,12 @@ task @TestJs:
 		Sh("$phantom $run $file")
 
 task @RunTests, [@TestJs, @BuildTests]:
+	index = 0
 	for project in GetProjects():
+		index++
+		if Exist("TestResult.xml"):
+			Cp("TestResult.xml", "TestResult${index}.xml")
 		project.Test()
-
-def GetProjectName():
-	return Path.GetFileName(Environment.CurrentDirectory)
-
-def Notify(result as TestResults):
-	project = GetProjectName()
-	using message = MailMessage("r.kvasov@analit.net", "dev@analit.net"):
-		message.Subject = "Сборка $project"
-		if result.Branch:
-			message.Subject += " ветка ${result.Branch}"
-		message.Body = result.Body
-		for file in result.Files:
-			message.Attachments.Add(Attachment(file))
-		smtpClient = SmtpClient("box.analit.net")
-		smtpClient.Send(message)
 
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
 #boo миграции которые используют классы из проекта
@@ -236,56 +133,3 @@ task @TryToBuild, [@PrepareBuild, @TryBeforeTest]:
 task @TryBeforeTest:
 	if Engine.Tasks.FirstOrDefault({t| t.Name == @BeforeTest}):
 		Engine.Execute(@BeforeTest)
-
-task @integration, [@PrepareBuild]:
-	notInteractive = Configuration.Maybe.notInteractive != null
-	result = TestResults()
-	result.Branch = Configuration.Maybe.branch
-	try:
-		projects = GetProjects()
-		ExecuteProcess("git", "status")
-		log = ExecuteProcess("git", "show HEAD --stat")
-		if log:
-			result.Output("")
-			result.Output(log)
-
-		for project in projects:
-			unless project.Build(notInteractive):
-				result.Output("Сборка завершилась с ошибкой\r\n" + project.BuildOutput)
-				return
-
-		for project in projects:
-			begin = DateTime.Now
-			project.Test(notInteractive)
-			result.RealTotalTime += DateTime.Now - begin
-			if Exist("TestResult.xml"):
-				result.Parse("TestResult.xml")
-				Rm("TestResult.xml")
-			else:
-				result.Output(project.TestOutput)
-
-		if Exist("test"):
-			if Exist("Gruntfile.js"):
-				grunt = Exec("cmd.exe", "/C grunt --no-color", GrubOutput: true)
-				try:
-					grunt.Execute()
-				except e as BuildException:
-					success = false
-				result.Output(grunt.Output.ToString())
-			else:
-				root = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../tools/phantomjs-1.2.0")
-				root = Path.GetFullPath(root)
-				phantom = "phantomjs"
-				run = Path.Combine(root, "examples", "run-qunit.js")
-				for file in Directory.GetFiles("test", "*.html"):
-					phantomExec = Exec(phantom, "$run $file", GrubOutput: true)
-					try:
-						phantomExec.Execute()
-					except e as BuildException:
-						success = false
-					result.Output(phantomExec.Output.ToString())
-
-	except e as Exception:
-		result.Output(e.ToString())
-	ensure:
-		Notify(result)
