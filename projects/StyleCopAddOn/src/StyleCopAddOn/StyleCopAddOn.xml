@@ -20,6 +20,10 @@
         <Context>Выражение else-if должно записываться без блока фигурных скобок.</Context>
         <Description>Выражение else-if должно записываться без блока фигурных скобок.</Description>
       </Rule>
+	  <Rule Name="LogicalExpressionOnTheSameLine" CheckId="EX1004">
+        <Context>После else и if следует делать разрыв строки.</Context>
+        <Description>После else и if следует делать разрыв строки.</Description>
+      </Rule>
     </RuleGroup>
   </Rules>
 </SourceAnalyzer>

@@ -54,8 +54,6 @@ namespace StyleCopAddOn
 									if (CheckPreviousTokens(parentElement, expression, child.LineNumber, GetMinIndex(parentElement, child.LineNumber)))
 										continue;
 								this.AddViolation(parentElement, child.LineNumber, "MoreOrLessThenOneTabToRightPosition");
-
-
 								continue;
 							}
 					}
@@ -134,6 +132,15 @@ namespace StyleCopAddOn
 					}
 				StatementWalk(statement, parentElement);
 			}
+
+			if ((parentStatement != null) &&
+				(parentStatement.StatementType == StatementType.Else ||
+				parentStatement.StatementType == StatementType.If) &&
+				(statement.LineNumber == parentStatement.LineNumber) &&
+				statement.StatementType != StatementType.Block) {
+				this.AddViolation(parentElement, statement.LineNumber, "LogicalExpressionOnTheSameLine");
+			}
+
 			if (statement.StatementType == StatementType.Block) {
 				if (parentStatement != null && parentStatement.StatementType == StatementType.Else && ((ElseStatement)parentStatement).ConditionExpression == null
 					&& statement.ChildStatements.Where(s => s.StatementType != StatementType.If && s.StatementType != StatementType.Else).Count() == 0) {
