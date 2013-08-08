@@ -64,7 +64,7 @@ params = { "OutDir" : "${buildTo}", "Configuration" : "release" }
 if Globals.Maybe.Platform:
 	params.Add("Platform", Globals.Platform)
 
-task @ClickOnceDeploy, ["packages:install", @CheckScmChanges, @UpdateRevision, @ClickOnceBuild, @Production, @Migrate, @publish, @SendDeployNotification]
+task @ClickOnceDeploy, ["packages:install", "check", @UpdateRevision, @ClickOnceBuild, @Production, @Migrate, @publish, @SendDeployNotification]
 
 task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 	MsBuild(projectFile,
