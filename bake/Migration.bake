@@ -20,12 +20,6 @@ import NHibernate.Dialect.Schema
 
 #import Castle.ActiveRecord
 
-import file from Config.bake
-import file from Db.boo
-#import file from ActiveRecord.boo
-import file from LoggingBuilder.boo
-import file from Svn.boo
-
 class Migration:
 	property Version as string
 	property MigratedOn as DateTime?
@@ -223,27 +217,27 @@ def Apply(fileName as string):
 			if ImInProject():
 				SetupActiveRecord()
 
-			compiler = BooCompiler()
-			compiler.Parameters.Input.Add(FileInput(fileName))
-			compiler.Parameters.Pipeline = CompileToMemory()
-			compiler.Parameters.Pipeline.Insert(1, AutoReferenceFilesCompilerStep(AppDomain.CurrentDomain.BaseDirectory, MemoryCache()));
-			if ImInProject():
-				compiler.Parameters.LibPaths.Add("lib")
-				for dir in Directory.GetDirectories("lib/"):
-					continue if Path.GetFileName(dir).ToLower() == ".svn"
-					compiler.Parameters.LibPaths.Add(dir)
-			else:
-				for dir in Directory.GetDirectories("../lib/"):
-					continue if Path.GetFileName(dir).ToLower() == ".svn"
-					compiler.Parameters.LibPaths.Add(dir)
+			#compiler = BooCompiler()
+			#compiler.Parameters.Input.Add(FileInput(fileName))
+			#compiler.Parameters.Pipeline = CompileToMemory()
+			#compiler.Parameters.Pipeline.Insert(1, AutoReferenceFilesCompilerStep(AppDomain.CurrentDomain.BaseDirectory, MemoryCache()));
+			#if ImInProject():
+			#	compiler.Parameters.LibPaths.Add("lib")
+			#	for dir in Directory.GetDirectories("lib/"):
+			#		continue if Path.GetFileName(dir).ToLower() == ".svn"
+			#		compiler.Parameters.LibPaths.Add(dir)
+			#else:
+			#	for dir in Directory.GetDirectories("../lib/"):
+			#		continue if Path.GetFileName(dir).ToLower() == ".svn"
+			#		compiler.Parameters.LibPaths.Add(dir)
 
-			result = compiler.Run()
-			if len(result.Warnings):
-				print(result.Warnings.ToString())
-			if len(result.Errors):
-				print(result.Errors.ToString(true))
-				return
-			main = result.GeneratedAssembly.EntryPoint
+			#result = compiler.Run()
+			#if len(result.Warnings):
+			#	print(result.Warnings.ToString())
+			#if len(result.Errors):
+			#	print(result.Errors.ToString(true))
+			#	return
+			#main = result.GeneratedAssembly.EntryPoint
 			#if ImInProject():
 			#	holder = ActiveRecordMediator.GetSessionFactoryHolder()
 			#	sessionFactory = holder.GetSessionFactory(ActiveRecordBase)
@@ -409,14 +403,6 @@ task "db:migration:init":
 		File.WriteAllText(filename, "")
 		print "saved to ${filename}"
 		StartEditor(filename)
-	else:
-		SvnTool.Update()
-		id = GetMigrations().Where({m|m =~ /^\d+$/}).Select({m| Convert.ToInt32(m)}).DefaultIfEmpty().Max() + 1
-		migration = "${id}.sql"
-		File.WriteAllText(migration, "")
-		SvnTool.Command("add ${migration}")
-		SvnTool.Command("commit -m\"Забил местечко\" ${migration}")
-		print "migration ${migration}"
 
 desc """
 Повторяет миграцию

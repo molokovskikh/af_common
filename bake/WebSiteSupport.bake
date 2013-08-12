@@ -2,10 +2,6 @@ import System.IO
 import System.Linq.Enumerable
 import file from Config.bake
 
-buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project.ToString()))
-projectPath = Path.GetFullPath("src/${Globals.Project}")
-projectFile = FileSet("${projectPath}/${Globals.Project}.*proj").Files.First()
-
 def CopyAssets(output as string):
 	return unless Exist("packages")
 	return unless Exist("src/Common.Web.UI/Common.Web.Ui/Assets/Content/")
@@ -35,6 +31,10 @@ def CopyAssets(output as string):
 	Cp(styleSheets, assets) if styleSheets.Files.Count
 
 task @BuildWebSite, [@CleanWebSite]:
+	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project.ToString()))
+	projectPath = Path.GetFullPath("src/${Globals.Project}")
+	projectFile = FileSet("${projectPath}/${Globals.Project}.*proj").Files.First()
+
 	MkDir(buildTo) if not Exist(buildTo)
 	params = { "OutDir" : "${buildTo}\\bin\\",
 		"OutputPath" : "${buildTo}\\bin\\",
@@ -83,6 +83,9 @@ task @BuildWebSite, [@CleanWebSite]:
 	CopyAssets(buildTo)
 
 task @CleanWebSite:
+	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project.ToString()))
+	projectPath = Path.GetFullPath("src/${Globals.Project}")
+	projectFile = FileSet("${projectPath}/${Globals.Project}.*proj").Files.First()
 	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
 			Target : "clean",
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",

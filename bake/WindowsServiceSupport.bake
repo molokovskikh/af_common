@@ -20,7 +20,7 @@ def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as Stri
 def CloseHandle(handle as IntPtr) as bool:
 	pass
 
-project = Globals.Project
+project = Globals.Maybe.Project
 buildTo = Path.GetFullPath("build")
 projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
 
@@ -102,10 +102,6 @@ def GetServers():
 
 unless serviceName = Globals.Maybe.ServiceName:
 	serviceName = project
-
-_servers = GetServers()
-_rootServer = _servers.First()
-Globals.deployTo = "\\\\$_rootServer\\$project"
 
 task @ServiceDeployPipeline, ["packages:install", "check", @BuildService, @StopServices, @Production, @Migrate, @Backup, @SimpleDeployService, @SendDeployNotification]
 

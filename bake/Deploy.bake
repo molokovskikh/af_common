@@ -58,23 +58,17 @@ def GetDeployTo(project as string):
 	либо название проекта Globals.Project тогда он будет выложен на Globals.DeployRoot по умолчанию это \\acdcserv.adc.analit.net\WebApps\"""
 	return deployTo
 
-if Environment.UserName != "kvasov":
-        Globals.Editor = "notepad"
-editor = Globals.Editor
 humanReadableName = ""
 if Globals.IsDefined(@humanReadableName):
-	humanReadableName = Globals.humanReadableName
+	humanReadableName = Globals.Maybe.humanReadableName
 else:
-	humanReadableName = Globals.HumanReadableName
+	humanReadableName = Globals.Maybe.HumanReadableName
 
 project = ""
 if Globals.IsDefined("Project"):
-	project = Globals.Project
+	project = Globals.Maybe.Project
 else:
-	project = Globals.project
-
-buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), project))
-deployTo = GetDeployTo(project)
+	project = Globals.Maybe.project
 
 def WriteMessages(file as string, message as string):
 	reader = StringReader(message)
@@ -91,22 +85,6 @@ def DetectScm():
 	return "git" if Exist(".git")
 	print "Can not detect scm"
 	return ""
-
-def StartEditor(editor as string, message as string):
-	try:
-		tempFile = Path.GetTempFileName()
-		WriteMessages(tempFile, message)
-		process = Process.Start(editor, tempFile)
-		process.WaitForExit()
-		messages = List[of string]()
-		using reader = StreamReader(tempFile):
-			while (line = reader.ReadLine()) != null:
-				if line.Trim() and line.Trim()[0] == char('#'):
-					continue
-				messages.Add(line)
-		return String.Join("\r\n", messages.ToArray())
-	ensure:
-		Rm(tempFile)
 
 def GetGitDir(command as string, workDir as string):
 	output = ""
@@ -198,6 +176,7 @@ task @Backup:
 
 task @RollbackDeploy, [@WebClean]:
 	backup = FindLastBackup()
+	deployTo = GetDeployTo(Globals.Project.ToString())
 	Cp(FileSet("**/*.*", Excludes : ["*.log"], BaseDirectory : backup), deployTo)
 	backupDate = DateTime.ParseExact(backup[backup.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)
 	print "rollback to $project at $backupDate"

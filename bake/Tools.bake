@@ -166,4 +166,4 @@ task @LoadProject, [@LoadAssemblies]:
 	if Exist("tasks"):
 		for file in Directory.GetFiles("tasks", "*.bake"):
 			using reader = File.OpenText(file):
-				Engine.Loader.Load(reader, file)
+				Engine.Loader.Load(file)

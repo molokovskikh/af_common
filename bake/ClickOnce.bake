@@ -47,8 +47,8 @@ def ClearDir(dirname as string):
 	for fname in Directory.GetFiles(dirname):
 		File.Delete(fname)
 
-projectName = Globals.Project
-productName = Globals.HumanReadableName
+projectName = Globals.Maybe.Project
+productName = Globals.Maybe.HumanReadableName
 configuration = "release"
 projectPath = Path.GetFullPath("src/${projectName}/")
 projectFile = "${projectPath}${projectName}.csproj"
