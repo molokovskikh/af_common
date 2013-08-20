@@ -89,8 +89,10 @@ def Import():
 			projectNode.AddFirst(importNode)
 			document.Save(file)
 
-def CheckPlatformSpecificVersion(path as string):
-	preferedVersions = ["net45", "net40-full", "net-4.0", "net4", "net40", "NET40ClientProfile", "net35", "20", "2.0", "2", "net20", "net"]
+def CheckPlatformSpecificVersion(path as string, max as string):
+	preferedVersions = ["net40-full", "net-4.0", "net4", "net40", "NET40ClientProfile", "net35", "20", "2.0", "2", "net20", "net"]
+	if max == "net45":
+		preferedVersions.Insert(0, max)
 	specificVersion = preferedVersions.Select({v| Path.Combine(path, v)}).FirstOrDefault({d| Directory.Exists(d)})
 	if specificVersion:
 		return specificVersion
@@ -175,6 +177,9 @@ def NugetInstall(config as string):
 
 desc """
 устанавливает пакеты описаные в packages.config
+параметры:
+targetFramework - версия framework под которую будут загружаться библиотеки
+если не задана используется Globals.TargetFramework
 """
 task "packages:install":
 	if Exist("packages/packages.config"):
@@ -189,7 +194,7 @@ task "packages:install":
 			NugetInstall(config)
 
 	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
-		.Select({d| CheckPlatformSpecificVersion(d)})\
+		.Select({d| CheckPlatformSpecificVersion(d, Configuration.Maybe.targetFramework or Globals.TargetFramework)})\
 		.Select({d| '$(PackagePath)\\' + d})
 	if Exist(@lib):
 		packages = packages.Concat(('$(LibPath)\\lib', ))

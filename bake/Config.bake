@@ -28,6 +28,8 @@ Global(
 	Editor : "vim-nox",
 	MigrationsPath : GetMigrationPath(),
 	FrameworkVersion : "4.0.30319",
+	#используется для определения версии библиотек
+	TargetFramework: "net40",
 	DeployRoot : """\\adc.analit.net\Inforoom\WebApps\""",
 	BuildRoot : "output",
 	PublishRoot : """\\adc.analit.net\Inforoom\WebPublish\""",
