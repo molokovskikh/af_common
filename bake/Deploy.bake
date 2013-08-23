@@ -226,6 +226,7 @@ task @CheckScmChanges, [@CheckCommon, @CheckCurrent]
 
 task @CheckCurrent:
 	return if Globals.Environment == @Test
+	return if Configuration.Maybe.skipCheckCurrent
 
 	CheckRepository(Path.GetFullPath("."))
 
