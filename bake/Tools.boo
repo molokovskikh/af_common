@@ -94,3 +94,10 @@ def ToPascal(text as string):
 			pascaled += c.ToString()
 		toUpper = false
 	return pascaled[0].ToString().ToUpper() + pascaled[1:]
+
+def GetConfigSufix(Globals as duck):
+	config = "release.config"
+	if Globals.Environment != @Local and Globals.Environment != @Production:
+		env = Globals.Environment.ToLower()
+		config = "$env.config"
+	return config

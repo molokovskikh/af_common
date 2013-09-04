@@ -254,8 +254,8 @@ skipCheckJenkins=true, что бы игнорировать результаты
 """
 task "check:jenkins":
 	return if Globals.Environment == @Test
+	jenkinsProject  = Globals.Maybe.Project or Globals.Maybe.project or Globals.Maybe.JenkinsProject
 	try:
-		jenkinsProject = Globals.Maybe.JenkinsProject or project
 		url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
 		uri = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject/api/xml?depth=1"
 		try:

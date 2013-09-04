@@ -29,7 +29,7 @@ task @BuildApp, [@CleanApp]:
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/*.xml")
-	src = "src/${project}/App.release.config"
+	src = Path.Combine("src/${project}/", "App." + GetConfigSufix(Globals))
 	config = "${buildTo}/${project}.exe.config"
 	Cp(src, config, true) if Exist(src)
 

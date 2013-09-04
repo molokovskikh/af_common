@@ -114,7 +114,8 @@ task @BuildService, [@CleanService]:
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/*.xml")
-	Cp("src/${project}/App.release.config", "${buildTo}/${project}.exe.config", true)
+	sufix = GetConfigSufix(Globals)
+	Cp("src/${project}/App.$sufix", "${buildTo}/${project}.exe.config", true)
 
 task @CleanService:
 	MsBuild(projectFile, "/verbosity:quiet", "/nologo",

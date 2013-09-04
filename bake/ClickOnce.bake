@@ -70,11 +70,11 @@ task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 	MsBuild(projectFile,
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
-	if Exist("${projectPath}App.${configuration}.config"):
-		Cp("${projectPath}App.${configuration}.config", "${buildTo}${projectName}.exe.config", true)
+	config = Path.Combine(projectPath, "App." + GetConfigSufix(Globals))
+	Cp(config, "${buildTo}${projectName}.exe.config", true)
 	Rm(FileSet("*.*",
-			   BaseDirectory : buildTo,
-			   Excludes : ["*.dll", "*.exe", "*.config"]))
+			BaseDirectory : buildTo,
+			Excludes : ["*.dll", "*.exe", "*.config"]))
 	publishVersion = GetAssemblyVersion("${buildTo}${projectName}.exe")
 
 task @clean:

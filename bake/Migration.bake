@@ -355,7 +355,7 @@ task @InitActiveRecord:
 	SetupActiveRecord()
 
 task @OnlyInProject:
-	raise "Задучу имеет смысл запускать только в проекте" if not ImInProject()
+	raise "Задачу имеет смысл запускать только в проекте" if not ImInProject()
 		
 #Нужно обновить common т.к. может быть ссылка на миграцию а в локальной копии ее нет
 task @UpdateCommon:
@@ -373,6 +373,10 @@ desc """
 """
 task @Migrate, ["db:migrate"]
 
+desc """
+применяет миграции из директории migrations
+для отслеживания примененных миграций используется logs.schemamigrations
+"""
 task "db:migrate":
 	migrations as List[of string]
 	if Configuration.Maybe.id:
@@ -392,7 +396,7 @@ task @Waiting:
 			PrintMigration(migration, FindMigration(migration)) if not migrated.Contains(migration)
 		else:
 			print migration if not migrated.Contains(migration)
-Desc """
+desc """
 создает новую миграцию
 """
 task "db:migration:init":
@@ -405,7 +409,7 @@ task "db:migration:init":
 		StartEditor(filename)
 
 desc """
-Повторяет миграцию
+повторяет миграцию
 """
 task "db:repeat", ["db:rollback", "db:migrate"]
 
@@ -462,7 +466,7 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 	return false
 
 desc """
-Генерирует миграция на основи разницы между мапингом active record и базы данных
+генерирует миграция на основе разницы между мапингом и базы данных
 """
 task "db:migration:generate":
 	configuration = GetConfiguration()
