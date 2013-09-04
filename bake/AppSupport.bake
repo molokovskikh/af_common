@@ -31,6 +31,8 @@ task @BuildApp, [@CleanApp]:
 	Rm("${buildTo}/*.xml")
 	src = Path.Combine("src/${project}/", "App." + GetConfigSufix(Globals))
 	config = "${buildTo}/${project}.exe.config"
+	unless Exist(config):
+		config = FileSet("$buildTo/*.config").Files.FirstOrDefault() or config
 	Cp(src, config, true) if Exist(src)
 
 task @CleanApp:
