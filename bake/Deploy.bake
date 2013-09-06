@@ -254,10 +254,10 @@ skipCheckJenkins=true, что бы игнорировать результаты
 """
 task "check:jenkins":
 	return if Globals.Environment == @Test
-	jenkinsProject  = Globals.Maybe.Project or Globals.Maybe.project or Globals.Maybe.JenkinsProject
+	jenkinsProject  = Globals.Maybe.JenkinsProject or Globals.Maybe.Project or Globals.Maybe.project
+	url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
+	uri = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject/api/xml?depth=1"
 	try:
-		url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
-		uri = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject/api/xml?depth=1"
 		try:
 			doc = XDocument.Load(uri)
 		except e:
