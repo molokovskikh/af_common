@@ -32,10 +32,6 @@ task @UpdateTargetFramework:
 		doc.Save(project)
 		print "${project} patched"
 
-task @Production:
-	if not Configuration.Maybe.Environment and not Configuration.Maybe.env:
-		Configuration.Environment = @Production
-		Globals.Environment = @Production
 
 #def CalculateRelativePath(fromPath as string, toPath as string):
 #	root = GetCommonRoot(fromPath, toPath)
