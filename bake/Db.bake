@@ -341,7 +341,7 @@ task "db:seed":
 		all = join(profiles.Keys)
 		raise "не знаю что за профиль $profileName, есть $all"
 
-	db = Db(Globals.Environments[@Development].ToString())
+	db = Db(Globals.Environments[@DevelopmentLong].ToString())
 	localDb = Db(local)
 	localLongDb = Db(localLong)
 
