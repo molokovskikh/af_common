@@ -148,8 +148,42 @@ PrgDataProfile = DbProfile(\
 	IgnoreTables: ("farm.core0", "farm.corecosts", "farm.CoreArchive", "farm.synonymarchive", "farm.usedsynonymlogs", "farm.usedsynonymfirmcrlogs", "farm.unrecexp", "farm.forb", "farm.forbidden"),
 	BeforeExportSql: """
 drop table if exists farm.core_dump;
+CREATE TABLE  `farm`.`core_dump` (
+  `Id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  `PriceCode` int(10) unsigned DEFAULT NULL,
+  `ProductId` int(10) unsigned DEFAULT NULL,
+  `CodeFirmCr` int(10) unsigned DEFAULT NULL,
+  `SynonymCode` int(10) unsigned DEFAULT NULL,
+  `SynonymFirmCrCode` int(10) unsigned DEFAULT NULL,
+  `Code` varchar(20) NOT NULL,
+  `CodeCr` varchar(20) NOT NULL,
+  `Unit` varchar(15) NOT NULL,
+  `Volume` varchar(100) NOT NULL,
+  `Quantity` varchar(15) NOT NULL,
+  `Note` varchar(100) DEFAULT NULL,
+  `Period` varchar(20) NOT NULL,
+  `Exp` date DEFAULT NULL,
+  `Doc` varchar(20) NOT NULL,
+  `Junk` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  `Await` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  `MinBoundCost` decimal(8,2) unsigned DEFAULT NULL,
+  `VitallyImportant` tinyint(1) unsigned NOT NULL DEFAULT '0',
+  `RequestRatio` smallint(5) unsigned DEFAULT NULL,
+  `RegistryCost` decimal(8,2) unsigned DEFAULT NULL,
+  `MaxBoundCost` decimal(8,2) unsigned DEFAULT NULL,
+  `OrderCost` decimal(8,2) unsigned DEFAULT NULL,
+  `MinOrderCount` int(10) unsigned DEFAULT NULL,
+  `UpdateTime` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `QuantityUpdate` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `ProducerCost` decimal(12,6) unsigned DEFAULT NULL,
+  `NDS` smallint(5) unsigned DEFAULT NULL,
+  `EAN13` varchar(20) DEFAULT NULL,
+  `CodeOKP` int(10) unsigned DEFAULT NULL,
+  `Series` varchar(20) DEFAULT NULL,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB;
 
-create table farm.core_dump
+insert into farm.core_dump
 select c.*
 from farm.core0 c
 join Usersettings.PricesData pd on pd.PriceCode = c.PriceCode
@@ -157,8 +191,19 @@ join Customers.Suppliers s on s.Id = pd.FirmCode
 where s.Id in (5, 14, 36, 129, 216, 4138);
 
 drop table if exists farm.corecosts_dump;
+CREATE TABLE  `farm`.`corecosts_dump` (
+  `Core_Id` bigint(20) unsigned DEFAULT NULL,
+  `PC_CostCode` int(10) unsigned DEFAULT NULL,
+  `Cost` decimal(12,6) unsigned DEFAULT NULL,
+  `RequestRatio` smallint(5) unsigned DEFAULT NULL,
+  `MinOrderSum` decimal(8,2) unsigned DEFAULT NULL,
+  `MinOrderCount` int(10) unsigned DEFAULT NULL,
+  `Id` bigint(20) unsigned NOT NULL AUTO_INCREMENT,
+  PRIMARY KEY (`Id`)
+) ENGINE=InnoDB;
 
-create table farm.corecosts_dump
+
+insert into farm.corecosts_dump
 select cc.*
 from farm.core0 c
 join Usersettings.PricesData pd on pd.PriceCode = c.PriceCode
