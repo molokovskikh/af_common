@@ -18,6 +18,7 @@ class PropertyGroup:
 	property ReferencePath as string
 	property StylecopPath as string
 	property StylecopAddonPath as string
+	property DefineConstants as string
 
 libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
@@ -111,26 +112,28 @@ def Serialize(filename as string, value):
 	using stream = File.OpenWrite(filename):
 		serializer.Serialize(stream, value)
 
-def Save(paths as string, path as string, filename as string):
-	libProperties = Project()
-	serializer = XmlSerializer(libProperties.GetType())
-	libProperties.PropertyGroup = PropertyGroup()
+def Save(paths as string, path as string, filename as string, names as (string)):
+	project = Project()
+	serializer = XmlSerializer(project.GetType())
+	project.PropertyGroup = PropertyGroup()
 	if Exist(filename):
 		using stream = File.OpenRead(filename):
-			libProperties = cast(Project, serializer.Deserialize(stream))
+			project = cast(Project, serializer.Deserialize(stream))
 
-	libProperties.PropertyGroup.LibPath = path
-	libProperties.PropertyGroup.PackagePath = path
-	libProperties.PropertyGroup.ReferencePath = paths
+	project.PropertyGroup.LibPath = path
+	project.PropertyGroup.PackagePath = path
+	project.PropertyGroup.ReferencePath = paths
+	project.PropertyGroup.DefineConstants = String.Join(";", names.Select({n| n.Replace(".", "_")}))
+
 	dir = Directory.GetDirectories(@packages)\
 		.Select({d| Path.GetFileName(d)})\
 		.FirstOrDefault({d| d.StartsWith("StyleCop.MSBuild.")})
-	libProperties.PropertyGroup.StylecopPath = "\$(PackagePath)\\packages\\$dir"
+	project.PropertyGroup.StylecopPath = "\$(PackagePath)\\packages\\$dir"
 	dir = Directory.GetDirectories(@packages)\
 		.Select({d| Path.GetFileName(d)})\
 		.FirstOrDefault({d| d.StartsWith("StyleCopAddOn.")})
-	libProperties.PropertyGroup.StylecopAddonPath = "\$(PackagePath)\\packages\\$dir"
-	Serialize(filename, libProperties)
+	project.PropertyGroup.StylecopAddonPath = "\$(PackagePath)\\packages\\$dir"
+	Serialize(filename, project)
 
 desc """
 импортирует библиотки из packages в файлы проектов
@@ -174,6 +177,9 @@ def NugetInstall(config as string):
 	print config if Configuration.Maybe.debug
 	if Exist(config):
 		Exec("nuget", "install $config -OutputDirectory packages").Execute()
+		return XDocument.Load(config).Descendants().Where({n| n.Name == @package}).Select({n| n.Attribute(@id).Value}).ToArray()
+	else:
+		return Enumerable.Empty[of string]().ToArray()
 
 desc """
 устанавливает пакеты описаные в packages.config
@@ -182,8 +188,8 @@ targetFramework - версия framework под которую будут заг
 если не задана используется Globals.TargetFramework
 """
 task "packages:install":
-	if Exist("packages/packages.config"):
-		Exec("nuget", "install packages.config", BaseDirectory: "packages").Execute()
+	packagesNames = ("",)
+	packagesNames = NugetInstall("packages/packages.config").Concat(packagesNames).ToArray()
 
 	for sln in FileSet("src/*.sln").Files:
 		text = File.ReadAllText(sln)
@@ -191,7 +197,7 @@ task "packages:install":
 		for m in matches:
 			value = m.Groups[1].Value.Replace("\"", "").Trim()
 			config = Path.Combine("src", Path.GetDirectoryName(value), "packages.config")
-			NugetInstall(config)
+			packagesNames = NugetInstall(config).Concat(packagesNames).ToArray()
 
 	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
 		.Select({d| CheckPlatformSpecificVersion(d, Configuration.Maybe.targetFramework or Globals.TargetFramework)})\
@@ -207,12 +213,12 @@ task "packages:install":
 
 	filename = "src/Lib.properties"
 	path = "..\\..\\.."
-	Save(paths, path, filename)
+	Save(paths, path, filename, packagesNames)
 
 	filename = "src/ProjectLib.properties"
 	path = "..\\.."
-	Save(paths, path, filename)
+	Save(paths, path, filename, packagesNames)
 
 	filename = "src/SrcLib.properties"
 	path = "..\\..\\..\\.."
-	Save(paths, path, filename)
+	Save(paths, path, filename, packagesNames)
