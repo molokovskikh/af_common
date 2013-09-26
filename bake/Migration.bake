@@ -468,6 +468,7 @@ desc """
 """
 task "db:migration:generate":
 	configuration = GetConfiguration()
+	raise "Не могу найти мапинг, проверь что все проекты собраны" unless configuration
 	if not configuration.ClassMappings.Count:
 		raise "Can`t find any class mapping, check active record version and assemblies list"
 	#если нет этого вызова тогда меппинг будет не полным не будет многих внешних ключей
