@@ -245,13 +245,36 @@ Task "db:dump":
 	host = Ask("host:")
 	Sh("mysqldump -h$host -u$user -p$password --lock-tables=false --all-databases --events --no-data --routines --triggers > dump.txt")
 
+def Time(name as string, action as callable()):
+	if Configuration.Maybe.time:
+		watch = Stopwatch()
+		Console.Write(name)
+		watch.Start()
+		action()
+		watch.Stop()
+		Console.WriteLine(" in ${watch.Elapsed}")
+	else:
+		print name
+		action()
+
 def ImportSchema(mysqldump as string, mysql as string):
 	excludes = ("mysql", "information_schema", "performance_schema", "test")
 	db = Db(Globals.Environments[@Development].ToString())
 	databases = join(db.ReadSql("show databases").Select({r| r.Database.ToString()}).Where({d| not excludes.Any({e| e == d})}).ToArray())
-	Sh("$mysqldump --databases $databases --add-drop-database --skip-triggers --no-data > schema.txt")
-	Sh("$mysqldump --databases $databases --events --routines --triggers --no-data --no-create-db --no-create-info > schema.routnies.txt")
-	Sh("$mysql < schema.txt")
+
+	debug = Configuration.Maybe.debug
+	cmds = (("export schema",\
+			"$mysqldump --databases $databases --add-drop-database --skip-triggers --no-data > schema.txt"),\
+		("export routnies",\
+			"$mysqldump --databases $databases --events --routines --triggers --no-data --no-create-db --no-create-info > schema.routnies.txt"),\
+		("import schema", "$mysql < schema.txt"))
+
+	for name, cmd in cmds:
+		if debug:
+			print cmd
+		Time name:
+			Sh(cmd)
+
 	unless Configuration.Maybe.DoNotClean:
 		Rm("schema.txt")
 
@@ -260,11 +283,11 @@ def ImportDatabases(mysqldump as string, mysql as string, databases as (string),
 	return unless databases
 	i = 0
 	for database in databases:
-		print "export $database ${++i} of ${len(databases)}"
 		filename = "db.data.$database.txt"
-		Sh("$mysqldump --skip-triggers --no-create-db --no-create-info $database $ignoreTablesOption > $filename")
-		print "import $database"
-		Sh("$mysql -D$database < $filename")
+		Time "export $database ${++i} of ${len(databases)}":
+			Sh("$mysqldump --skip-triggers --no-create-db --no-create-info $database $ignoreTablesOption > $filename")
+		Time "import $database":
+			Sh("$mysql -D$database < $filename")
 		unless Configuration.Maybe.DoNotClean:
 			Rm(filename)
 
@@ -273,11 +296,11 @@ def ImportTables(mysqldump as string, mysql as string, tables as (string)):
 	i = 0
 	for table in tables:
 		database, tableName = table.Split(char('.'))
-		print "export $table ${++i} of ${len(tables)}"
 		filename = "table.data.$table.txt"
-		Sh("$mysqldump --skip-triggers --no-create-db --no-create-info --tables $database $tableName > $filename")
-		print "import $table"
-		Sh("$mysql -D$database < $filename")
+		Time "export $table ${++i} of ${len(tables)}":
+			Sh("$mysqldump --skip-triggers --no-create-db --no-create-info --tables $database $tableName > $filename")
+		Time "import $table":
+			Sh("$mysql -D$database < $filename")
 		unless Configuration.Maybe.DoNotClean:
 			Rm(filename)
 
@@ -304,6 +327,8 @@ task @PrepareLocal, ["db:seed"]
 desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
 параметры:
+debug - выводит запускаемые комманды
+time - выводит время выполнения всех операци
 SkipBeforeSql - игнорируется sql запрос который указан в профиле который нужно выполнить перед
 экспортом
 DoNotClean - не удаляет файлы дампа
@@ -346,8 +371,8 @@ task "db:seed":
 	localLongDb = Db(localLong)
 
 	if not Configuration.Maybe.SkipBeforeSql and profile.BeforeExportSql:
-		print "execute before export sql"
-		db.ExecuteSql(profile.BeforeExportSql)
+		Time "execute before export sql":
+			db.ExecuteSql(profile.BeforeExportSql)
 
 	unless Configuration.Maybe.SkipSchema:
 		ImportSchema(mysqldump, mysql)
@@ -360,8 +385,8 @@ task "db:seed":
 	ImportTables(mysqldump, mysql, profile.ImportTables)
 
 	if profile.AfterImportSql:
-		print "execute after import sql"
-		localLongDb.ExecuteSql(profile.AfterImportSql)
+		Time "execute after import sql":
+			localLongDb.ExecuteSql(profile.AfterImportSql)
 
 	unless Configuration.Maybe.SkipSchema:
 		filename = "schema.routnies.txt"
