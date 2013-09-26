@@ -15,9 +15,9 @@ if [ -e ./scripts/prepare.sh ]
 then
 	./scripts/prepare.sh
 else
-	bake packages:install notInteractive=true | iconv -f cp866 -t utf-8
+	bake packages:install notInteractive=true | iconv -f cp1251 -t utf-8
 fi
-bake TryToBuild db:setup test Port=$port notInteractive=true | iconv -f cp866 -t utf-8
+bake TryToBuild db:setup test Port=$port notInteractive=true | iconv -f cp2151 -t utf-8
 
 git checkout .
 git submodule foreach git checkout .
