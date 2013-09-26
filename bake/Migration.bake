@@ -18,8 +18,6 @@ import NHibernate.AdoNet.Util
 import NHibernate.Tool.hbm2ddl
 import NHibernate.Dialect.Schema
 
-#import Castle.ActiveRecord
-
 class Migration:
 	property Version as string
 	property MigratedOn as DateTime?
@@ -144,7 +142,7 @@ def GetConfiguration():
 	unless assemblies.Length:
 		raise "Can`t find project assembly at path 'src/${Globals.Project}/bin/' or 'src/${Globals.Project}/bin/debug/'." \
 			+ " Is ${Globals.Project} correct project name and project live at 'src/${Globals.Project}'?"
-	return GetNHibernateConfiguration(assemblies)# or GetActiveRecordConfiguration(assemblies)
+	return GetNHibernateConfiguration(assemblies) or GetActiveRecordConfiguration(assemblies)
 
 def SetupActiveRecord():
 	return if activeRecordInitalized
