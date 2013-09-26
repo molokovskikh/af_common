@@ -154,7 +154,7 @@ task @SendDeployNotification:
 		lastDeployHash = deployRecord.GitHash
 	head = GetGitHead(null)
 	if lastDeployHash:
-		logs = GetGit("log $lastDeployHash..")
+		logs = GetGit("log --no-merges $lastDeployHash..")
 	user = Environment.UserName
 	smtp = SmtpClient("box.analit.net")
 	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project) values('$user', now(), '$head', '$project')")
