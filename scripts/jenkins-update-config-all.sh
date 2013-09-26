@@ -1,1 +1,1 @@
-for p in `ls-jenkins.sh` ; do update-job.sh $p; done
+for p in `jenkins-ls.sh` ; do jenkins-update-config.sh $p; done
