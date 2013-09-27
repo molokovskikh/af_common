@@ -162,4 +162,7 @@ task @LoadProject, [@LoadAssemblies]:
 	if Exist("tasks"):
 		for file in Directory.GetFiles("tasks", "*.bake"):
 			using reader = File.OpenText(file):
-				Engine.Loader.Load(file)
+				try:
+					Engine.Loader.Load(file)
+				except e:
+					print e
