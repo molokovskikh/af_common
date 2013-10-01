@@ -138,6 +138,7 @@ def GetLibPath(dir as string):
 	return dir
 
 def Serialize(filename as string, value):
+	Rm(filename) if Exist(filename)
 	serializer = XmlSerializer(value.GetType())
 	using stream = File.OpenWrite(filename):
 		serializer.Serialize(stream, value)
@@ -152,7 +153,7 @@ def Save(paths as string, path as string, filename as string, names as (string))
 			using stream = File.OpenRead(filename):
 				project = cast(Project, serializer.Deserialize(stream))
 		except e:
-			pass
+			Rm(filename)
 
 	project.PropertyGroup.LibPath = path
 	project.PropertyGroup.PackagePath = path
