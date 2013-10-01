@@ -6,7 +6,6 @@ import System.Xml.XPath.Extensions
 import System.Xml.Serialization from System.XML
 import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
-import file from Svn.boo
 
 [XmlRoot(Namespace: "http://schemas.microsoft.com/developer/msbuild/2003")]
 class Project:
@@ -42,10 +41,11 @@ class Package:
 	override def Equals(obj):
 		return false unless obj isa Package
 		package = cast(Package, obj)
-		return Name == package.Name and Version == package.Version
+		return String.Equals(Name, package.Name, StringComparison.InvariantCultureIgnoreCase)\
+			and String.Equals(Version, package.Version, StringComparison.InvariantCultureIgnoreCase)
 
 	override def GetHashCode():
-		return (Name + Version).GetHashCode()
+		return (Name.ToLower() + Version.ToLower()).GetHashCode()
 
 	override def ToString():
 		return "$Name $Version"
@@ -147,8 +147,12 @@ def Save(paths as string, path as string, filename as string, names as (string))
 	serializer = XmlSerializer(project.GetType())
 	project.PropertyGroup = PropertyGroup()
 	if Exist(filename):
-		using stream = File.OpenRead(filename):
-			project = cast(Project, serializer.Deserialize(stream))
+		#периодически файл оказывается поврежден, студия?
+		try:
+			using stream = File.OpenRead(filename):
+				project = cast(Project, serializer.Deserialize(stream))
+		except e:
+			pass
 
 	project.PropertyGroup.LibPath = path
 	project.PropertyGroup.PackagePath = path
@@ -231,7 +235,14 @@ task "packages:clean":
 	toDelete = installedPackages.Except(packages)
 	for package in toDelete:
 		print "remove ${package.Dir}"
-		RmDir(package.Dir, true)
+		done = false
+		#в директории похоже сидит студия, делаям несколько подходов
+		while not done:
+			try:
+				RmDir(package.Dir, true)
+				done = true
+			except:
+				pass
 
 desc """
 Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
