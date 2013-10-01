@@ -123,7 +123,7 @@ def Save(paths as string, path as string, filename as string, names as (string))
 	project.PropertyGroup.LibPath = path
 	project.PropertyGroup.PackagePath = path
 	project.PropertyGroup.ReferencePath = paths
-	project.PropertyGroup.DefineConstants = String.Join(";", names.Select({n| n.Replace(".", "_")}))
+	project.PropertyGroup.DefineConstants = String.Join(";", names.Select({n| n.Replace(".", "_").Replace("-", "_")}))
 
 	dir = Directory.GetDirectories(@packages)\
 		.Select({d| Path.GetFileName(d)})\

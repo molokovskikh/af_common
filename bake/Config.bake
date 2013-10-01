@@ -43,7 +43,7 @@ def UpdateGlobals():
 			Globals.Environment = ToPascal(Configuration.env)
 
 	if Globals.Environment == @Test:
-		Globals.DeployRoot = """\\acdcserv.adc.analit.net\WWWRoot\TEST"""
+		Globals.DeployRoot = """\\acdcserv\InetPub\TEST"""
 
 	Db.Current = Db(Env)
 	if Globals.Maybe.Variables:
