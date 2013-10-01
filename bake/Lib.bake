@@ -20,13 +20,43 @@ class PropertyGroup:
 	property StylecopAddonPath as string
 	property DefineConstants as string
 
-libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
-def ParseFromPackageName(dir as string):
-	name = Path.GetFileName(dir)
-	match = /(\.\d+){2,4}(-\w+)?$/.Match(name)
-	return null unless match.Success
-	return /(\.\d+){2,4}(-\w+)?$/.Replace(name, /^\./.Replace(match.Value, "/"))
+class Package:
+	property Name as string
+	property Version as string
+	property Dir as string
+
+	def constructor():
+		pass
+
+	def constructor(name as string, version as string):
+		Name = name
+		Version = version
+
+	def constructor(path as string):
+		a = ParseFromPackageName(path).Split(char('/'))
+		Name = a[0]
+		Version = a[1]
+		Dir = path
+
+	override def Equals(obj):
+		return false unless obj isa Package
+		package = cast(Package, obj)
+		return Name == package.Name and Version == package.Version
+
+	override def GetHashCode():
+		return (Name + Version).GetHashCode()
+
+	override def ToString():
+		return "$Name $Version"
+
+	static def ParseFromPackageName(dir as string):
+		name = Path.GetFileName(dir)
+		match = /(\.\d+){2,4}(-\w+)?$/.Match(name)
+		return null unless match.Success
+		return /(\.\d+){2,4}(-\w+)?$/.Replace(name, /^\./.Replace(match.Value, "/"))
+
+libRoot = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "../lib/")
 
 def IsValidPath(path as string, libPath as string):
 	return true if path.IndexOf("\\packages\\") < 0
@@ -149,17 +179,59 @@ task "packages:init":
 	if not Exist("src/nuget.config"):
 		File.WriteAllText("src/nuget.config", "<settings>\r\n\t<repositoryPath>..\\packages\\</repositoryPath>\r\n</settings>")
 
+def NugetInstall(config as string):
+	print config if Configuration.Maybe.debug
+	if Exist(config):
+		Exec("nuget", "install $config -OutputDirectory packages").Execute()
+
+def GetPackageConfigs():
+	configs = List[of string]()
+	configs.Add("packages/packages.config")
+
+	for sln in FileSet("src/*.sln").Files:
+		text = File.ReadAllText(sln)
+		matches = /Project.+=[^,]+,([^,]+),/.Matches(text)
+		for m in matches:
+			value = m.Groups[1].Value.Replace("\"", "").Trim()
+			config = Path.Combine("src", Path.GetDirectoryName(value), "packages.config")
+			configs.Add(config)
+	return configs.Where({c| Exist(c)}).ToArray()
+
+def GetInstalledPackages():
+	return Directory.GetDirectories(@packages).Select({d| Package(d)}).ToArray()
+
+def GetPackagesForConfig(config as string):
+	unless Exist(config):
+		return Enumerable.Empty[of Package]().ToArray()
+	return XDocument.Load(config).Descendants().Where({n| n.Name == @package})\
+		.Select({n| Package(n.Attribute(@id).Value, n.Attribute(@version).Value)}).ToArray()
+
+def GetPackages():
+	return GetPackageConfigs().SelectMany({c| GetPackagesForConfig(c)}).ToArray()
+
 desc """
 сохраняет все установленные пакеты в packages/packages.config
 """
 task "packages:save":
+	libPackages = GetPackageConfigs().Where({c| c != "packages/packages.config"}).SelectMany({c| GetPackagesForConfig(c)}).ToArray()
 	doc = XDocument()
 	root = XElement(@packages)
 	doc.Add(root)
-	for id, version in Directory.GetDirectories(@packages).Select({d| ParseFromPackageName(d).Split(char('/'))}):
-		packageElement = XElement(@package, XAttribute(@id, id), XAttribute(@version, version))
+	for package in GetInstalledPackages().Except(libPackages):
+		packageElement = XElement(@package, XAttribute(@id, package.Name), XAttribute(@version, package.Version))
 		root.Add(packageElement)
 	doc.Save("packages/packages.config")
+
+desc """
+очищает директорию packages от пакетов которые не указаны в packages.config
+"""
+task "packages:clean":
+	packages = GetPackages()
+	installedPackages = GetInstalledPackages()
+	toDelete = installedPackages.Except(packages)
+	for package in toDelete:
+		print "remove ${package.Dir}"
+		RmDir(package.Dir, true)
 
 desc """
 Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
@@ -173,14 +245,6 @@ desc """
 """
 task @InstallPackages, ["packages:install"]
 
-def NugetInstall(config as string):
-	print config if Configuration.Maybe.debug
-	if Exist(config):
-		Exec("nuget", "install $config -OutputDirectory packages").Execute()
-		return XDocument.Load(config).Descendants().Where({n| n.Name == @package}).Select({n| n.Attribute(@id).Value}).ToArray()
-	else:
-		return Enumerable.Empty[of string]().ToArray()
-
 desc """
 устанавливает пакеты описаные в packages.config
 параметры:
@@ -188,16 +252,12 @@ targetFramework - версия framework под которую будут заг
 если не задана используется Globals.TargetFramework
 """
 task "packages:install":
-	packagesNames = ("",)
-	packagesNames = NugetInstall("packages/packages.config").Concat(packagesNames).ToArray()
-
-	for sln in FileSet("src/*.sln").Files:
-		text = File.ReadAllText(sln)
-		matches = /Project.+=[^,]+,([^,]+),/.Matches(text)
-		for m in matches:
-			value = m.Groups[1].Value.Replace("\"", "").Trim()
-			config = Path.Combine("src", Path.GetDirectoryName(value), "packages.config")
-			packagesNames = NugetInstall(config).Concat(packagesNames).ToArray()
+	configs = GetPackageConfigs()
+	var nugetPackages = List[of Package]()
+	for config in configs:
+		NugetInstall(config)
+		nugetPackages.AddRange(GetPackagesForConfig(config))
+	packagesNames = nugetPackages.Select({p| p.Name}).ToArray()
 
 	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
 		.Select({d| CheckPlatformSpecificVersion(d, Configuration.Maybe.targetFramework or Globals.TargetFramework)})\
