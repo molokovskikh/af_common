@@ -5,8 +5,6 @@ import System.Xml.Linq
 import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
-import file from Svn.boo
-import file from Tools.boo
 
 excludes = ["Unit", "Integration", "Functional", ".svn"]
 

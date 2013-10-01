@@ -1,8 +1,6 @@
 ﻿import System
 import System.Collections
 import System.IO
-import file from Db.boo
-import file from Tools.boo
 
 def GetMigrationPath():
 	baseDirectory = AppDomain.CurrentDomain.BaseDirectory

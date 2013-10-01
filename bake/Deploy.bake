@@ -8,9 +8,7 @@ import System.Xml.Linq
 import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Globalization
-import file from Config.bake
 import System.Text.RegularExpressions
-import file from Db.boo
 
 class JenkinsStatus:
 	property Number as string

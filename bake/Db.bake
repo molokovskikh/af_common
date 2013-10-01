@@ -5,10 +5,6 @@ import System.Linq.Enumerable
 import System.Collections.Generic
 import MySql.Data.MySqlClient
 import System.Linq.Enumerable from System.Core
-import file from Config.bake
-import file from Tools.boo
-import file from Db.boo
-import file from LoggingBuilder.boo
 
 class DbProfile:
 	property ImportDbs as (string) = (,)

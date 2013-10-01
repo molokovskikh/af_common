@@ -13,8 +13,6 @@ import Ionic.Zip
 import Boo.Lang.Interpreter
 import Boo.Lang.Compiler
 import Boo.Lang.Compiler.TypeSystem.Reflection
-import file from Shell.boo
-import file from Migration.bake
 
 desc """
 Заменяет TargetFramework во всех проектах на параметер указанный в Version

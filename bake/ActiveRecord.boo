@@ -16,7 +16,6 @@ import Castle.ActiveRecord.Framework.Config
 
 import log4net.Config
 
-import file from Db.boo
 
 def GetActiveRecordConfiguration(assemblies as (Assembly)):
 	config = InPlaceConfigurationSource()

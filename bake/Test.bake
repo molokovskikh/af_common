@@ -9,9 +9,6 @@ import System.Xml.XPath.Extensions from System.Xml.Linq
 import System.IO
 import System.Net.Mail
 import Mono.Cecil
-import file from Config.bake
-import file from Tools.boo
-import file from MySql.bake
 
 class Project:
 	_project as string

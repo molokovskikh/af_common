@@ -3,8 +3,6 @@ import System.Collections.Generic
 import Boo.Lang.PatternMatching
 import System.Linq.Enumerable
 import InflectorStringExtension from "inflector_extension"
-import file from Tools.boo
-import file from Db.boo
 
 def GetLogTriggerTemplate(action as string, fields as string, database as string, table as string):
 	operation = 0

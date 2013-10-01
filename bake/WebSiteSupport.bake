@@ -1,6 +1,5 @@
 import System.IO
 import System.Linq.Enumerable
-import file from Config.bake
 
 def CopyAssets(output as string):
 	return unless Exist("packages")
