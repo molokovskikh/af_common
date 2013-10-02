@@ -1,0 +1,28 @@
+task "nuget:clean":
+	for file in FileSet("output/nuget/*.nupkg").Files:
+		Rm(file)
+
+desc """
+создает пакет на основе проекта
+Globals.NugetPackageName - задает название проекта
+"""
+task "nuget:build", ["nuget:clean"]:
+	MkDir("output") unless Exist("output")
+	MkDir("output/nuget") unless Exist("output/nuget")
+	name = Globals.NugetPackageName
+	project = "src/$name/$name.csproj"
+	Sh("nuget pack $project -OutputDirectory output/nuget -Build -Symbols -Properties Configuration=Release")
+
+desc """
+загружает пакет в локальный источник пакетов
+"""
+task "nuget:deploy", ["check:common", "nuget:build"]:
+	name = Globals.NugetPackageName
+	for file in FileSet("output/nuget/*.nupkg").Files:
+		Sh("nuget push $file -Source local")
+	path = Path.GetFullPath(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, ".."))
+	tree = path
+	dir = "$path/.git"
+	Sh("git --work-tree='$tree' --git-dir='$dir' add nuget")
+	Sh("git --work-tree='$tree' --git-dir='$dir' commit -m \"Обновил пакет $name\"")
+	Sh("git --work-tree='$tree' --git-dir='$dir' push")

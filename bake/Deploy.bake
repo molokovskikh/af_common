@@ -22,7 +22,7 @@ class GitStatus:
 	public Branch as string
 	public ChangesExists as bool
 	public NeedPush as bool
-	
+
 	def constructor(status as string):
 		status = status.Trim()
 		ChangesExists = status.IndexOf("nothing to commit", StringComparison.OrdinalIgnoreCase) < 1
@@ -52,7 +52,7 @@ def GetDeployTo(project as string):
 		deployTo = Globals.DeployTo
 
 	if not deployTo:
-		raise """Не знаю куда разворачивать проект нужно задать либо Globals.DeployTo = '<путь куда выкладывать>' 
+		raise """Не знаю куда разворачивать проект нужно задать либо Globals.DeployTo = '<путь куда выкладывать>'
 	либо название проекта Globals.Project тогда он будет выложен на Globals.DeployRoot по умолчанию это \\acdcserv.adc.analit.net\WebApps\"""
 	return deployTo
 
@@ -179,26 +179,26 @@ task @RollbackDeploy, [@WebClean]:
 	backupDate = DateTime.ParseExact(backup[backup.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)
 	print "rollback to $project at $backupDate"
 	Rm(backup, true)
-	
+
 def GetExcludes():
 	excludes = List()
 	if Globals.Maybe.ExcludesDeployDirectory:
 		for directory in Globals.ExcludesDeployDirectory:
 			excludes.Add(directory)
 	return excludes
-		
+
 
 task @WebDeploy, [@WebClean]:
 	deployTo = GetDeployTo(Globals.Project.ToString())
 	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project))
-	
+
 	files = FileSet("**/*.*", Excludes : GetExcludes(), BaseDirectory : buildTo)
 	if Configuration.Maybe.Simulate:
 		print "${files.Files.Count} files deployed to $deployTo"
 		return
 	Cp(files, deployTo, true)
 	print "${files.Files.Count} files deployed to $deployTo"
-	
+
 task @CopyTiny:
 	deployTo = GetDeployTo(Globals.Project.ToString())
 	files = FileSet("**/*.*", Excludes : [], BaseDirectory : "packages/TinyMCE.3.4.5/content/Scripts/")
@@ -218,11 +218,11 @@ def CheckRepository(path as string):
 		raise "В текущей ветки есть изменения, не сохраненные в удаленном репозитории. Надо сделать push и потом выполнить deploy." if gitStatus.NeedPush
 
 
-task "check", [@CheckCommon, @CheckCurrent, "check:jenkins"]
+task "check", ["check:common", "check:current", "check:jenkins"]
 
-task @CheckScmChanges, [@CheckCommon, @CheckCurrent]
+task @CheckScmChanges, ["check:common", "check:current"]
 
-task @CheckCurrent:
+task "check:current":
 	return if Globals.Environment == @Test
 	return if Configuration.Maybe.skipCheckCurrent
 
@@ -232,7 +232,7 @@ desc """
 проверяет состояние репозитория common
 skipCheckCommon=true что бы обойти проверку
 """
-task @CheckCommon:
+task "check:common":
 	return if Globals.Environment == @Test
 	return if Configuration.Maybe.skipCheckCommon
 
