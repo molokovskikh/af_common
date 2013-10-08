@@ -30,11 +30,13 @@ if [ -e ./scripts/prepare.sh ]
 then
 	./scripts/prepare.sh
 else
-	bake packages:install notInteractive=true | iconv -f cp866 -t cp1251
+	bake packages:install notInteractive=true
 fi
-bake TryToBuild Port=$port notInteractive=true | iconv -f cp866 -t cp1251
-bake db:setup Port=$port notInteractive=true | iconv -f cp866 -t cp1251
-bake test Port=$port notInteractive=true | iconv -f cp866 -t cp1251
+bake TryToBuild Port=$port notInteractive=true
+if [ -n "SKIP_DB" ]; then
+	bake db:setup Port=$port notInteractive=true
+fi
+bake test Port=$port notInteractive=true
 
 git checkout .
 git submodule foreach git checkout .
