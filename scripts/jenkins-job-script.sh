@@ -8,7 +8,12 @@ git submodule foreach git clean -fdx
 
 if [ -n "$AUTO_UPDATE" ]
 then
+	git checkout master
+	git submodule sync
+	git submodule update --init
 	git submodule foreach "git checkout master && git pull"
+	git clean -fdx
+	git submodule foreach git clean -fdx
 fi
 
 bake RunMySql path=data randomPort=true notInteractive=true
