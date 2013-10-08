@@ -47,9 +47,9 @@ class Project:
 		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
 		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
 
-		nunitPath = """nunit-console.exe"""
+		nunitPath = "nunit-console"
 		if _isX86:
-			nunitPath = """nunit-console-x86.exe"""
+			nunitPath = "nunit-console-x86"
 		nunit = NUnit("\"" + assembly + "\"",
 			ExecutablePath : nunitPath)
 
@@ -82,7 +82,7 @@ task @PrepareBuild, [@CheckWritingErrors, "packages:install"]:
 		Engine.Execute("GenerateAssemblyInfo")
 
 desc """
-Если сказать CreateIgnoreFiles=True, 
+Если сказать CreateIgnoreFiles=True,
 будут созданы файлы игнора,
 либо просто запущен процесс поиска ошибок
 """
@@ -92,7 +92,7 @@ task @CheckWritingErrors:
 		Exec("SearchOfWriting", "CreateIgnoreFiles:" + creareIgnore).Execute()
 	else:
 		Exec("SearchOfWriting").Execute()
-		
+
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
 	for project in projects:
