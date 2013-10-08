@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 if [ -n "$AUTO_UPDATE" ]; then
 	if [ -f .gitmodules ]; then
 		cat .gitmodules | /bin/grep -oP '(?<=path = ).+' | xargs git add
