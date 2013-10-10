@@ -19,7 +19,6 @@ def CloseHandle(handle as IntPtr) as bool:
 
 project = Globals.Maybe.Project
 buildTo = Path.GetFullPath("build")
-projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
 
 params = { "OutDir" : buildTo + "\\", "Configuration" : "release" }
 if Globals.IsDefined("platform"):
@@ -60,7 +59,7 @@ def Impersonate(server as string, action as Action):
 	password = ""
 
 	if Globals.Maybe.User:
-		user = Globals.User		
+		user = Globals.User
 	if Globals.Maybe.Password:
 		password = Globals.Password
 
@@ -106,7 +105,11 @@ task @ServiceDeployPipeline2, ["packages:install", "check", @Build, @StopService
 
 task @BuildService, [@CleanService]:
 	project = Globals.Project
-	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
+	verbosity = "/verbosity:quiet"
+	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
+	if Configuration.Maybe.msbuildDebug:
+		verbosity = "/verbosity:detailed"
+	MsBuild(projectFile, verbosity, "/nologo",
 			Target : "build",
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
@@ -115,7 +118,12 @@ task @BuildService, [@CleanService]:
 	Cp("src/${project}/App.$sufix", "${buildTo}/${project}.exe.config", true)
 
 task @CleanService:
-	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
+	project = Globals.Project
+	verbosity = "/verbosity:quiet"
+	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
+	if Configuration.Maybe.msbuildDebug:
+		verbosity = "/verbosity:detailed"
+	MsBuild(projectFile, verbosity, "/nologo",
 			Target : "clean",
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
@@ -142,7 +150,7 @@ task @StartServices:
 	Impersonate(servers.First()):
 		services = GetServices(serviceName, servers)
 		StartServices(services)
-	
+
 
 task @DeployService, [@BuildService]:
 	servers = GetServers()
@@ -154,7 +162,7 @@ task @DeployService, [@BuildService]:
 	Impersonate(servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
-		
+
 
 		fin = false
 		interation = 0
