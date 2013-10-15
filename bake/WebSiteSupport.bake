@@ -19,8 +19,8 @@ def CopyAssets(output as string):
 
 	assets = Path.Combine(output, "Assets", "images")
 	images = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/images/**.*")
-	Cp(images, assets) if images.Files.Count
-	
+	Cp(images, assets, true) if images.Files.Count
+
 	assets = Path.Combine(output, "Assets", "Stylesheets")
 	for dir in Directory.GetDirectories("packages"):
 		path = Path.Combine(dir, "Content", "Content")
