@@ -4,6 +4,9 @@ import System.Text
 import System.IO
 import System.Diagnostics
 
+def GetResource(resource as string):
+	return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/${resource}")
+
 def AskCredentials(request as string):
 	user = Ask(request)
 	password = AskPassword("password:")

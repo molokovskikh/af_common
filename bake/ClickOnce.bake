@@ -13,9 +13,6 @@ def CopyWithDeploy(fileSet as FileSet, destination as string):
 		MkDir(dir) if not Exist(dir)
 		Cp(file, file.Replace(fileSet.BaseDirectory, destination) + ".deploy")
 
-def GetResource(resource as string):
-	return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/${resource}")
-
 def GeneratePublishPage(file as string, version as string, productName as string):
 	template = File.ReadAllText(GetResource("publish.htm.template"))
 	result = template.Replace("{version}", version)
@@ -63,7 +60,7 @@ if Globals.Maybe.Platform:
 
 task @ClickOnceDeploy, ["packages:install", "check", @UpdateRevision, @ClickOnceBuild, @Production, @Migrate, @publish, @SendDeployNotification]
 
-task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
+task @ClickOnceBuild, ["clickonce:clean", @GenerateAssemblyInfo]:
 	MsBuild(projectFile,
 			Parameters : params,
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
@@ -74,7 +71,7 @@ task @ClickOnceBuild, [@clean, @GenerateAssemblyInfo]:
 			Excludes : ["*.dll", "*.exe", "*.config"]))
 	publishVersion = GetAssemblyVersion("${buildTo}${projectName}.exe")
 
-task @clean:
+task "clickonce:clean":
 	MsBuild(projectFile,
 			Target : "clean",
 			Parameters : params,
