@@ -7,6 +7,10 @@ import System.Diagnostics
 def GetResource(resource as string):
 	return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/${resource}")
 
+def Bash(cmd as string):
+	path = Environment.CurrentDirectory.Replace("\\", "/")
+	Sh("bash -l -c \"cd $path;$cmd\"")
+
 def AskCredentials(request as string):
 	user = Ask(request)
 	password = AskPassword("password:")
