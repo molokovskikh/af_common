@@ -1,5 +1,14 @@
 #!/bin/sh
 
+clean()
+{
+	if [ -z "$SKIP_DB" ]; then
+		mysqladmin --user=root --port=$port shutdown
+	fi
+}
+
+trap "clean" ERR
+
 set -e
 set -x
 
@@ -46,6 +55,4 @@ bake test Port=$port notInteractive=true
 
 git checkout .
 git submodule foreach git checkout .
-if [ -z "$SKIP_DB" ]; then
-	mysqladmin --user=root --port=$port shutdown
-fi
+clean
