@@ -17,12 +17,9 @@ namespace StyleCopAddOn
 
 		public override void AnalyzeDocument(CodeDocument document)
 		{
-			CsDocument csharpDocument = (CsDocument)document;
+			var csharpDocument = (CsDocument)document;
 			if (csharpDocument.RootElement != null && !csharpDocument.RootElement.Generated) {
-				csharpDocument.WalkDocument(
-					new CodeWalkerElementVisitor<object>(this.VisitElement),
-					new CodeWalkerStatementVisitor<object>(this.VisitStatement),
-					new CodeWalkerExpressionVisitor<object>(this.VisitExpression));
+				csharpDocument.WalkDocument(VisitElement, VisitStatement, VisitExpression);
 			}
 
 			base.AnalyzeDocument(document);
@@ -143,15 +140,15 @@ namespace StyleCopAddOn
 
 			if (statement.StatementType == StatementType.Block) {
 				if (parentStatement != null && parentStatement.StatementType == StatementType.Else && ((ElseStatement)parentStatement).ConditionExpression == null
-					&& statement.ChildStatements.Where(s => s.StatementType != StatementType.If && s.StatementType != StatementType.Else).Count() == 0) {
-					if (statement.ChildStatements.Where(s => s.StatementType == StatementType.If).Count() <= 1) {
+					&& !statement.ChildStatements.Any(s => s.StatementType != StatementType.If && s.StatementType != StatementType.Else)) {
+					if (statement.ChildStatements.Count(s => s.StatementType == StatementType.If) <= 1) {
 						this.AddViolation(parentElement, statement.LineNumber, "ElseIfStatementMustBeWithoutBlock");
 						return true;
 					}
 				}
-				if (parentStatement != null && parentStatement.Tokens.Where(t => t.LineNumber == statement.LineNumber &&
+				if (parentStatement != null && !parentStatement.Tokens.Any(t => t.LineNumber == statement.LineNumber &&
 					t.CsTokenType != CsTokenType.WhiteSpace &&
-					t.Location.StartPoint.IndexOnLine < statement.Location.StartPoint.IndexOnLine).ToList().Count == 0) {
+					t.Location.StartPoint.IndexOnLine < statement.Location.StartPoint.IndexOnLine)) {
 					this.AddViolation(parentElement, statement.LineNumber, "OpenCurlyBraketOnTheSameLine");
 				}
 			}
