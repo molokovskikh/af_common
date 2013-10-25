@@ -20,7 +20,7 @@ def GetProjects():
 			matches = /Project.+=[^,]+,([^,]+),/.Matches(text)
 			for m in matches:
 				value = m.Groups[1].Value.Replace("\"", "").Trim()
-				projects.Add(path) if Exist(value)
+				projects.Add(value) if Exist(value)
 	return projects
 
 def BinVariants(name as string) as (string):

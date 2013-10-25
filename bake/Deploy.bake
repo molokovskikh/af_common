@@ -215,8 +215,14 @@ def CheckRepository(path as string):
 		gitStatus = GitStatus(GetGitDir("status", path))
 		raise "В репозитории $path имеются неподтвержденные изменения. Надо произвести Commit и потом выполнить deploy." if gitStatus.ChangesExists
 		raise "Текущая ветка ${gitStatus.Branch} репозитория $path не является master-веткой. Надо переключиться в ветку master и потом выполнить deploy." if not gitStatus.IsBranchMaster()
-		raise "В текущей ветки есть изменения, не сохраненные в удаленном репозитории. Надо сделать push и потом выполнить deploy." if gitStatus.NeedPush
+		raise "В текущей ветки репозитория $path есть изменения, не сохраненные в удаленном репозитории. Надо сделать push и потом выполнить deploy." if gitStatus.NeedPush
 
+		localHead = GetGitHead(path)
+		remotes = GetGitDir("ls-remote", path)
+		remoteHead = /([0-9,a-f]{5,40})\s+HEAD/.Match(remotes).Groups[1].Value
+		if remoteHead != localHead:
+			raise "На удаленном сервере есть изменения которые не загружены в репозиторий $path. "\
+				+ "Для того что бы продолжить нужно выполнить git pull и потом повторить bake deploy"
 
 task "check", ["check:common", "check:current", "check:jenkins"]
 
@@ -236,15 +242,7 @@ task "check:common":
 	return if Globals.Environment == @Test
 	return if Configuration.Maybe.skipCheckCommon
 
-	path = AppDomain.CurrentDomain.BaseDirectory
-
-	CheckRepository(path)
-
-	localHead = GetGitHead(path)
-	remotes = GetGitDir("ls-remote", path)
-	remoteHead = /([0-9,a-f]{5,40})\s+HEAD/.Match(remotes).Groups[1].Value
-	if remoteHead != localHead:
-		raise "Есть обновления скриптов сборки, выполни git pull в $path"
+	CheckRepository(AppDomain.CurrentDomain.BaseDirectory)
 
 desc """
 проверяет состояние проекта в jenkins
