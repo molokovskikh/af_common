@@ -93,12 +93,8 @@ activeRecordInitalized = false
 
 def FindAssembly(name as string):
 	filename = Path.GetFileName(name)
-	paths = ("src/${Globals.Project}/bin/$name.dll",
-		"src/${Globals.Project}/bin/Debug/$name.dll",
-		"src/${Globals.Project}/bin/Debug/$name.exe",
-		"src/$name/bin/debug/$filename.exe",
-		"src/$name/bin/debug/$filename.dll",
-		"src/$name/bin/$filename.dll")
+	projectVariants = ("src/${Globals.Project}", "src/$name")
+	paths = projectVariants.SelectMany({p| BinVariants(filename).Select({b|"$p/$b"})})
 	for path in paths:
 		return path if Exist(path)
 
@@ -148,7 +144,7 @@ def SetupActiveRecord():
 	return if activeRecordInitalized
 	GetConfiguration()
 	activeRecordInitalized = true
-	
+
 def ImInProject():
 	return Exist("src")
 
@@ -256,19 +252,19 @@ def Apply(fileName as string):
 				return
 			rows = Db.Execute(sql)
 	seconds = (DateTime.Now - begin).TotalSeconds
-	print "executed in ${seconds}s, ${rows} rows affected" 
+	print "executed in ${seconds}s, ${rows} rows affected"
 	Db.Execute("insert into logs.SchemaMigrations Values('${migration}', now())")
 
 #def GetMark(migration as string):
 #	match migration:
 #		case /^\d+_/:
-#			return 
+#			return
 
 def ToTimeStamp(m as string):
 	chars = m[:m.IndexOf("_")].ToCharArray()
 	return Convert.ToUInt64(string(chars))
 
-	
+
 def Migrate(migrations as string*):
 	migrated = GetMigrated()
 	needToMigrate = migrations.Where({m| migrated.All({mg| mg != m})}).ToList()
@@ -354,7 +350,7 @@ task @InitActiveRecord:
 
 task @OnlyInProject:
 	raise "Задачу имеет смысл запускать только в проекте" if not ImInProject()
-		
+
 #Нужно обновить common т.к. может быть ссылка на миграцию а в локальной копии ее нет
 task @UpdateCommon:
 	return if ImInProject()
@@ -401,7 +397,7 @@ task "db:migration:init":
 	if ImInProject():
 		MkDir("migrations") if not Exist("migrations")
 		filename = GetMigrationFileNameByRequest()
-		filename = Path.Combine("migrations", filename) 
+		filename = Path.Combine("migrations", filename)
 		File.WriteAllText(filename, "")
 		print "saved to ${filename}"
 		StartEditor(filename)
@@ -477,7 +473,7 @@ task "db:migration:generate":
 	dialect = NHibernate.Dialect.Dialect.GetDialect(configuration.Properties)
 
 	formatter = DdlFormatter()
-	
+
 	cfgProperties = Dictionary[of string, string](dialect.DefaultProperties)
 	for pair in configuration.Properties:
 		cfgProperties[pair.Key] = pair.Value
@@ -506,7 +502,7 @@ task "db:migration:generate":
 		else:
 			sql = formatter.Format(table.SqlCreateString(dialect, mapping, null, null))
 			migration.Commands.Add(sql)
-			
+
 			for key in table.ForeignKeyIterator:
 				columns = String.Join("_", key.Columns.Select({c| c.Name}).ToArray())
 				key.Name = "FK_${table.Schema}_$(key.Table.Name)_$columns"

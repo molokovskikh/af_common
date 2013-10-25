@@ -22,3 +22,8 @@ def GetProjects():
 				value = m.Groups[1].Value.Replace("\"", "").Trim()
 				projects.Add(path) if Exist(value)
 	return projects
+
+def BinVariants(name as string) as (string):
+	return ("bin/debug/$name.exe",
+		"bin/debug/$name.dll",
+		"bin/$name.dll")
