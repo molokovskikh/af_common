@@ -22,13 +22,7 @@ git submodule foreach git clean -fdx
 
 if [ -n "$AUTO_UPDATE" ]
 then
-	git checkout master
-	git pull
-	git submodule sync
-	git submodule update --init
-	git submodule foreach "git checkout master && git pull"
-	git clean -fdx
-	git submodule foreach git clean -fdx
+	auto-update.sh
 fi
 
 if [ -z "$SKIP_DB" ]; then
