@@ -15,6 +15,9 @@ class Hint:
 			if Action == "i":
 				print "hint hit for $Id $Version install $Target"
 				manager.InstallPackage(Target)
+			if Action == "x":
+				print "hint hit for $Id $Version execute $Target"
+				Bash(Target)
 
 task "nuget:clean":
 	for file in FileSet("output/nuget/*.nupkg").Files:
@@ -86,16 +89,15 @@ task "packages:update":
 	packageManager = PackageManager(sourceRep, pathResolver, fileSystem, localRepository)
 	for package in packages:
 		print package
-		using rep.StartOperation(RepositoryOperationNames.Update, package.Id, null):
-			updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, null, c, false, false)
-			continue unless updated
-			continue if package.Version >= updated.Version
-			CheckHints(package, packageManager)
-			try:
-				packageManager.UpdatePackage(package.Id, true, false)
-				print "$package => $updated"
-			except e as InvalidOperationException:
-				print e.Message
+		updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, null, c, false, false)
+		continue unless updated
+		continue if package.Version >= updated.Version
+		CheckHints(package, packageManager)
+		try:
+			packageManager.UpdatePackage(package.Id, true, false)
+			print "$package => $updated"
+		except e as InvalidOperationException:
+			print e.Message
 
 desc """
 генерирует binding redirection
