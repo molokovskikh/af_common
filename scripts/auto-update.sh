@@ -27,8 +27,12 @@ git add -f -- packages/packages.config || :
 bake packages:update
 bake packages:save
 bake packages:install
+#пробуем собрать, но это может не получиться из-за специальной магии
+bake || :
 msbuild.exe src/*.sln
 bake genereate:binding:redirection
+#при сохранении конфига он может добавить пустых строк
+git ls-files | grep '\.config' | xargs clean.sh
 git add -f -- packages/packages.config || :
 git ls-files | grep '\.config' | xargs git add -f || :
 

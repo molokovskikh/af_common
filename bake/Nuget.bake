@@ -18,6 +18,10 @@ class Hint:
 			if Action == "x":
 				print "hint hit for $Id $Version execute $Target"
 				Bash(Target)
+			if Action == "s":
+				print "hint hit for $Id $Version skip"
+				return false
+		return true
 
 task "nuget:clean":
 	for file in FileSet("output/nuget/*.nupkg").Files:
@@ -64,7 +68,8 @@ def CheckHints(package as IPackage, manager as PackageManager):
 		print "loaded ${hints.Count} hints"
 
 	for hint in hints:
-		hint.Apply(package, manager)
+		return false unless hint.Apply(package, manager)
+	return true
 
 desc """
 обновляет пакеты из packages.config
@@ -92,7 +97,7 @@ task "packages:update":
 		updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, null, c, false, false)
 		continue unless updated
 		continue if package.Version >= updated.Version
-		CheckHints(package, packageManager)
+		continue unless CheckHints(package, packageManager)
 		try:
 			packageManager.UpdatePackage(package.Id, true, false)
 			print "$package => $updated"
