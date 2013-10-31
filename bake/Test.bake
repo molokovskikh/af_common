@@ -64,14 +64,7 @@ frameworkVersion = Globals.FrameworkVersion
 
 def GetProjects():
 	isx86 = Globals.Maybe.platform == "x86" or Globals.Maybe.Platform == "x86"
-	files = FileSet(["src/**/*Test.*proj",\
-		"src/**/*Tests.*proj",\
-		"src/**/Functional.*proj",\
-		"src/**/Integration.*proj",\
-		"src/**/Test.*proj",\
-		"src/**/Unit.*proj"],
-		Excludes: ["**/Test.Support*.*proj"]).Files
-	return files.Select({f| Project(f, isx86, frameworkVersion)}).ToList()
+	return GetProjectsForTest().Select({f| Project(f, isx86, frameworkVersion)}).ToList()
 
 task @integration, [@test]
 

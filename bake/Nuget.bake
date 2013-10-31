@@ -107,8 +107,9 @@ task "packages:update":
 desc """
 генерирует binding redirection
 """
-task "genereate:binding:redirection":
-	for project as string in GetProjects():
+task "generate:binding:redirection":
+	files = GetProjects().Concat(GetProjectsForTest()).Select({f| Path.GetFullPath(f)}).Distinct()
+	for project in files:
 		name = Path.GetFileNameWithoutExtension(project)
 		path = Path.GetDirectoryName(project)
 		filename = BinVariants(name).Select({b| Path.Combine(path, b)}).FirstOrDefault({b| Exist(b)})

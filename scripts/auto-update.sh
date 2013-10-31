@@ -28,9 +28,11 @@ bake packages:update
 bake packages:save
 bake packages:install
 #пробуем собрать, но это может не получиться из-за специальной магии
-bake || :
+bake notInteractive=true|| :
+rm output -rf || :
 msbuild.exe src/*.sln
-bake genereate:binding:redirection
+bake BuildTests notInteractive=true || :
+bake generate:binding:redirection
 #при сохранении конфига он может добавить пустых строк
 git ls-files | grep '\.config' | xargs clean.sh
 git add -f -- packages/packages.config || :
