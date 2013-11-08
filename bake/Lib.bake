@@ -6,6 +6,55 @@ import System.Xml.XPath.Extensions
 import System.Xml.Serialization from System.XML
 import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
+import NuGet from NuGet.Core
+import NuGet.PackageRepositoryExtensions from NuGet.Core
+
+class Hint:
+	public static Hints as List of Hint
+	public Id as string
+	public Version as IVersionSpec
+	public Action as string
+	public Target as string
+
+	def Apply(package as IPackage, update as IPackage, manager as PackageManager):
+		if Id == package.Id and Version.Satisfies(package.Version):
+			if Action == "d":
+				print "hint hit for $Id $Version uninstall $Target"
+				manager.UninstallPackage(Target)
+			if Action == "i":
+				print "hint hit for $Id $Version install $Target"
+				manager.InstallPackage(Target)
+			if Action == "x":
+				print "hint hit for $Id $Version execute $Target"
+				Bash("${Target} ${package.Id} ${package.Version} ${update.Version}")
+			if Action == "s":
+				print "hint hit for $Id $Version skip"
+				return false
+		return true
+
+	static def TryParse(line as string):
+		parts = line.Split((char(' '), ), StringSplitOptions.RemoveEmptyEntries)
+		if parts.Length != 4:
+			return null
+		return Hint(Id: parts[0], Version: VersionUtility.ParseVersionSpec(parts[1]), Action: parts[2], Target: parts[3])
+
+def CheckHints(package as IPackage, update as IPackage, manager as PackageManager):
+	hints = Hint.Hints
+	unless hints:
+		hints = List[of Hint]()
+		Hint.Hints = hints
+		hintsfile = GetResource(@nugethints)
+		if Exist(hintsfile):
+			lines = File.ReadAllLines(hintsfile)
+			for line in lines:
+				hint = Hint.TryParse(line)
+				continue unless hint
+				hints.Add(hint)
+		print "loaded ${hints.Count} hints"
+
+	for hint in hints:
+		return false unless hint.Apply(package, update, manager)
+	return true
 
 [XmlRoot(Namespace: "http://schemas.microsoft.com/developer/msbuild/2003")]
 class Project:
@@ -18,7 +67,6 @@ class PropertyGroup:
 	property StylecopPath as string
 	property StylecopAddonPath as string
 	property DefineConstants as string
-
 
 class Package:
 	property Name as string
@@ -91,9 +139,6 @@ def BuildLibProperties(prefix as string, filename as string, libPath as string, 
 				XElement(xmlNamespace + prefix, libPath),\
 				XElement(xmlNamespace + @ReferencePath, ReferencePath(prefix, paths)))))
 		document.Save(filename)
-
-def CalculateRelativePath(base as string, dst as string):
-	return Uri(Path.GetFullPath(base)).MakeRelative(Uri(Path.GetFullPath(dst))).Replace("/", "\\")
 
 def Import():
 	files = FileSet("src/**/*.*proj").Files.Concat(FileSet("test/**/*.*proj").Files)
@@ -199,18 +244,16 @@ def NugetInstall(config as string):
 	if Exist(config):
 		Exec("nuget", "install $config -OutputDirectory packages").Execute()
 
-def GetPackageConfigs():
-	configs = List[of string]()
-	configs.Add("packages/packages.config")
+def GetSlnPackageConfigs():
+	return GetProjects().Select({p| Path.Combine(Path.GetDirectoryName(p), "packages.config")})\
+		.Where({c| Exist(c)})\
+		.ToArray()
 
-	for sln in FileSet("src/*.sln").Files:
-		text = File.ReadAllText(sln)
-		matches = /Project.+=[^,]+,([^,]+),/.Matches(text)
-		for m in matches:
-			value = m.Groups[1].Value.Replace("\"", "").Trim()
-			config = Path.Combine("src", Path.GetDirectoryName(value), "packages.config")
-			configs.Add(config)
-	return configs.Where({c| Exist(c)}).ToArray()
+def GetPackageConfigs():
+	return GetSlnPackageConfigs()\
+		.Concat(("packages/packages.config", ))\
+		.Where({c| Exist(c)})\
+		.ToArray()
 
 def GetInstalledPackages():
 	return Directory.GetDirectories(@packages).Select({d| Package(d)}).ToArray()
@@ -228,7 +271,7 @@ desc """
 сохраняет все установленные пакеты в packages/packages.config
 """
 task "packages:save":
-	libPackages = GetPackageConfigs().Where({c| c != "packages/packages.config"}).SelectMany({c| GetPackagesForConfig(c)}).ToArray()
+	libPackages = GetSlnPackageConfigs().SelectMany({c| GetPackagesForConfig(c)}).ToArray()
 	doc = XDocument()
 	root = XElement(@packages)
 	doc.Add(root)
@@ -246,21 +289,9 @@ task "packages:clean":
 	toDelete = installedPackages.Except(packages)
 	for package in toDelete:
 		print "remove ${package.Dir}"
-		done = false
 		#в директории похоже сидит студия, делаям несколько подходов
-		while not done:
-			try:
-				RmDir(package.Dir, true)
-				done = true
-			except:
-				pass
-
-desc """
-Добавляет библиотеки как сабмодули git, пример bake ImportLib libs=Common.Tools,Common.MySql
-"""
-task @ImportLibs:
-	for lib in Configuration.libs.ToString().Split(char(',')):
-		Sh("git submodule add ssh://git.analit.net/var/git/${lib} src/${lib}") if not Exist("src/${lib}")
+		RepeatTry:
+			RmDir(package.Dir, true)
 
 desc """
 используй packages:install
@@ -304,3 +335,42 @@ task "packages:install":
 	filename = "src/SrcLib.properties"
 	path = "..\\..\\..\\.."
 	Save(paths, path, filename, packagesNames)
+
+desc """
+обновляет пакеты из packages.config
+"""
+task "packages:update":
+	root = Path.GetFullPath("packages")
+	fs = PhysicalFileSystem(root)
+	settings = Settings.LoadDefaultSettings(fs, null, null)
+	source = PackageSource("https://www.nuget.org/api/v2/")
+	sources = (source,)
+	sourceProvider = PackageSourceProvider(settings, sources)
+	factory = PackageRepositoryFactory.Default
+	rep = AggregateRepository(factory, sourceProvider.GetEnabledPackageSources().Select({s| s.Source}), true)
+	sourceRep = rep
+
+	pathResolver = DefaultPackagePathResolver(fs)
+	localRepository = SharedPackageRepository(pathResolver, fs, fs, fs)
+	packages = localRepository.GetPackages().ToList()
+	packageSorter = PackageSorter(null)
+	packages = packageSorter.GetPackagesByDependencyOrder(localRepository).Reverse().ToList()
+	c as IPackageConstraintProvider = NullConstraintProvider.Instance
+	packageManager = PackageManager(sourceRep, pathResolver, fs, localRepository)
+	reffiles = GetSlnPackageConfigs().Select({f| PackageReferenceRepository(PhysicalFileSystem(Path.GetDirectoryName(f)), localRepository)}).ToArray()
+	for package in packages:
+		print package
+		updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, null, c, false, false)
+		continue unless updated
+		continue if package.Version >= updated.Version
+		continue unless CheckHints(package, updated, packageManager)
+		try:
+			packageManager.UpdatePackage(package.Id, true, false)
+			for reffile in reffiles:
+				if reffile.Exists(package.Id, package.Version):
+					reffile.RemovePackage(package)
+					reffile.AddPackage(updated)
+
+			print "$package => $updated"
+		except e as InvalidOperationException:
+			print e.Message

@@ -151,78 +151,30 @@ task @StartServices:
 		services = GetServices(serviceName, servers)
 		StartServices(services)
 
-
 task @DeployService, [@BuildService]:
 	servers = GetServers()
 	rootServer = servers.First()
-	deployTo = "\\\\$rootServer\\$project"
-	if Globals.Maybe.DeployTo:
-		deployTo = Globals.DeployTo
-
+	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
 	Impersonate(servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
-
-
-		fin = false
-		interation = 0
-		while not fin:
-			try:
-				Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
-				fin = true
-			except e:
-				raise if not e.Message.Contains("The process cannot access the file")
-				interation++
-				if interation >= 3:
-					raise
-				print "can`t access files, sleep..."
-				System.Threading.Thread.Sleep(1000)
-
+		RepeatTry:
+			Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
 		StartServices(services)
 
 task @NakedDeployService:
 	servers = GetServers()
 	rootServer = servers.First()
-	deployTo = "\\\\$rootServer\\$project"
-	if Globals.Maybe.DeployTo:
-		deployTo = Globals.DeployTo
-
-	fin = false
-	interation = 0
-	while not fin:
-		try:
-			Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
-			fin = true
-		except e:
-			raise if not e.Message.Contains("The process cannot access the file")
-			interation++
-			if interation >= 3:
-				raise
-			print "can`t access files, sleep..."
-			System.Threading.Thread.Sleep(1000)
+	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
+	RepeatTry:
+		Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
 
 task @SimpleDeployService:
 	servers = GetServers()
 	rootServer = servers.First()
-	deployTo = "\\\\$rootServer\\$project"
-	if Globals.Maybe.DeployTo:
-		deployTo = Globals.DeployTo
-
+	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
 	Impersonate(servers.First()):
 		services = GetServices(serviceName, servers)
-
-		fin = false
-		interation = 0
-		while not fin:
-			try:
-				Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
-				fin = true
-			except e:
-				raise if not e.Message.Contains("The process cannot access the file")
-				interation++
-				if interation >= 3:
-					raise
-				print "can`t access files, sleep..."
-				System.Threading.Thread.Sleep(3000)
-
+		RepeatTry:
+			Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
 		StartServices(services)

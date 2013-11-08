@@ -1,28 +1,6 @@
 import NuGet from NuGet.Core
 import NuGet.PackageRepositoryExtensions from NuGet.Core
 
-class Hint:
-	public Id as string
-	public Version as string
-	public Action as string
-	public Target as string
-
-	def Apply(package as IPackage, manager as PackageManager):
-		if Id == package.Id and Version == package.Version.ToString():
-			if Action == "d":
-				print "hint hit for $Id $Version uninstall $Target"
-				manager.UninstallPackage(Target)
-			if Action == "i":
-				print "hint hit for $Id $Version install $Target"
-				manager.InstallPackage(Target)
-			if Action == "x":
-				print "hint hit for $Id $Version execute $Target"
-				Bash(Target)
-			if Action == "s":
-				print "hint hit for $Id $Version skip"
-				return false
-		return true
-
 task "nuget:clean":
 	for file in FileSet("output/nuget/*.nupkg").Files:
 		Rm(file)
@@ -52,57 +30,6 @@ task "nuget:deploy", ["check:common", "nuget:build"]:
 	Sh("git --work-tree='$tree' --git-dir='$dir' commit -m \"Обновил пакет $name\"")
 	Sh("git --work-tree='$tree' --git-dir='$dir' push")
 
-hints = null
-
-def CheckHints(package as IPackage, manager as PackageManager):
-	unless hints:
-		hints = List[of Hint]()
-		hintsfile = GetResource(@nugethints)
-		if Exist(hintsfile):
-			lines = File.ReadAllLines(hintsfile)
-			for line in lines:
-				parts = line.Split((char(' '), ), StringSplitOptions.RemoveEmptyEntries)
-				if parts.Length != 4:
-					continue
-				hints.Add(Hint(Id: parts[0], Version: parts[1], Action: parts[2], Target: parts[3]))
-		print "loaded ${hints.Count} hints"
-
-	for hint in hints:
-		return false unless hint.Apply(package, manager)
-	return true
-
-desc """
-обновляет пакеты из packages.config
-"""
-task "packages:update":
-	root = Path.GetFullPath("packages")
-	fileSystem = PhysicalFileSystem(root)
-	settings = Settings.LoadDefaultSettings(fileSystem, null, null)
-	source = PackageSource("https://www.nuget.org/api/v2/")
-	sources = (source,)
-	sourceProvider = PackageSourceProvider(settings, sources)
-	factory = PackageRepositoryFactory.Default
-	rep = AggregateRepository(factory, sourceProvider.GetEnabledPackageSources().Select({s| s.Source}), true)
-	sourceRep = rep
-
-	pathResolver = DefaultPackagePathResolver(fileSystem)
-	localRepository = SharedPackageRepository(pathResolver, fileSystem, fileSystem)
-	packages = localRepository.GetPackages().ToList()
-	packageSorter = PackageSorter(null)
-	packages = packageSorter.GetPackagesByDependencyOrder(localRepository).Reverse().ToList()
-	c as IPackageConstraintProvider = NullConstraintProvider.Instance
-	packageManager = PackageManager(sourceRep, pathResolver, fileSystem, localRepository)
-	for package in packages:
-		print package
-		updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, null, c, false, false)
-		continue unless updated
-		continue if package.Version >= updated.Version
-		continue unless CheckHints(package, packageManager)
-		try:
-			packageManager.UpdatePackage(package.Id, true, false)
-			print "$package => $updated"
-		except e as InvalidOperationException:
-			print e.Message
 
 desc """
 генерирует binding redirection
@@ -114,5 +41,12 @@ task "generate:binding:redirection":
 		path = Path.GetDirectoryName(project)
 		filename = BinVariants(name).Select({b| Path.Combine(path, b)}).FirstOrDefault({b| Exist(b)})
 		continue unless filename
-		print filename
-		Bash("binding.redirection.builder.exe '$filename'")
+		dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(filename), ".."))
+		configs = Directory.GetFiles(dir, "*.config")
+		unless configs.Length:
+			dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(filename), "..", ".."))
+			configs = Directory.GetFiles(dir, "*.config")
+		for config in configs:
+			name = Path.GetFileName(config).ToLower()
+			continue if not name.StartsWith("app") and not name.StartsWith("web")
+			Bash("binding.redirection.builder.exe '$filename' '$config'")

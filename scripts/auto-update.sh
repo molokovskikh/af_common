@@ -37,7 +37,8 @@ bake generate:binding:redirection
 git ls-files | grep '\.config' | xargs clean.sh
 git add -f -- packages/packages.config || :
 git ls-files | grep '\.config' | xargs git add -f || :
+git submodule foreach "git ls-files | grep packages.config | xargs git add -f || :" || :
 
-git submodule | awk '{print $2}' | xargs git add || :
 git submodule foreach 'git commit -m "Автообновление" || :' || :
+git submodule | awk '{print $2}' | xargs git add || :
 git commit -m "Автообновление" || :

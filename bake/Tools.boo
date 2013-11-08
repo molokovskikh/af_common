@@ -4,6 +4,25 @@ import System.Text
 import System.IO
 import System.Diagnostics
 
+def RepeatTry(action as callable()):
+	fin = false
+	interation = 0
+	while not fin:
+		try:
+			action()
+			fin = true
+		except e:
+			raise if not e.Message.Contains("The process cannot access the file")\
+				and not e.Message.Contains("Процесс не может получить доступ к файлу")
+			interation++
+			if interation >= 10:
+				raise
+			print "can`t access files, sleep..."
+			System.Threading.Thread.Sleep(1000)
+
+def CalculateRelativePath(base as string, dst as string):
+	return Uri(Path.GetFullPath(base)).MakeRelative(Uri(Path.GetFullPath(dst))).Replace("/", "\\")
+
 def GetResource(resource as string):
 	return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/${resource}")
 
