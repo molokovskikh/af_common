@@ -45,6 +45,7 @@ bake TryToBuild Port=$port notInteractive=true
 if [ -z "$SKIP_DB" ]; then
 	bake db:setup Port=$port notInteractive=true
 fi
+bake generate:binding:redirection notInteractive=true
 bake test Port=$port notInteractive=true
 
 git checkout .
