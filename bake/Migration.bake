@@ -589,7 +589,7 @@ desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
 пример bake AlterProcedure Db=Future Name=GetPrices
 """
-task @AlterProcedure:
+task "db:alter:procedure":
 	db = Configuration.Db
 	name = Configuration.Name
 	type = "PROCEDURE"
@@ -599,7 +599,7 @@ desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
 пример bake AlterFunction Db=Future Name=GetPrices
 """
-task @AlterFunction:
+task "db:alter:function":
 	db = Configuration.Db
 	name = Configuration.Name
 	type = "FUNCTION"
@@ -609,7 +609,7 @@ desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
 пример bake AlterEvent Db=Future Name=GetPrices
 """
-task @AlterEvent:
+task "db:alter:event":
 	db = Configuration.Db
 	name = Configuration.Name
 	type = "EVENT"
@@ -619,7 +619,7 @@ desc """
 создает миграцию и миграцию отката с текстом указанного триггера
 пример bake AlterTrigger Db=Future Name=IntersectionAfterInsert
 """
-task @AlterTrigger:
+task "db:alter:trigger":
 	db = Configuration.Db
 	trigger = Configuration.Name
 	text = Db.Read("show create trigger $db.$trigger").First()["SQL Original Statement"]
