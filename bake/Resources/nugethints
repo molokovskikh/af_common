@@ -1,6 +1,16 @@
+#d - удалить пакет
+#x - запустить скрипт
+#s - игнорировать
+#c - ограничение версии
 NHibernate [3.1.0.4000] d NHibernate.Castle
 NHibernate [3.1.0.4000] x post-update-nhibernate-3.1.sh
 CassiniDev [3.5.1.2] s -
 Topshelf [2.2.1.0] s -
-LumiSoft.Net 1.0 s -
-jQuery 1.0 x fix-js-ref.sh
+LumiSoft.Net 0.0 s -
+jQuery 0.0 x fix-js-ref.sh
+#кодировка email в версии 1.2.12 сломана
+log4net 0.0 c [0.0,2.0.2)
+#mvc с версии 5 только под net 4.5
+Microsoft.AspNet.Mvc 0.0 c [0.0,5.0)
+Microsoft.AspNet.WebPages 0.0 c [0.0,3.0)
+Microsoft.AspNet.Razor 0.0 c [0.0,3.0)

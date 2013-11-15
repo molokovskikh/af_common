@@ -16,8 +16,11 @@ class Hint:
 	public Action as string
 	public Target as string
 
+	def Match(package as IPackage):
+		return Id == package.Id and Version.Satisfies(package.Version)
+
 	def Apply(package as IPackage, update as IPackage, manager as PackageManager):
-		if Id == package.Id and Version.Satisfies(package.Version):
+		if Match(package):
 			if Action == "d":
 				print "hint hit for $Id $Version uninstall $Target"
 				manager.UninstallPackage(Target)
@@ -33,26 +36,34 @@ class Hint:
 		return true
 
 	static def TryParse(line as string):
+		return null if line.StartsWith("#")
 		parts = line.Split((char(' '), ), StringSplitOptions.RemoveEmptyEntries)
 		if parts.Length != 4:
 			return null
 		return Hint(Id: parts[0], Version: VersionUtility.ParseVersionSpec(parts[1]), Action: parts[2], Target: parts[3])
 
-def CheckHints(package as IPackage, update as IPackage, manager as PackageManager):
-	hints = Hint.Hints
-	unless hints:
-		hints = List[of Hint]()
-		Hint.Hints = hints
-		hintsfile = GetResource(@nugethints)
-		if Exist(hintsfile):
-			lines = File.ReadAllLines(hintsfile)
-			for line in lines:
-				hint = Hint.TryParse(line)
-				continue unless hint
-				hints.Add(hint)
-		print "loaded ${hints.Count} hints"
+	static def GetHints():
+		hints = Hint.Hints
+		unless hints:
+			hints = List[of Hint]()
+			Hint.Hints = hints
+			hintsfile = GetResource(@nugethints)
+			if Exist(hintsfile):
+				lines = File.ReadAllLines(hintsfile)
+				for line in lines:
+					hint = Hint.TryParse(line)
+					continue unless hint
+					hints.Add(hint)
+			print "loaded ${hints.Count} hints"
+		return hints
 
-	for hint in hints:
+	static def GetConstrain(package as IPackage):
+		return GetHints().Where({h| h.Match(package) and h.Action == "c"})\
+			.Select({h| VersionUtility.ParseVersionSpec(h.Target)})\
+			.FirstOrDefault()
+
+def CheckHints(package as IPackage, update as IPackage, manager as PackageManager):
+	for hint in Hint.GetHints():
 		return false unless hint.Apply(package, update, manager)
 	return true
 
@@ -360,7 +371,8 @@ task "packages:update":
 	reffiles = GetSlnPackageConfigs().Select({f| PackageReferenceRepository(PhysicalFileSystem(Path.GetDirectoryName(f)), localRepository)}).ToArray()
 	for package in packages:
 		print package
-		updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, null, c, false, false)
+		versionConstraint = Hint.GetConstrain(package)
+		updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, versionConstraint, c, false, false)
 		continue unless updated
 		continue if package.Version >= updated.Version
 		continue unless CheckHints(package, updated, packageManager)
