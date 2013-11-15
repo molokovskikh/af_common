@@ -70,6 +70,8 @@ task "generate:assembly:info":
 			fileVersion = "$fileVersion.$revision"
 
 	ignore = (/Common\..+/, /Test\..+/, /.+\.Test/)
+	if Globals.Maybe.GenerateAssemblyInfoIgnore:
+		ignore = ignore.Concat(Globals.Maybe.GenerateAssemblyInfoIgnore).ToArray()
 	for project in GetProjects():
 		projectName = Path.GetFileNameWithoutExtension(project)
 		continue if ignore.Any({i| i.IsMatch(projectName)})
