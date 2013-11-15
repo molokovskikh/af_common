@@ -35,10 +35,9 @@ def Env() as string:
 	return EnvByName(name)
 
 def UpdateGlobals():
-	unless Globals.Maybe.Environment:
-		Globals.Environment = @Local unless Globals.Maybe.Environment
-		if Configuration.Maybe.env:
-			Globals.Environment = ToPascal(Configuration.env)
+	Globals.Environment = ToPascal(Configuration.Maybe.env)\
+		or Globals.Maybe.Environment\
+		or @Local
 
 	if Globals.Environment == @Test:
 		Globals.DeployRoot = """\\acdcserv\TEST"""
@@ -83,3 +82,6 @@ task @Production:
 		Configuration.Environment = @Production
 		Globals.Environment = @Production
 	UpdateGlobals()
+
+task "debug:env":
+	print "Globals.Environment=" + Globals.Environment

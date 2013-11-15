@@ -106,6 +106,7 @@ def LastWord(table as string):
 	return ToPascal(word)
 
 def ToPascal(text as string):
+	return text unless text
 	pascaled = ""
 	toUpper = true
 	if text.ToUpper() == text:
