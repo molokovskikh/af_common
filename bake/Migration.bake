@@ -363,11 +363,6 @@ task @UpdateCommon:
 		raise "При обновлении Common возникла ошибка с кодом ${process.ExitCode}"
 
 desc """
-используй db:migrate
-"""
-task @Migrate, ["db:migrate"]
-
-desc """
 применяет миграции из директории migrations
 для отслеживания примененных миграций используется logs.schemamigrations
 """

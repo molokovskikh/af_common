@@ -1,0 +1,2 @@
+task @Migrate, ["db:migrate"]
+task @GenerateAssemblyInfo, ["generate:assembly:info"]

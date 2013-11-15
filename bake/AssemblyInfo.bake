@@ -45,7 +45,7 @@ task @UpdateRevision:
 	Sh("git add -- build/version.txt")
 	Sh("git commit -m \"Релиз версии $newVersion\"")
 
-task @GenerateAssemblyInfo:
+task "generate:assembly:info":
 	revision = GetRevision()
 	hash = revision.Trim()
 	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)

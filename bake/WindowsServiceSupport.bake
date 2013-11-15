@@ -99,9 +99,9 @@ def GetServers():
 unless serviceName = Globals.Maybe.ServiceName:
 	serviceName = project
 
-task @ServiceDeployPipeline, ["packages:install", "check", @BuildService, @StopServices, @Production, @Migrate, @Backup, @SimpleDeployService, @SendDeployNotification]
+task @ServiceDeployPipeline, ["packages:install", "check", @BuildService, @StopServices, @Production, "db:migrate", @Backup, @SimpleDeployService, @SendDeployNotification]
 
-task @ServiceDeployPipeline2, ["packages:install", "check", @Build, @StopServices, @Production, @Migrate, @Backup, @DeployApp, @StartServices, @SendDeployNotification]
+task @ServiceDeployPipeline2, ["packages:install", "check", @Build, @StopServices, @Production, "db:migrate", @Backup, @DeployApp, @StartServices, @SendDeployNotification]
 
 task @BuildService, [@CleanService]:
 	project = Globals.Project

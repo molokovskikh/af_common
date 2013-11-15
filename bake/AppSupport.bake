@@ -18,7 +18,7 @@ def GetBuildConfig():
 	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
 	return (project, buildTo, projectFile)
 
-task "app:cli:setup", ["packages:install", @GenerateAssemblyInfo]
+task "app:cli:setup", ["packages:install", "generate:assembly:info"]
 
 task "app:cli:build", [@BuildApp]
 
