@@ -30,13 +30,6 @@ task @UpdateTargetFramework:
 		doc.Save(project)
 		print "${project} patched"
 
-
-#def CalculateRelativePath(fromPath as string, toPath as string):
-#	root = GetCommonRoot(fromPath, toPath)
-#	#relativeToPath = CalculateRelativePath(root, toPath)
-#	depht = GetDepthTo(fromPath, root)
-#	for i in range()
-
 def PatchProject(project as string):
 	doc = XDocument.Load(project)
 	rootNamespace = doc.Root.Name.NamespaceName
@@ -82,47 +75,6 @@ task @UpdatePath:
 	frameworkPath = FrameworkInformation.Actual.FullPath
 	path = "$path;$sdkPath;$frameworkPath"
 	Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
-
-desc """
-Устанавливает mysql в папку текущего пользователя
-"""
-task @InstallMySql:
-	version = "5.5.12"
-	zipFilePath = """C:\apps\"""
-	Console.Write("Вы хотите начать скачивание MySql? (132.8Mb) Y/N:")
-	return unless Console.ReadLine().ToLower() == "y"
-	webClient = WebClient()
-#	webClient.DownloadFileCompleted += Completed
-#	webClient.DownloadProgressChanged += ProgressChanged
-	Console.WriteLine("Скачиваю MySQL")
-	downloadFile = Path.GetTempFileName()
-	try:
-		webClient.DownloadFile(\
-			"http://dev.mysql.com/get/Downloads/MySQL-5.5/mysql-$version-win32.zip/from/http://mysql.infocom.ua/",\
-			downloadFile)
-		Console.WriteLine("Скачивание прошло успешно")
-
-		extractPath = Path.Combine(zipFilePath, "MySQL")
-		MkDir(extractPath) unless Exist(extractPath)
-		Cp(downloadFile, Path.Combine(extractPath, "mysql-$version-win32.zip"), true)
-
-		using zip = ZipFile.Read(downloadFile):
-			mysqlFolderName = Path.GetDirectoryName(zip.Entries.First().FileName).Split(char('\\')).First()
-			for e in zip:
-				e.Extract(extractPath, ExtractExistingFileAction.OverwriteSilently)
-		Console.WriteLine("Файл разархивирован в $extractPath")
-
-		path = Environment.GetEnvironmentVariable("PATH", EnvironmentVariableTarget.User)
-		path = "" unless path
-		unless path.Length > 0 and path.Trim() == ";":
-			path += ";"
-		binPath = Path.Combine(extractPath, "mysql-$version-win32", "bin")
-		path += binPath
-		Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
-
-		Console.WriteLine("в PATH пользователя добавлен $binPath")
-	ensure:
-		Rm(downloadFile)
 
 desc """
 запускаест visual studion с проектом, примев в корне проета (там где папка src) bake dev
