@@ -44,6 +44,7 @@ class Project:
 
 	def Test():
 		assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/${_project}.dll")
+		print "test $assembly"
 		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
 		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
 
@@ -106,10 +107,16 @@ task @TestJs:
 
 task @RunTests, [@TestJs, @BuildTests]:
 	index = 0
+
+	ignore = (of Regex: ,)
+	if Globals.Maybe.TestIgnore:
+		ignore = ignore.Concat(Globals.Maybe.TestIgnore).ToArray()
+
 	for project in GetProjects():
+		continue if ignore.Any({i| i.IsMatch(project.ToString())})
 		index++
 		if Exist("TestResult.xml"):
-			Cp("TestResult.xml", "TestResult${index}.xml")
+			Cp("TestResult.xml", "TestResult.$project.$index.xml", true)
 		project.Test()
 
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
