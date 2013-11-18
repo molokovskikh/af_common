@@ -84,4 +84,5 @@ task @Production:
 	UpdateGlobals()
 
 task "debug:env":
-	print "Globals.Environment=" + Globals.Environment
+	for i in Globals:
+		print "${i.Key} = ${i.Value}"
