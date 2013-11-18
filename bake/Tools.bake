@@ -77,14 +77,6 @@ task @UpdatePath:
 	Environment.SetEnvironmentVariable("PATH", path, EnvironmentVariableTarget.User)
 
 desc """
-запускаест visual studion с проектом, примев в корне проета (там где папка src) bake dev
-будет запущена студия с этим проектом
-"""
-task @dev:
-	solution = Path.GetFileName(Path.GetFullPath("."))
-	Process.Start(Path.GetFullPath("src/$solution.sln"))
-
-desc """
 в переменную path текущего пользователя будет добавлена текущая директория
 """
 task @pathize:
