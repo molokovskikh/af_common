@@ -8,53 +8,25 @@ import System.Security.Principal
 import System.Runtime.InteropServices
 import Ionic.Zip
 
-def GetBuildConfig():
-	project = Globals.Maybe.Project
-	unless project:
-		sln = FileSet("src/*.sln").Files.FirstOrDefault()
-		raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
-		project = Path.GetFileNameWithoutExtension(sln)
-	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot, project))
-	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
-	return (project, buildTo, projectFile)
-
 task "app:cli:setup", ["packages:install", "generate:assembly:info"]
 
 task "app:cli:build", [@BuildApp]
 
 task @BuildApp, [@CleanApp]:
-	project, buildTo, projectFile = GetBuildConfig()
-	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
-			Target : "build",
-			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
-	Rm("${buildTo}/*.xml")
-	src = Path.Combine("src/${project}/", "App." + GetConfigSufix(Globals))
-	config = "${buildTo}/${project}.exe.config"
-	unless Exist(config):
-		config = FileSet("$buildTo/*.config").Files.FirstOrDefault() or config
-	Cp(src, config, true) if Exist(src)
+	Build(Globals)
 
 task @CleanApp:
-	project, buildTo, projectFile = GetBuildConfig()
-	MsBuild(projectFile, "/nologo", "/verbosity:quiet",
-			Target : "clean",
-			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
-	if Exist(buildTo):
-		Rm("${buildTo}/*", true)
-	else:
-		MkDir(buildTo)
+	Clean(Globals)
 
 task @Zip, [@CleanZip]:
-	project, buildTo, projectFile = GetBuildConfig()
+	project, buildTo, projectFile = GetBuildConfig(Globals)
 	filename = Path.Combine(Globals.BuildRoot, project) + ".zip"
 	zip = ZipFile(filename)
 	zip.AddDirectory(buildTo)
 	zip.Save()
 
 task @CleanZip:
-	project, buildTo, projectFile = GetBuildConfig()
+	project, buildTo, projectFile = GetBuildConfig(Globals)
 	project = Globals.Project
 	filename = Path.Combine(Globals.BuildRoot, project) + ".zip"
 	Rm(filename) if Exist(filename)

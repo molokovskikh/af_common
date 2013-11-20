@@ -50,6 +50,7 @@ def UpdateGlobals():
 				Globals[k.Key] = k.Value
 
 Global(
+	Configuration: Configuration,
 	Editor : "vim-nox",
 	MigrationsPath : GetMigrationPath(),
 	FrameworkVersion : "4.0.30319",
@@ -71,7 +72,6 @@ Global(
 		@Test : """Data Source=testsql.analit.net;Database=Usersettings;User ID=system;Password=newpass;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=300;Allow User Variables=true;""",
 	}
 )
-
 UpdateGlobals()
 
 task @UpdateGlobals:

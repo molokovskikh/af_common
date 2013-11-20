@@ -1,6 +1,0 @@
-
-task @DeployApp, [@WebDeploy]
-
-task @DeployPipeline, ["packages:clean", "packages:install", "check", @Production, @Build, @Backup, "db:migrate", @DeployApp, @SendDeployNotification]
-
-task @WebBuild, [@BuildWebSite]

@@ -40,21 +40,7 @@ class GitStatus:
 		return "Branch: ${Branch};  ChangesExists: ${ChangesExists};  NeedPush: ${NeedPush}"
 
 def GetDeployTo(project as string):
-	deployTo = Path.Combine(Globals.DeployRoot, project)
-
-	if Globals.Maybe.DeployAlias:
-		deployTo = Path.Combine(Globals.DeployRoot, Globals.DeployAlias)
-
-	if Globals.Maybe.deployTo:
-		deployTo = Globals.deployTo
-
-	if Globals.Maybe.DeployTo:
-		deployTo = Globals.DeployTo
-
-	if not deployTo:
-		raise """Не знаю куда разворачивать проект нужно задать либо Globals.DeployTo = '<путь куда выкладывать>'
-	либо название проекта Globals.Project тогда он будет выложен на Globals.DeployRoot по умолчанию это \\acdcserv.adc.analit.net\WebApps\"""
-	return deployTo
+	return GetDeploy(Globals, project)
 
 humanReadableName = ""
 if Globals.IsDefined(@humanReadableName):
@@ -67,17 +53,6 @@ if Globals.IsDefined("Project"):
 	project = Globals.Maybe.Project
 else:
 	project = Globals.Maybe.project
-
-def WriteMessages(file as string, message as string):
-	reader = StringReader(message)
-	using fileWriter = StreamWriter(file):
-		fileWriter.WriteLine()
-		fileWriter.WriteLine("# Напиши сообщение которое будет отправленно в рассылку.")
-		fileWriter.WriteLine("# Строки помеченые знаком '#' будут игнорироваться.")
-		fileWriter.WriteLine("#")
-		while (line = reader.ReadLine()) != null:
-			fileWriter.WriteLine("# " + line);
-
 
 def DetectScm():
 	return "git" if Exist(".git")
@@ -137,6 +112,24 @@ def FindLastBackup():
 		.OrderByDescending({d| DateTime.ParseExact(d[d.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)})\
 		.First()
 
+task @DeployApp, [@WebDeploy]
+
+task "build:stub":
+	if Engine.Tasks.Any({t| t.Name == "Build"}):
+		Engine.Execute("Build")
+	else:
+		Engine.Execute("build")
+
+task "deploy:stub":
+	if Engine.Tasks.Any({t| t.Name == "deploy:app"}):
+		Engine.Execute("deploy:app")
+	else:
+		Engine.Execute("DeployApp")
+
+task @DeployPipeline, ["packages:clean", "packages:install", "check", @Production, "build:stub", @Backup, "db:migrate", "deploy:stup", @SendDeployNotification]
+
+task @WebBuild, [@BuildWebSite]
+
 desc """
 отправляет уведомление о развертывание проекта
 на UpdatesList@subscribe.analit.net
@@ -180,24 +173,8 @@ task @RollbackDeploy, [@WebClean]:
 	print "rollback to $project at $backupDate"
 	Rm(backup, true)
 
-def GetExcludes():
-	excludes = List()
-	if Globals.Maybe.ExcludesDeployDirectory:
-		for directory in Globals.ExcludesDeployDirectory:
-			excludes.Add(directory)
-	return excludes
-
-
 task @WebDeploy, [@WebClean]:
-	deployTo = GetDeployTo(Globals.Project.ToString())
-	buildTo = Path.GetFullPath(Path.Combine(Globals.BuildRoot.ToString(), Globals.Project))
-
-	files = FileSet("**/*.*", Excludes : GetExcludes(), BaseDirectory : buildTo)
-	if Configuration.Maybe.Simulate:
-		print "${files.Files.Count} files deployed to $deployTo"
-		return
-	Cp(files, deployTo, true)
-	print "${files.Files.Count} files deployed to $deployTo"
+	XCopyDeploy(Globals)
 
 task @CopyTiny:
 	deployTo = GetDeployTo(Globals.Project.ToString())
@@ -206,7 +183,7 @@ task @CopyTiny:
 
 task @WebClean:
 	deployTo = GetDeployTo(Globals.Project.ToString())
-	excludes = GetExcludes();
+	excludes = GetExcludes(Globals);
 	excludes.Add("*.log")
 	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
 

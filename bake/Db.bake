@@ -12,18 +12,18 @@ class DbProfile:
 	property IgnoreTables as (string) = (,)
 	property BeforeExportSql as string
 	property AfterImportSql as string
-	
+
 	def constructor():
 		pass
-		
+
 	def constructor(*profiles as (DbProfile)):
 		for profile in profiles:
 			Tables(profile.ImportTables)
 			Dbs(profile.ImportDbs)
-	
+
 	def Tables(names as string*):
 		ImportTables = ImportTables.Concat(names).ToArray()
-	
+
 	def Dbs(names as string*):
 		ImportDbs = ImportDbs.Concat(names).ToArray()
 
@@ -235,7 +235,7 @@ profiles = {@empty: emptyProfile,
 desc """
 дампит полную схему рабочей базы в файл dump.txt удобно если надо поискать что то в схеме, например использование определенных таблиц в триггерах или процедурах
 """
-Task "db:dump":
+task "db:dump":
 	user = Ask("user:")
 	password = AskPassword("password:")
 	host = Ask("host:")

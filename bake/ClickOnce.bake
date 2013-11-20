@@ -111,5 +111,5 @@ task "publish", ["build publish package", "clean publish dir"]:
 	Cp(files, publishTo, true)
 	print "${files.Files.Count} files deployed to ${buildPublishTo}"
 
-Task "clean publish dir":
+task "clean publish dir":
 	ClearDir(publishTo)
