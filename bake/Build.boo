@@ -2,7 +2,7 @@ import System.Linq
 import Bake.Engine
 
 def GetBuildConfig(globals as DuckDictionary):
-	project = globals.Maybe.Project
+	project = globals.Maybe.Project or globals.Maybe.project
 	unless project:
 		sln = FileSet("src/*.sln").Files.FirstOrDefault()
 		raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
@@ -61,20 +61,25 @@ def XCopyDeploy(globals as duck, name as string, deployTo as string):
 	buildTo, _ = GetBuildConfig(globals, name)
 
 	files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
-	if globals.Configuration.Maybe.Simulate:
+	conf as DuckDictionary = globals.Configuration
+	if conf.Maybe.Simulate:
 		print "${files.Files.Count} files deployed to $deployTo"
 		return
 	Cp(files, deployTo, true)
 	print "${files.Files.Count} files deployed to $deployTo"
 
-def GetExcludes(globals as duck):
+def GetExcludes(globals as DuckDictionary):
 	excludes = List()
 	if globals.Maybe.ExcludesDeployDirectory:
 		for directory in globals.ExcludesDeployDirectory:
 			excludes.Add(directory)
 	return excludes
 
-def GetDeploy(globals as duck, project as string):
+def GetDeploy(globals as duck):
+	project, _, _ = GetBuildConfig(globals)
+	return GetDeploy(globals, project)
+
+def GetDeploy(globals as DuckDictionary, project as string):
 	deployTo = Path.Combine(globals.DeployRoot, project)
 
 	if globals.Maybe.DeployAlias:

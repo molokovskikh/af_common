@@ -42,18 +42,6 @@ class GitStatus:
 def GetDeployTo(project as string):
 	return GetDeploy(Globals, project)
 
-humanReadableName = ""
-if Globals.IsDefined(@humanReadableName):
-	humanReadableName = Globals.Maybe.humanReadableName
-else:
-	humanReadableName = Globals.Maybe.HumanReadableName
-
-project = ""
-if Globals.IsDefined("Project"):
-	project = Globals.Maybe.Project
-else:
-	project = Globals.Maybe.project
-
 def DetectScm():
 	return "git" if Exist(".git")
 	print "Can not detect scm"
@@ -102,10 +90,9 @@ def GetGitHead(path as string):
 	lines = localHead.Trim().Split(char(' '))
 	return lines[0].Trim()
 
-
 backupRoot = """\\offdc\MMedia\AppBackUp\"""
 
-def FindLastBackup():
+def FindLastBackup(project as string):
 	directories = Directory.GetDirectories(backupRoot)
 	return directories\
 		.Where({d| Path.GetFileName(d).StartsWith(project)})\
@@ -126,7 +113,9 @@ task "deploy:stub":
 	else:
 		Engine.Execute("DeployApp")
 
-task @DeployPipeline, ["packages:clean", "packages:install", "check", @Production, "build:stub", @Backup, "db:migrate", "deploy:stup", @SendDeployNotification]
+task @DeployPipeline, ["deploy:pipeline"]
+
+task "deploy:pipeline", ["packages:clean", "packages:install", "check", @Production, "build:stub", @Backup, "db:migrate", "deploy:stub", @SendDeployNotification]
 
 task @WebBuild, [@BuildWebSite]
 
@@ -138,6 +127,8 @@ notifyTo - удрес на который отправлять уведомле�
 task @SendDeployNotification:
 	return if Globals.Environment == @Test
 
+	project, _, _ = GetBuildConfig(Globals)
+	humanReadableName = Globals.Maybe.humanReadableName or Globals.Maybe.HumanReadableName
 	to = Configuration.Maybe.notifyTo or "UpdatesList@subscribe.analit.net"
 
 	deployRecord = Db.Read("select GitHash from Logs.Deploys where Project = '$project' order by DeployedOn  desc limit 1").FirstOrDefault()
@@ -158,7 +149,9 @@ task @SendDeployNotification:
 task @Backup:
 	return if Globals.Environment == @Test or Configuration.Maybe.Simulate
 
-	deployTo = GetDeployTo(project)
+	project, _, _ = GetBuildConfig(Globals)
+	deployTo = GetDeploy(Globals)
+
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
 	backup = Path.Combine(backupRoot, backupName)
 	MkDir(backup)
@@ -166,8 +159,10 @@ task @Backup:
 	print "backuped to ${backup}"
 
 task @RollbackDeploy, [@WebClean]:
-	backup = FindLastBackup()
-	deployTo = GetDeployTo(Globals.Project.ToString())
+	project, _, _ = GetBuildConfig(Globals)
+	deployTo = GetDeploy(Globals)
+
+	backup = FindLastBackup(project)
 	Cp(FileSet("**/*.*", Excludes : ["*.log"], BaseDirectory : backup), deployTo)
 	backupDate = DateTime.ParseExact(backup[backup.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)
 	print "rollback to $project at $backupDate"
