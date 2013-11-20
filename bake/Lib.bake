@@ -377,7 +377,7 @@ task "packages:update":
 		continue if package.Version >= updated.Version
 		continue unless CheckHints(package, updated, packageManager)
 		try:
-			packageManager.UpdatePackage(package.Id, true, false)
+			packageManager.UpdatePackage(package.Id, versionConstraint, true, false)
 			for reffile in reffiles:
 				if reffile.Exists(package.Id, package.Version):
 					reffile.RemovePackage(package)
