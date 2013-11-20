@@ -64,7 +64,13 @@ namespace StyleCopAddOn
 			foreach (var child in statement.ChildStatements) {
 				if (child.LineNumber != statement.LineNumber && child.StatementType != StatementType.Block) {
 					if (GetMinIndex(parentElement, child.LineNumber) - GetMinIndex(parentElement, statement.LineNumber) != _tabSpaces && statement.StatementType != StatementType.Block) {
-						this.AddViolation(parentElement, child.LineNumber, "MoreOrLessThenOneTabToRightPosition");
+						if (child.StatementType == StatementType.Using && statement.StatementType == StatementType.Using) {
+							if (IsInBraces(statement))
+							this.AddViolation(parentElement, child.LineNumber, "MoreOrLessThenOneTabToRightPosition");
+						}
+						else {
+							this.AddViolation(parentElement, child.LineNumber, "MoreOrLessThenOneTabToRightPosition");
+						}
 						return;
 					}
 
@@ -75,6 +81,17 @@ namespace StyleCopAddOn
 				}
 				StatementWalk(child, parentElement);
 			}
+		}
+
+		private bool IsInBraces(Statement statement)
+		{
+			var tokens = statement.Tokens.Where(t => t.Parent == statement
+				&& t.CsTokenType != CsTokenType.EndOfLine
+				&& t.CsTokenType != CsTokenType.WhiteSpace).ToArray();
+			if (tokens.Length < 2)
+				return false;
+			return tokens[tokens.Length - 2].CsTokenType == CsTokenType.OpenCurlyBracket
+				&& tokens[tokens.Length - 1].CsTokenType == CsTokenType.CloseCurlyBracket;
 		}
 
 		private bool VisitExpression(Expression expression, Expression parentExpression, Statement parentStatement, CsElement parentElement, object context)
