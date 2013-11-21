@@ -18,21 +18,21 @@ git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :
 
 #получаем известные библиотеки из nuget, lib -> nuget
-bake packages:install
+bake -s packages:install
 update-packages.sh
 git add -A -- lib || :
 git add -f -- packages/packages.config || :
 
 #обновляем пакеты
-bake packages:update
-bake packages:save
-bake packages:install
+bake -s packages:update
+bake -s packages:save
+bake -s packages:install
 #пробуем собрать, но это может не получиться из-за специальной магии
 bake notInteractive=true|| :
 rm output -rf || :
 msbuild.exe src/*.sln
-bake BuildTests notInteractive=true || :
-bake generate:binding:redirection
+bake -s BuildTests notInteractive=true || :
+bake -s generate:binding:redirection
 #при сохранении конфига он может добавить пустых строк
 git ls-files | grep '\.config' | xargs clean.sh
 git add -f -- packages/packages.config || :
