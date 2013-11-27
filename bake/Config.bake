@@ -58,7 +58,7 @@ Global(
 	TargetFramework: "net40",
 	DeployRoot : """\\adc.analit.net\Inforoom\WebApps\""",
 	BuildRoot : "output",
-	PublishRoot : """\\adc.analit.net\Inforoom\WebPublish\""",
+	PublishRoot : """\\adc.analit.net\Inforoom\Publish\Publish""",
 	Environments : {
 		@Production2 : """Data Source=sql2.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""",
 		@Dbms : """Data Source=dbms.adc.analit.net;Database=Usersettings;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=150;Allow User Variables=true;""",
