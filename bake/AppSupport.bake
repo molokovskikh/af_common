@@ -8,7 +8,7 @@ import System.Security.Principal
 import System.Runtime.InteropServices
 import Ionic.Zip
 
-task "app:cli:setup", ["packages:install", "generate:assembly:info"]
+task "app:cli:setup", ["packages:clean", "packages:install", "generate:assembly:info"]
 
 task "app:cli:build", [@BuildApp]
 
