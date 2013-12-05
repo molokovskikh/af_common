@@ -315,7 +315,7 @@ desc """
 targetFramework - версия framework под которую будут загружаться библиотеки
 если не задана используется Globals.TargetFramework
 """
-task "packages:install":
+task "packages:install", ["packages:clean"]:
 	configs = GetPackageConfigs()
 	var nugetPackages = List[of Package]()
 	for config in configs:
