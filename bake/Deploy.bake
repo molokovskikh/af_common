@@ -99,7 +99,8 @@ def FindLastBackup(project as string):
 		.OrderByDescending({d| DateTime.ParseExact(d[d.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)})\
 		.First()
 
-task @DeployApp, [@WebDeploy]
+unless Engine.Tasks.Any({t| t.Name == "DeployApp"}):
+	task @DeployApp, [@WebDeploy]
 
 task "build:stub":
 	if Engine.Tasks.Any({t| t.Name == "Build"}):

@@ -14,6 +14,7 @@ import Ionic.Zip
 import Boo.Lang.Interpreter
 import Boo.Lang.Compiler
 import Boo.Lang.Compiler.TypeSystem.Reflection
+import Mono.Cecil
 
 desc """
 Заменяет TargetFramework во всех проектах на параметер указанный в Version
@@ -114,3 +115,34 @@ task "dump:resource":
 	using reader = ResourceReader(Configuration.file.ToString()):
 		for i in reader:
 			print "${i.Key} = ${i.Value}"
+
+def RemoveStrongName(assembly as AssemblyDefinition):
+	module = assembly.MainModule
+	assemblyName = assembly.Name
+	assemblyName.HasPublicKey = false
+	assemblyName.PublicKey = (of byte:,)
+	module.Attributes &= ~ModuleAttributes.StrongNameSigned
+
+task "fix:packages":
+	files = FileSet("**/*.dll")
+	assemblyNames = files.Select({f| Path.GetFileNameWithoutExtension(f)}).Distinct().ToArray()
+	for file in files:
+		try:
+			print "inspect $file"
+			assembly = AssemblyDefinition.ReadAssembly(file)
+			RemoveStrongName(assembly)
+			for reference in assembly.MainModule.AssemblyReferences:
+				continue unless assemblyNames.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
+				reference.HasPublicKey = false
+				reference.PublicKey = (of byte:,)
+				print "fix ref $reference"
+			assembly.Write(file)
+		except e:
+			print file
+			print e
+
+task "assembly:remove:strongname":
+	name = Configuration.name.ToString()
+	assembly = AssemblyDefinition.ReadAssembly(name)
+	RemoveStrongName(assembly)
+	assembly.Write(name)

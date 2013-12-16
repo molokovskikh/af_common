@@ -52,6 +52,19 @@ def GetServices(serviceName as string, servers as string*):
 		services.AddRange(serverServices)
 	return services
 
+def ImpersonateUser(user as string, password as string, action as Action):
+	LOGON32_PROVIDER_DEFAULT = 0;
+	LOGON32_LOGON_INTERACTIVE = 2;
+	tokenHandle = IntPtr.Zero;
+	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
+		raise Win32Exception()
+
+	using WindowsIdentity.Impersonate(tokenHandle):
+		try:
+			action()
+		ensure:
+			CloseHandle(tokenHandle);
+
 def Impersonate(server as string, action as Action):
 	user as string
 	password as string
@@ -98,6 +111,11 @@ def GetServers():
 
 unless serviceName = Globals.Maybe.ServiceName:
 	serviceName = project
+
+task "sudo":
+	cmd = Configuration.cmd
+	ImpersonateUser("deployer", '$sdfsd887!'):
+		Exec("cmd", "/c \"$cmd\"").Execute()
 
 task @ServiceDeployPipeline, ["packages:clean", "packages:install", "check", @BuildService, @StopServices, @Production, "db:migrate", @Backup, @SimpleDeployService, @SendDeployNotification]
 
