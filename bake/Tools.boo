@@ -4,6 +4,27 @@ import System.Text
 import System.IO
 import System.Diagnostics
 
+[DllImport("advapi32.dll", SetLastError: true, CharSet: CharSet.Unicode)]
+def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as String, dwLogonType as int, dwLogonProvider as int, ref phToken as IntPtr) as bool:
+	pass
+
+[DllImport("kernel32.dll", CharSet: CharSet.Auto)]
+def CloseHandle(handle as IntPtr) as bool:
+	pass
+
+def ImpersonateUser(user as string, password as string, action as Action):
+	LOGON32_PROVIDER_DEFAULT = 0;
+	LOGON32_LOGON_INTERACTIVE = 2;
+	tokenHandle = IntPtr.Zero;
+	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
+		raise Win32Exception()
+
+	using WindowsIdentity.Impersonate(tokenHandle):
+		try:
+			action()
+		ensure:
+			CloseHandle(tokenHandle);
+
 def RepeatTry(action as callable()):
 	fin = false
 	interation = 0

@@ -8,13 +8,38 @@ import System.ServiceProcess
 import System.ComponentModel
 import System.Security.Principal
 import System.Runtime.InteropServices
+import System.Diagnostics
+import System.Security
+
+#[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Auto)]
+struct StartupInfo:
+	public cb as int
+	public reserved as String
+	public desktop as String
+	public title as String
+	public x as int
+	public y as int
+	public xSize as int
+	public ySize as int
+	public xCountChars as int
+	public yCountChars as int
+	public fillAttribute as int
+	public flags as int
+	public showWindow as UInt16
+	public reserved2 as UInt16
+	public reserved3 as byte
+	public stdInput as IntPtr
+	public stdOutput as IntPtr
+	public stdError as IntPtr
+
+struct ProcessInformation:
+	public process as IntPtr
+	public thread as IntPtr
+	public processId as int
+	public threadId as int
 
 [DllImport("advapi32.dll", SetLastError: true, CharSet: CharSet.Unicode)]
-def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as String, dwLogonType as int, dwLogonProvider as int, ref phToken as IntPtr) as bool:
-	pass
-
-[DllImport("kernel32.dll", CharSet: CharSet.Auto)]
-def CloseHandle(handle as IntPtr) as bool:
+def CreateProcessWithLogonW(lpUsername as string, lpDomain as string, lpPassword as string, dwLogonFlags as uint, lpApplicationName as string, commandLine as string, dwCreationFlags as uint, lpEnvironment as IntPtr, currentDirectory as string, ref startupInfo as StartupInfo, ref processInformation as ProcessInformation) as bool:
 	pass
 
 project = Globals.Maybe.Project
@@ -51,19 +76,6 @@ def GetServices(serviceName as string, servers as string*):
 			raise "Can`t find service \"${serviceName}\" on server ${server}"
 		services.AddRange(serverServices)
 	return services
-
-def ImpersonateUser(user as string, password as string, action as Action):
-	LOGON32_PROVIDER_DEFAULT = 0;
-	LOGON32_LOGON_INTERACTIVE = 2;
-	tokenHandle = IntPtr.Zero;
-	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
-		raise Win32Exception()
-
-	using WindowsIdentity.Impersonate(tokenHandle):
-		try:
-			action()
-		ensure:
-			CloseHandle(tokenHandle);
 
 def Impersonate(server as string, action as Action):
 	user as string
@@ -114,8 +126,19 @@ unless serviceName = Globals.Maybe.ServiceName:
 
 task "sudo":
 	cmd = Configuration.cmd
-	ImpersonateUser("deployer", '$sdfsd887!'):
-		Exec("cmd", "/c \"$cmd\"").Execute()
+	user = "deployer"
+	password = '$sdfsd887!'
+	app = "cmd.exe"
+	#args = "/C \"$cmd\""
+	args = "/C dir"
+	info = StartupInfo()
+	info.flags = 0x00000100
+	#info.flags &= 0x00000001
+	#info.stdOutput = cast(IntPtr, -11)
+	#info.stdError = cast(IntPtr, -12)
+	processInfo = ProcessInformation()
+	unless CreateProcessWithLogonW(user, "analit", password, 1, app, args, 0, IntPtr.Zero, Directory.GetCurrentDirectory(), info, processInfo):
+		raise Win32Exception()
 
 task @ServiceDeployPipeline, ["packages:clean", "packages:install", "check", @BuildService, @StopServices, @Production, "db:migrate", @Backup, @SimpleDeployService, @SendDeployNotification]
 
