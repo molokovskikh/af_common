@@ -65,7 +65,7 @@ def XCopyDeploy(globals as duck, name as string, deployTo as string):
 	if conf.Maybe.Simulate:
 		print "${files.Files.Count} files deployed to $deployTo"
 		return
-	impersonate = globals.Configuration.Maybe.impersonate != null
+	impersonate = conf.Maybe.impersonate != null
 	if impersonate:
 		ImpersonateUser("deployer", '$sdfsd887!'):
 			Cp(files, deployTo, true)
