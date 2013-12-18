@@ -30,12 +30,14 @@ def BootstrapperSdkPath() as string:
 		path = key.GetValue("Path", "").ToString()
 		key.Close()
 		return path
-	return ""
+	return Path.GetFullPath(Path.Combine(MicrosoftSdk.Path(), "..", "Bootstrapper"))
 
 def GetAssemblyVersion(assemblyFile as string) as string:
 	return System.Reflection.Assembly.LoadFile(assemblyFile).GetName().Version.ToString()
 
 def ClearDir(dirname as string):
+	return unless Exist(dirname)
+
 	for delDirName in Directory.GetDirectories(dirname):
 		Directory.Delete(delDirName, true)
 	for fname in Directory.GetFiles(dirname):
@@ -46,7 +48,6 @@ productName = Globals.Maybe.HumanReadableName
 configuration = "release"
 projectPath = Path.GetFullPath("src/${projectName}/")
 projectFile = "${projectPath}${projectName}.csproj"
-publishTo = "\\\\acdcserv.adc.analit.net\\WebPublish\\${projectName}\\"
 deploymentUrl = "http://publish.analit.net/${projectName}/"
 publishVersion = "0.0.0.0";
 
@@ -57,6 +58,10 @@ buildPublishTo = Path.GetFullPath("${buildRoot}/${projectName}Publish/")
 params = { "OutDir" : "${buildTo}", "Configuration" : "release" }
 if Globals.Maybe.Platform:
 	params.Add("Platform", Globals.Platform)
+
+def GetPublishTo():
+	projectName = Globals.Maybe.Project
+	return "${Globals.PublishRoot}\\${projectName}\\"
 
 task @ClickOnceDeploy, ["packages:clean", "packages:install", "check", @UpdateRevision, @ClickOnceBuild, @Production, "db:migrate", @publish, @SendDeployNotification]
 
@@ -108,8 +113,9 @@ task "clean publish package":
 
 task "publish", ["build publish package", "clean publish dir"]:
 	files = FileSet("**/*.*", BaseDirectory : buildPublishTo)
-	Cp(files, publishTo, true)
+	MkDir(GetPublishTo()) unless Exist(GetPublishTo())
+	Cp(files, GetPublishTo(), true)
 	print "${files.Files.Count} files deployed to ${buildPublishTo}"
 
 task "clean publish dir":
-	ClearDir(publishTo)
+	ClearDir(GetPublishTo())
