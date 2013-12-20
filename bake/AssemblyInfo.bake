@@ -33,6 +33,8 @@ def GetVersionTags():
 task "version:bump", ["UpdateRevision"]
 
 task @UpdateRevision:
+	return unless Globals.Environment == @Production
+
 	output = ExecuteProcess("git", "status")
 	if not output.Contains("nothing to commit (working directory clean)"):
 		raise "bake deploy можно делать только если все закомичено\r\n" \
