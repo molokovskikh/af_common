@@ -8,19 +8,19 @@ def GetBuildConfig(globals as DuckDictionary):
 		raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
 		project = Path.GetFileNameWithoutExtension(sln)
 	buildTo = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
-	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
+	projectFile = FileSet("src/${project}/${project}.*proj").First()
 	return (project, buildTo, projectFile)
 
-def GetBuildConfig(globals as duck, project as string):
+def GetBuildConfig(globals as DuckDictionary, project as string):
 	buildTo = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
-	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
+	projectFile = FileSet("src/${project}/${project}.*proj").First()
 	return (buildTo, projectFile)
 
-def Build(globals as duck):
+def Build(globals as DuckDictionary):
 	project, _, _ = GetBuildConfig(globals)
 	Build(globals, project)
 
-def Build(globals as duck, project as string):
+def Build(globals as DuckDictionary, project as string):
 	buildTo, projectFile = GetBuildConfig(globals, project)
 	MsBuild(projectFile,
 			Target : "build",
@@ -33,11 +33,97 @@ def Build(globals as duck, project as string):
 		config = FileSet("$buildTo/*.config").Files.FirstOrDefault() or config
 	Cp(src, config, true) if Exist(src)
 
-def Clean(globals as duck):
+
+def CopyAssets(output as string):
+	return unless Exist("packages")
+	return unless Exist("src/Common.Web.UI/Common.Web.Ui/Assets/Content/")
+
+	assets = Path.Combine(output, "Assets", "Javascripts")
+	for dir in Directory.GetDirectories("packages"):
+		path = Path.Combine(dir, "Content", "Scripts")
+		continue unless Exist(path)
+		javaScripts = FileSet("*.min.js", BaseDirectory: path)
+		if javaScripts.Files.Count:
+			Cp(javaScripts, assets)
+		else:
+			Cp(FileSet("**.*", BaseDirectory: path), assets)
+	javaScripts = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/javascripts/**.*")
+	Cp(javaScripts, assets) if javaScripts.Files.Count
+
+	assets = Path.Combine(output, "Assets", "images")
+	images = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/images/**.*")
+	Cp(images, assets, true) if images.Files.Count
+
+	assets = Path.Combine(output, "Assets", "Stylesheets")
+	for dir in Directory.GetDirectories("packages"):
+		path = Path.Combine(dir, "Content", "Content")
+		continue unless Exist(path)
+		Cp(FileSet("**.*", BaseDirectory: path), assets)
+	styleSheets = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/Stylesheets/**.*")
+	Cp(styleSheets, assets) if styleSheets.Files.Count
+
+def BuildWeb(globals as DuckDictionary, project as string):
+	buildTo, projectFile = GetBuildConfig(globals, project)
+	projectPath = Path.GetDirectoryName(projectFile)
+
+	MkDir(buildTo) if not Exist(buildTo)
+	params = { "OutDir" : "${buildTo}\\bin\\",
+		"OutputPath" : "${buildTo}\\bin\\",
+		"Configuration" : "Release"}
+	if globals.Maybe.Platform:
+		params.Add("Platform", globals.Platform)
+	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
+			Target : "build",
+			Parameters : params,
+			FrameworkVersion : globals.FrameworkVersion).Execute()
+	Rm("${buildTo}/bin/*.xml")
+	Cp(FileSet(["**/*.as?x",
+				"**/*.svc",
+				"**/*.brail",
+				"**/*.brailjs",
+				"**/*.swf",
+				"**/*.gif",
+				"**/*.png",
+				"**/*.ico",
+				"**/*.jpg",
+				"**/*.js",
+				"**/*.woff",
+				"**/*.ttf",
+				"**/*.svg",
+				"**/*.eot",
+				"**/*.coffee",
+				"**/*.zip",
+				"**/*.css",
+				"**/*.skin",
+				"**/*.htm",
+				"**/*.sitemap",
+				"**/*.master",
+				"**/*.ico",
+				"**/*.odt",
+				"**/*.doc",
+				"**/*.svc",
+				"robots.txt",
+				"crossdomain.xml"],
+				BaseDirectory: projectPath),
+		buildTo, true)
+	sufix = GetConfigSufix(globals)
+	Cp("$projectPath/web.$sufix", "${buildTo}/Web.config")
+	CopyAssets(buildTo)
+
+def CleanWeb(globals as DuckDictionary, name as string):
+	buildTo, projectFile = GetBuildConfig(globals, name)
+	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
+			Target : "clean",
+			Parameters : { "OutDir" : "${buildTo}\\bin\\",
+						"Configuration" : "release" },
+			FrameworkVersion : globals.FrameworkVersion).Execute()
+	Rm("${buildTo}/*", true) if Exist(buildTo)
+
+def Clean(globals as DuckDictionary):
 	project, _, _ = GetBuildConfig(globals)
 	Clean(globals, project)
 
-def Clean(globals as duck, project as string):
+def Clean(globals as DuckDictionary, project as string):
 	buildTo, projectFile = GetBuildConfig(globals, project)
 	MsBuild(projectFile,
 			Target : "clean",
@@ -48,16 +134,16 @@ def Clean(globals as duck, project as string):
 	else:
 		MkDir(buildTo)
 
-def XCopyDeploy(globals as duck):
+def XCopyDeploy(globals as DuckDictionary):
 	project, _, _ = GetBuildConfig(globals)
 	deploy = GetDeploy(globals, project)
 	XCopyDeploy(globals, project, deploy)
 
-def XCopyDeploy(globals as duck, project as string):
+def XCopyDeploy(globals as DuckDictionary, project as string):
 	deploy = GetDeploy(globals, project)
 	XCopyDeploy(globals, project, deploy)
 
-def XCopyDeploy(globals as duck, name as string, deployTo as string):
+def XCopyDeploy(globals as DuckDictionary, name as string, deployTo as string):
 	buildTo, _ = GetBuildConfig(globals, name)
 
 	files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
@@ -80,7 +166,7 @@ def GetExcludes(globals as DuckDictionary):
 			excludes.Add(directory)
 	return excludes
 
-def GetDeploy(globals as duck):
+def GetDeploy(globals as DuckDictionary):
 	project, _, _ = GetBuildConfig(globals)
 	return GetDeploy(globals, project)
 
