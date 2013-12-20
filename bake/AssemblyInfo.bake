@@ -41,7 +41,7 @@ task @UpdateRevision:
 			+ "проверь что git status говорит nothing to commit (working directory clean)\r\n" \
 			+ "а затем попробуй еше раз"
 
-	output = ExecuteProcess("git", "log -1 --pretty=oneline")
+	output = ExecuteProcess("git", "log -1 --decorate --pretty=oneline")
 	if output.Contains("Релиз версии") or output.Contains("tag: v"):
 		print "Последний коммит был релизом, не буду обновлять номер версии тк похоже что это на повторный деплой"
 		return

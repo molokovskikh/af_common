@@ -116,7 +116,7 @@ task "deploy:stub":
 
 task @DeployPipeline, ["deploy:pipeline"]
 
-task "deploy:pipeline", ["packages:clean", "packages:install", "check", @Production, "build:stub", @Backup, "db:migrate", "deploy:stub", @SendDeployNotification]
+task "deploy:pipeline", ["packages:install", "check", @Production, "build:stub", @Backup, "db:migrate", "deploy:stub", @SendDeployNotification]
 
 task @WebBuild, [@BuildWebSite]
 
