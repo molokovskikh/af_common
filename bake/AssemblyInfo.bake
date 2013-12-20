@@ -6,8 +6,6 @@ import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
 
-excludes = ["Unit", "Integration", "Functional", ".svn"]
-
 def UnderSourceControl(path as string):
 	dir = Path.GetDirectoryName(path)
 	filename = Path.GetFileName(path)
@@ -23,9 +21,18 @@ def GetRevision():
 	lines = head.Split(("\n",), StringSplitOptions.RemoveEmptyEntries)
 	return lines[0].Trim().Replace("commit ", "")
 
+def GetVersionTags():
+	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
+	versions = List[of Version]()
+	for tag in tags:
+		v as Version
+		if Version.TryParse(tag.Replace("v", ""), v):
+			versions.Add(v)
+	return versions
+
+task "version:bump", ["UpdateRevision"]
 
 task @UpdateRevision:
-	version = GetVersion()
 	output = ExecuteProcess("git", "status")
 	if not output.Contains("nothing to commit (working directory clean)"):
 		raise "bake deploy можно делать только если все закомичено\r\n" \
@@ -33,32 +40,28 @@ task @UpdateRevision:
 			+ "а затем попробуй еше раз"
 
 	output = ExecuteProcess("git", "log -1 --pretty=oneline")
-	if output.Contains("Релиз версии"):
+	if output.Contains("Релиз версии") or output.Contains("tag: v"):
 		print "Последний коммит был релизом, не буду обновлять номер версии тк похоже что это на повторный деплой"
 		return
 
-	currentVersion = Version(version)
+	versions = GetVersionTags()
+	currentVersion = versions.LastOrDefault() or Version(GetVersion())
 	revision = currentVersion.Revision
 	revision++
 	newVersion = Version(currentVersion.Major, currentVersion.Minor, currentVersion.Build, revision)
-	File.WriteAllText("build/version.txt", newVersion.ToString())
-	Sh("git add -- build/version.txt")
-	Sh("git commit -m \"Релиз версии $newVersion\"")
+	Sh("git tag v$newVersion")
+	Sh("git push --tags")
 
 task "generate:assembly:info":
 	revision = GetRevision()
 	hash = revision.Trim()
-	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
-	versions = List[of Version]()
-	for tag in tags:
-		v as Version
-		if Version.TryParse(tag.Replace("v", ""), v):
-			versions.Add(v)
+	versions = GetVersionTags()
 	version = versions.LastOrDefault()
 	fileVersion = version.ToString() if version
 	unless version:
 		fileVersion = GetVersion()
 
+		tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
 		builds = tags.Where({t| /b\d+/.Match(t).Success})\
 			.Select({t| Convert.ToInt32(t.Replace("b", "").Trim())})\
 			.OrderBy({t| return t})\
