@@ -19,7 +19,7 @@ def GetRevision():
 	head = ExecuteProcess("git", "status")
 	head = ExecuteProcess("git", "show HEAD")
 	lines = head.Split(("\n",), StringSplitOptions.RemoveEmptyEntries)
-	return lines[0].Trim().Replace("commit ", "")
+	return lines[0].Trim().Replace("commit ", "").Trim()
 
 def GetVersionTags():
 	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
@@ -30,9 +30,9 @@ def GetVersionTags():
 			versions.Add(v)
 	return versions
 
-task "version:bump", ["UpdateRevision"]
+task @UpdateRevision, ["version:bump"]
 
-task @UpdateRevision:
+task "version:bump":
 	return unless Globals.Environment == @Production
 
 	output = ExecuteProcess("git", "status")
@@ -46,8 +46,7 @@ task @UpdateRevision:
 		print "Последний коммит был релизом, не буду обновлять номер версии тк похоже что это на повторный деплой"
 		return
 
-	versions = GetVersionTags()
-	currentVersion = versions.LastOrDefault() or Version(GetVersion())
+	currentVersion = GetVersionTags().LastOrDefault() or Version(GetVersion())
 	revision = currentVersion.Revision
 	revision++
 	newVersion = Version(currentVersion.Major, currentVersion.Minor, currentVersion.Build, revision)
@@ -55,28 +54,12 @@ task @UpdateRevision:
 	Sh("git push --tags")
 
 task "generate:assembly:info":
-	revision = GetRevision()
-	hash = revision.Trim()
-	versions = GetVersionTags()
-	version = versions.LastOrDefault()
-	fileVersion = version.ToString() if version
-	unless version:
-		fileVersion = GetVersion()
-
-		tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
-		builds = tags.Where({t| /b\d+/.Match(t).Success})\
-			.Select({t| Convert.ToInt32(t.Replace("b", "").Trim())})\
-			.OrderBy({t| return t})\
-			.ToArray()
-		if builds.Length:
-			revision = builds.Last().ToString()
-
-		if /\./.Matches(fileVersion).Count == 2:
-			fileVersion = "$fileVersion.$revision"
-
+	hash = GetRevision()
+	version = GetVersionTags().LastOrDefault() or Version(GetVersion())
 	ignore = (/Common\..+/, /Test\..+/, /.+\.Test/)
 	if Globals.Maybe.GenerateAssemblyInfoIgnore:
 		ignore = ignore.Concat(Globals.Maybe.GenerateAssemblyInfoIgnore).ToArray()
+
 	for project in GetProjects():
 		projectName = Path.GetFileNameWithoutExtension(project)
 		continue if ignore.Any({i| i.IsMatch(projectName)})
@@ -91,8 +74,8 @@ task "generate:assembly:info":
 [assembly: AssemblyProduct("$projectName")]
 [assembly: AssemblyCompany("Инфорум")]
 [assembly: AssemblyCopyright("$hash")]
-[assembly: AssemblyVersion("$fileVersion")]
-[assembly: AssemblyFileVersion("$fileVersion")]
-[assembly: AssemblyInformationalVersion("$fileVersion")]
+[assembly: AssemblyVersion("$version")]
+[assembly: AssemblyFileVersion("$version")]
+[assembly: AssemblyInformationalVersion("$version")]
 """)
 			print "generated ${assemblyInfo}"
