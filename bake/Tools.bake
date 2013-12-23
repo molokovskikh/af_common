@@ -123,18 +123,34 @@ def RemoveStrongName(assembly as AssemblyDefinition):
 	assemblyName.PublicKey = (of byte:,)
 	module.Attributes &= ~ModuleAttributes.StrongNameSigned
 
+def TryLoad(f as string):
+	try:
+		return AssemblyDefinition.ReadAssembly(f)
+	except:
+		return null
+
+desc """
+правит ссылки на сборки внутри пакетов приводя их все к одному виду
+что не нужно было генерировать binding redirection
+которые все равно не работают
+тк msbuild проверяет номер версии когда копирует коственные зависимости
+"""
 task "fix:packages":
-	files = FileSet("**/*.dll")
-	assemblyNames = files.Select({f| Path.GetFileNameWithoutExtension(f)}).Distinct().ToArray()
+	files = FileSet("packages/**/*.dll")
+	assemblyNames = files.Select({f| TryLoad(f)}).Where({a| a != null}).ToLookup({a| a.Name.Name})
 	for file in files:
 		try:
 			print "inspect $file"
 			assembly = AssemblyDefinition.ReadAssembly(file)
 			RemoveStrongName(assembly)
 			for reference in assembly.MainModule.AssemblyReferences:
-				continue unless assemblyNames.Contains(reference.Name, StringComparer.OrdinalIgnoreCase)
+				version as Version
+				if assemblyNames.Contains(reference.Name):
+					version = assemblyNames[reference.Name].First().Name.Version
+				continue unless version
 				reference.HasPublicKey = false
 				reference.PublicKey = (of byte:,)
+				reference.Version = version
 				print "fix ref $reference"
 			assembly.Write(file)
 		except e:

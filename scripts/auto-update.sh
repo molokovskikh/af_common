@@ -27,6 +27,8 @@ git add -f -- packages/packages.config || :
 bake -s packages:update
 bake -s packages:save
 bake -s packages:install
+#правим ссылки в сборках
+bake -s fix:packages
 #пробуем собрать, но это может не получиться из-за специальной магии
 bake notInteractive=true|| :
 rm output -rf || :
