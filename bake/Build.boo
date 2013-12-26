@@ -91,7 +91,6 @@ def BuildWeb(globals as DuckDictionary, project as string):
 				"**/*.ttf",
 				"**/*.svg",
 				"**/*.eot",
-				"**/*.coffee",
 				"**/*.zip",
 				"**/*.css",
 				"**/*.skin",
