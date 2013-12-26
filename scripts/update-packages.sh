@@ -68,9 +68,9 @@ then
 fi
 
 Update 'RemoteOrderSenderService' 'RemoteOrderSenderService'
-Update 'RemotePriceProcessor' 'RemotePriceProcessor'
 Update 'ICSharpCode.SharpZipLib' 'SharpZipLib'
 Update 'Castle.Services.Logging.Log4netIntegration' 'Castle.Core-log4net -Version 2.5.2'
+Update 'RemoteOrderSenderService' 'RemoteOrderSenderService'
 Update 'MySql.Data' 'MySql.Data'
 Update 'mysql.data' 'MySql.Data'
 Update 'ExcelLibrary' 'MyExcelLibrary'
@@ -80,4 +80,4 @@ Update 'CassiniDev' 'CassiniDev -Version 3.5.1.2'
 Update 'WatiNCssSelectorExtensions' 'Watin.Css'
 Update 'TopShelf' 'TopShelf -Version 2.2.1'
 Update 'NHibernate.Mapping.Attributes' 'NHibernate.Mapping.Attributes -Version 3.2.0'
-#Update 'Castle.WcfIntegration' 'Castle.WcfIntegrationFacility'
+Update 'Castle.Facilities.WcfIntegration' 'Castle.WcfIntegrationFacility'
