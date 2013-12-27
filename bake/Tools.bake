@@ -119,15 +119,32 @@ task "dump:resource":
 def RemoveStrongName(assembly as AssemblyDefinition):
 	module = assembly.MainModule
 	assemblyName = assembly.Name
+
+	return false unless assemblyName.HasPublicKey
 	assemblyName.HasPublicKey = false
 	assemblyName.PublicKey = (of byte:,)
 	module.Attributes &= ~ModuleAttributes.StrongNameSigned
+	return true
 
 def TryLoad(f as string):
 	try:
 		return AssemblyDefinition.ReadAssembly(f)
 	except:
 		return null
+
+def PatchInternal(assembly as AssemblyDefinition):
+	for t in assembly.MainModule.Types:
+		found = false
+		for method in t.Methods:
+			if method.IsAssembly or method.IsFamilyOrAssembly:
+				found = true
+				method.IsPublic = true
+		for field in t.Fields:
+			if field.IsAssembly or field.IsFamilyOrAssembly:
+				found = true
+				field.IsPublic = true
+		if found:
+			t.IsPublic = true
 
 desc """
 правит ссылки на сборки внутри пакетов приводя их все к одному виду
@@ -142,7 +159,10 @@ task "fix:packages":
 		try:
 			print "inspect $file"
 			assembly = AssemblyDefinition.ReadAssembly(file)
-			RemoveStrongName(assembly)
+			if RemoveStrongName(assembly):
+				if assembly.CustomAttributes.Any({a| a.AttributeType.Name == "InternalsVisibleToAttribute"}):
+					print "fix internal"
+					PatchInternal(assembly)
 			for reference in assembly.MainModule.AssemblyReferences:
 				version as Version
 				if assemblyNames.Contains(reference.Name):
@@ -156,6 +176,13 @@ task "fix:packages":
 		except e:
 			print file
 			print e
+
+task "patch:internal":
+	name = Configuration.name.ToString()
+	assembly = AssemblyDefinition.ReadAssembly(name)
+	RemoveStrongName(assembly)
+	PatchInternal(assembly)
+	assembly.Write(name)
 
 task "assembly:remove:strongname":
 	name = Configuration.name.ToString()
