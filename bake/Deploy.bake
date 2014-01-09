@@ -225,10 +225,16 @@ task "check:jenkins":
 	return if Globals.Environment == @Test
 	jenkinsProject  = Globals.Maybe.JenkinsProject or Globals.Maybe.Project or Globals.Maybe.project
 	url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
-	uri = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject/api/xml?depth=1"
+	uri = url + "/api/xml?depth=1"
 	try:
 		try:
-			doc = XDocument.Load(uri)
+			try:
+				doc = XDocument.Load(uri)
+			except e as WebException:
+				jenkinsProject = jenkinsProject.Replace(".", "-")
+				url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
+				uri = url + "/api/xml?depth=1"
+				doc = XDocument.Load(uri)
 		except e:
 			message = "Не удалось проверить состояние проекта в jenkins,"\
 				+ " проверь что имена проектов совпадают"
