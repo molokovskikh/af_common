@@ -146,6 +146,16 @@ def PatchInternal(assembly as AssemblyDefinition):
 		if found:
 			t.IsPublic = true
 
+def FixWindsor(assembly as AssemblyDefinition):
+	attr = assembly.CustomAttributes.FirstOrDefault({a| a.AttributeType.Name == "PreApplicationStartMethodAttribute"})
+	if attr:
+		assembly.CustomAttributes.Remove(attr)
+
+def GetPatches(assembly as AssemblyDefinition) as (Action[of AssemblyDefinition]):
+	if assembly.Name.Name == "Castle.Windsor":
+		return (FixWindsor,)
+	return (,)
+
 desc """
 правит ссылки на сборки внутри пакетов приводя их все к одному виду
 что не нужно было генерировать binding redirection
@@ -159,6 +169,9 @@ task "fix:packages":
 		try:
 			print "inspect $file"
 			assembly = AssemblyDefinition.ReadAssembly(file)
+			patches = GetPatches(assembly)
+			for patch in patches:
+				patch(assembly)
 			if RemoveStrongName(assembly):
 				if assembly.CustomAttributes.Any({a| a.AttributeType.Name == "InternalsVisibleToAttribute"}):
 					print "fix internal"
