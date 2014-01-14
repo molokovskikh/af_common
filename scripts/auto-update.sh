@@ -29,6 +29,7 @@ bake -s packages:save
 bake -s packages:install
 #правим ссылки в сборках
 bake -s fix:packages
+bake -s fix:js:ref
 #пробуем собрать, но это может не получиться из-за специальной магии
 bake notInteractive=true|| :
 rm output -rf || :
