@@ -219,7 +219,8 @@ task "fix:js:ref":
 			match = Regex(ver).Match(term)
 			name = Regex.Escape(term.Substring(0, match.Index))
 			name += ver
-			name += term.Substring(match.Index + match.Length, term.Length - match.Index - match.Length)
-			reg = Regex(name)
+			name += Regex.Escape(term.Substring(match.Index + match.Length, term.Length - match.Index - match.Length))
+			reg = Regex(name, RegexOptions.IgnoreCase)
+			print reg
 			lines = reg.Replace(lines, term)
 		File.WriteAllText(f, lines)
