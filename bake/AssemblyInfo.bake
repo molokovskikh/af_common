@@ -34,6 +34,7 @@ task @UpdateRevision, ["version:bump"]
 
 task "version:bump":
 	return unless Globals.Environment == @Production
+	return if Configuration.Maybe.skipVersionBump
 
 	output = ExecuteProcess("git", "status")
 	if not output.Contains("nothing to commit (working directory clean)"):
