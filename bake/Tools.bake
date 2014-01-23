@@ -180,6 +180,10 @@ desc """
 что не нужно было генерировать binding redirection
 которые все равно не работают
 тк msbuild проверяет номер версии когда копирует коственные зависимости
+парамерты
+Retarget - при установки опции ссылки на сборку System.Core из portable library
+правятся на .net 4 это нужно тк .net 4 что бы обойти ошибку в .net
+что бы не ставить пакет исправлений KB2468871
 """
 task "fix:packages":
 	excludes = ("Xceed.Wpf.Toolkit", )
@@ -205,7 +209,7 @@ task "fix:packages":
 				version as Version
 				if assemblyNames.Contains(reference.Name):
 					version = assemblyNames[reference.Name].First().Name.Version
-				elif if Global.Maybe.Retarget and reference.Name == "System.Core" and reference.Version.ToString() == "2.0.5.0":
+				elif Globals.Maybe.Retarget and reference.Name == "System.Core" and reference.Version.ToString() == "2.0.5.0":
 					reference.Version = Version(4, 0, 0, 0)
 					reference.PublicKeyToken = (of byte: 0xb7, 0x7a, 0x5c, 0x56, 0x19, 0x34, 0xe0, 0x89)
 					reference.IsRetargetable = false
