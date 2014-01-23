@@ -25,8 +25,7 @@ class AssemblyResolver(BaseAssemblyResolver):
 		lookup = cache
 
 	override def Resolve(name as AssemblyNameReference):
-		print "resolve = " + name.Name
-		return lookup[name.Name].FirstOrDefault()
+		return lookup[name.Name].FirstOrDefault() or super(name)
 
 desc """
 Заменяет TargetFramework во всех проектах на параметер указанный в Version
