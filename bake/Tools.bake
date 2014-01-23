@@ -16,6 +16,17 @@ import Boo.Lang.Interpreter
 import Boo.Lang.Compiler
 import Boo.Lang.Compiler.TypeSystem.Reflection
 import Mono.Cecil
+import Mono.Cecil.Rocks
+
+class AssemblyResolver(BaseAssemblyResolver):
+	lookup as ILookup[of string, AssemblyDefinition]
+
+	def constructor(cache as ILookup[of string, AssemblyDefinition]):
+		lookup = cache
+
+	override def Resolve(name as AssemblyNameReference):
+		print "resolve = " + name.Name
+		return lookup[name.Name].FirstOrDefault()
 
 desc """
 Заменяет TargetFramework во всех проектах на параметер указанный в Version
@@ -135,17 +146,21 @@ def TryLoad(f as string):
 
 def PatchInternal(assembly as AssemblyDefinition):
 	for t in assembly.MainModule.Types:
-		found = false
 		for method in t.Methods:
+			if method.IsPublic:
+				continue
 			if method.IsAssembly or method.IsFamilyOrAssembly:
-				found = true
 				method.IsPublic = true
+			elif method.IsVirtual:
+				base = method.GetBaseMethod()
+				if method != base\
+					and base.IsFamilyOrAssembly\
+					and IsFixInternal(base.DeclaringType.Module.Assembly):
+					method.IsPublic = true
 		for field in t.Fields:
 			if field.IsAssembly or field.IsFamilyOrAssembly:
-				found = true
 				field.IsPublic = true
-		if found:
-			t.IsPublic = true
+		t.IsPublic = true
 
 def FixWindsor(assembly as AssemblyDefinition):
 	attr = assembly.CustomAttributes.FirstOrDefault({a| a.AttributeType.Name == "PreApplicationStartMethodAttribute"})
@@ -157,6 +172,9 @@ def GetPatches(assembly as AssemblyDefinition) as (Action[of AssemblyDefinition]
 		return (FixWindsor,)
 	return (,)
 
+def IsFixInternal(assembly as AssemblyDefinition):
+	return assembly.CustomAttributes.Any({a| a.AttributeType.Name == "InternalsVisibleToAttribute"})
+
 desc """
 правит ссылки на сборки внутри пакетов приводя их все к одному виду
 что не нужно было генерировать binding redirection
@@ -164,23 +182,33 @@ desc """
 тк msbuild проверяет номер версии когда копирует коственные зависимости
 """
 task "fix:packages":
-	files = FileSet("packages/**/*.dll")
+	excludes = ("Xceed.Wpf.Toolkit", )
+	root = Configuration.Maybe.root or "packages"
+	files = FileSet("$root/**/*.dll")
 	assemblyNames = files.Select({f| TryLoad(f)}).Where({a| a != null}).ToLookup({a| a.Name.Name})
 	for file in files:
 		try:
 			print "inspect $file"
-			assembly = AssemblyDefinition.ReadAssembly(file)
+			parameters = ReaderParameters()
+			parameters.AssemblyResolver = AssemblyResolver(assemblyNames)
+			assembly = AssemblyDefinition.ReadAssembly(file, parameters)
+			if excludes.Contains(assembly.Name.Name):
+				continue
 			patches = GetPatches(assembly)
 			for patch in patches:
 				patch(assembly)
 			if RemoveStrongName(assembly):
-				if assembly.CustomAttributes.Any({a| a.AttributeType.Name == "InternalsVisibleToAttribute"}):
+				if IsFixInternal(assembly):
 					print "fix internal"
 					PatchInternal(assembly)
 			for reference in assembly.MainModule.AssemblyReferences:
 				version as Version
 				if assemblyNames.Contains(reference.Name):
 					version = assemblyNames[reference.Name].First().Name.Version
+				elif if Global.Maybe.Retarget and reference.Name == "System.Core" and reference.Version.ToString() == "2.0.5.0":
+					reference.Version = Version(4, 0, 0, 0)
+					reference.PublicKeyToken = (of byte: 0xb7, 0x7a, 0x5c, 0x56, 0x19, 0x34, 0xe0, 0x89)
+					reference.IsRetargetable = false
 				continue unless version
 				reference.HasPublicKey = false
 				reference.PublicKey = (of byte:,)
