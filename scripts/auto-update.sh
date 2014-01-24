@@ -16,6 +16,8 @@ fix-ref.sh
 update-stylecop.sh
 git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :
+fix-js.sh
+git ls-files | grep \.js$ | xargs git add -f || :
 
 #получаем известные библиотеки из nuget, lib -> nuget
 bake -s packages:install
