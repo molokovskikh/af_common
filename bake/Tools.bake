@@ -206,7 +206,6 @@ task "fix:packages":
 					print "fix internal" if verbose
 					PatchInternal(assembly)
 			for reference in assembly.MainModule.AssemblyReferences:
-				continue unless reference.HasPublicKey
 				version as Version
 				if assemblyNames.Contains(reference.Name):
 					version = assemblyNames[reference.Name].First().Name.Version
