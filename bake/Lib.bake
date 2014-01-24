@@ -151,31 +151,6 @@ def BuildLibProperties(prefix as string, filename as string, libPath as string, 
 				XElement(xmlNamespace + @ReferencePath, ReferencePath(prefix, paths)))))
 		document.Save(filename)
 
-def Import():
-	files = FileSet("src/**/*.*proj").Files.Concat(FileSet("test/**/*.*proj").Files)
-	for file in files:
-		importPath = "src/ProjectLib.properties"
-		candidate1 = CalculateRelativePath(file, importPath)
-		if candidate1 == "..\\ProjectLib.properties":
-			importPath = candidate1
-		else:
-			candidate2 = CalculateRelativePath(file, "src/lib.properties")
-			if candidate2 == "..\\..\\lib.properties":
-				importPath = candidate2
-			else:
-				raise "Не знаю как импортировать путь к $file $candidate1 $candidate2"
-
-		document = XDocument.Load(file)
-		projectNode = document.Elements().First()
-		importNode = projectNode.Elements().FirstOrDefault({e| e.Name.LocalName == @Import and\
-			e.Attribute(@Project).Value == importPath})
-		unless importNode:
-			importNode = XElement(projectNode.Name.Namespace + @Import,\
-				XAttribute(@Project, importPath),\
-				XAttribute(@Condition, "Exists('$importPath')"))
-			projectNode.AddFirst(importNode)
-			document.Save(file)
-
 def CheckPlatformSpecificVersion(path as string, max as string):
 	aliases = {
 		"net45" : "net45",
@@ -204,9 +179,8 @@ def GetLibPath(dir as string):
 	return dir
 
 def Serialize(filename as string, value):
-	Rm(filename) if Exist(filename)
 	serializer = XmlSerializer(value.GetType())
-	using stream = File.OpenWrite(filename):
+	using stream = File.Create(filename):
 		serializer.Serialize(stream, value)
 
 def Save(paths as string, path as string, filename as string, names as (string)):
@@ -236,19 +210,6 @@ def Save(paths as string, path as string, filename as string, names as (string))
 	project.PropertyGroup.StylecopAddonPath = "\$(PackagePath)\\packages\\$dir"
 	Serialize(filename, project)
 
-desc """
-импортирует библиотки из packages в файлы проектов
-"""
-task @packages, ["packages:init", "packages:install"]:
-	return unless Exist(@packages)
-	Import()
-
-desc """
-создает файл конфигурации nuget, вызывается автоматически
-"""
-task "packages:init":
-	if not Exist("src/nuget.config"):
-		File.WriteAllText("src/nuget.config", "<settings>\r\n\t<repositoryPath>..\\packages\\</repositoryPath>\r\n</settings>")
 
 def NugetInstall(config as string):
 	print config if Configuration.Maybe.debug
@@ -277,6 +238,67 @@ def GetPackagesForConfig(config as string):
 
 def GetPackages():
 	return GetPackageConfigs().SelectMany({c| GetPackagesForConfig(c)}).ToArray()
+
+def GetLibPaths():
+	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
+		.Select({d| CheckPlatformSpecificVersion(d, Configuration.Maybe.targetFramework or Globals.TargetFramework)})\
+		.Select({d| '$(PackagePath)\\' + d})
+	if Exist(@lib):
+		packages = packages.Concat(('$(LibPath)\\lib', ))
+		libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
+			.Select({d| GetLibPath(d)})\
+			.Select({d| '$(LibPath)\\' + d})
+		packages = packages.Concat(libs)
+
+	return String.Join(";", packages.ToArray())
+
+def GetProjects():
+	return FileSet("src/**/*.*proj").Files.Concat(FileSet("test/**/*.*proj").Files)
+
+def SavePropfile(projectfile as string, libPaths as string, libNames as (string)):
+	projectRoot = Path.GetDirectoryName(projectfile)
+	savePath = Path.Combine(projectRoot, "msbuild.gen.prop")
+	rootPath = Path.GetDirectoryName(CalculateRelativePath(projectRoot, Path.GetFullPath(".")))
+	Save(libPaths, rootPath, savePath, libNames)
+
+desc """
+импортирует библиотки из packages в файлы проектов
+"""
+task @packages, ["packages:init", "packages:install"]:
+	return unless Exist(@packages)
+
+	libNames = GetPackages().Select({p| p.Name}).ToArray()
+	libPaths = GetLibPaths()
+	for file in GetProjects():
+		importPath = "src/ProjectLib.properties"
+		candidate1 = CalculateRelativePath(file, importPath)
+		if candidate1 == "..\\ProjectLib.properties":
+			importPath = candidate1
+		else:
+			candidate2 = CalculateRelativePath(file, "src/lib.properties")
+			if candidate2 == "..\\..\\lib.properties":
+				importPath = candidate2
+			else:
+				importPath = "msbuild.gen.prop"
+				SavePropfile(file, libPaths, libNames)
+
+		document = XDocument.Load(file)
+		projectNode = document.Elements().First()
+		importNode = projectNode.Elements().FirstOrDefault({e| e.Name.LocalName == @Import and\
+			e.Attribute(@Project).Value == importPath})
+		unless importNode:
+			importNode = XElement(projectNode.Name.Namespace + @Import,\
+				XAttribute(@Project, importPath),\
+				XAttribute(@Condition, "Exists('$importPath')"))
+			projectNode.AddFirst(importNode)
+			document.Save(file)
+
+desc """
+создает файл конфигурации nuget, вызывается автоматически
+"""
+task "packages:init":
+	if not Exist("src/nuget.config"):
+		File.WriteAllText("src/nuget.config", "<settings>\r\n\t<repositoryPath>..\\packages\\</repositoryPath>\r\n</settings>")
 
 desc """
 сохраняет все установленные пакеты в packages/packages.config
@@ -323,18 +345,8 @@ task "packages:install", ["packages:clean"]:
 		nugetPackages.AddRange(GetPackagesForConfig(config))
 	packagesNames = nugetPackages.Select({p| p.Name}).ToArray()
 
-	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
-		.Select({d| CheckPlatformSpecificVersion(d, Configuration.Maybe.targetFramework or Globals.TargetFramework)})\
-		.Select({d| '$(PackagePath)\\' + d})
-	if Exist(@lib):
-		packages = packages.Concat(('$(LibPath)\\lib', ))
-		libs = Directory.GetDirectories(@lib).Where({d| not Exist(Path.Combine(d, @src))})\
-			.Select({d| GetLibPath(d)})\
-			.Select({d| '$(LibPath)\\' + d})
-		packages = packages.Concat(libs)
-
-	paths = String.Join(";", packages.ToArray())
-
+	paths = GetLibPaths()
+	#todo fix!
 	filename = "src/Lib.properties"
 	path = "..\\..\\.."
 	Save(paths, path, filename, packagesNames)
@@ -346,6 +358,10 @@ task "packages:install", ["packages:clean"]:
 	filename = "src/SrcLib.properties"
 	path = "..\\..\\..\\.."
 	Save(paths, path, filename, packagesNames)
+
+	for file in GetProjects():
+		if XDocument.Load(file).Descendants().Where({n| n.Name.LocalName == @Import}).Any({n| n.Attribute(@Project).Value.IndexOf("msbuild.gen.prop") >= 0}):
+			SavePropfile(file, paths, packagesNames)
 
 desc """
 обновляет пакеты из packages.config
