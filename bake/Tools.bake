@@ -185,13 +185,14 @@ Retarget - при установки опции ссылки на сборку S
 что бы не ставить пакет исправлений KB2468871
 """
 task "fix:packages":
+	verbose = Configuration.Maybe.verbose
 	excludes = ("Xceed.Wpf.Toolkit", )
 	root = Configuration.Maybe.root or "packages"
 	files = FileSet("$root/**/*.dll")
 	assemblyNames = files.Select({f| TryLoad(f)}).Where({a| a != null}).ToLookup({a| a.Name.Name})
 	for file in files:
 		try:
-			print "inspect $file"
+			print "inspect $file" if verbose
 			parameters = ReaderParameters()
 			parameters.AssemblyResolver = AssemblyResolver(assemblyNames)
 			assembly = AssemblyDefinition.ReadAssembly(file, parameters)
@@ -202,9 +203,10 @@ task "fix:packages":
 				patch(assembly)
 			if RemoveStrongName(assembly):
 				if IsFixInternal(assembly):
-					print "fix internal"
+					print "fix internal" if verbose
 					PatchInternal(assembly)
 			for reference in assembly.MainModule.AssemblyReferences:
+				continue unless reference.HasPublicKey
 				version as Version
 				if assemblyNames.Contains(reference.Name):
 					version = assemblyNames[reference.Name].First().Name.Version
@@ -216,8 +218,20 @@ task "fix:packages":
 				reference.HasPublicKey = false
 				reference.PublicKey = (of byte:,)
 				reference.Version = version
-				print "fix ref $reference"
+				print "fix ref $reference" if verbose
 			assembly.Write(file)
+		except e as NotSupportedException:
+			if verbose:
+				print file
+				print e
+		except e as AssemblyResolutionException:
+			if verbose:
+				print file
+				print e
+		except e as BadImageFormatException:
+			if verbose:
+				print file
+				print e
 		except e:
 			print file
 			print e
