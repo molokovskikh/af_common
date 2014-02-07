@@ -140,9 +140,9 @@ task "sudo":
 	unless CreateProcessWithLogonW(user, "analit", password, 1, app, args, 0, IntPtr.Zero, Directory.GetCurrentDirectory(), info, processInfo):
 		raise Win32Exception()
 
-task @ServiceDeployPipeline, ["packages:install", "fix:packages", "check", @BuildService, @StopServices, @Production, "db:migrate", @Backup, @SimpleDeployService, @SendDeployNotification]
+task @ServiceDeployPipeline, [@Production, "packages:install", "fix:packages", "check", @BuildService, @StopServices, @Production, "db:migrate", @Backup, @SimpleDeployService, @SendDeployNotification]
 
-task @ServiceDeployPipeline2, ["packages:install", "fix:packages", "check", @Build, @StopServices, @Production, "db:migrate", @Backup, @DeployApp, @StartServices, @SendDeployNotification]
+task @ServiceDeployPipeline2, [@Production, "packages:install", "fix:packages", "check", @Build, @StopServices, @Production, "db:migrate", @Backup, @DeployApp, @StartServices, @SendDeployNotification]
 
 task @BuildService, [@CleanService]:
 	project = Globals.Project

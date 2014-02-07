@@ -144,8 +144,9 @@ def ToPascal(text as string):
 	return pascaled[0].ToString().ToUpper() + pascaled[1:]
 
 def GetConfigSufix(Globals as duck):
-	config = "release.config"
-	if Globals.Environment != @Local and Globals.Environment != @Production:
-		env = Globals.Environment.ToLower()
-		config = "$env.config"
-	return config
+	if Globals.Environment == @Production:
+		return "release.config"
+	if Globals.Environment == @Local:
+		return ".config"
+	env = Globals.Environment.ToLower()
+	return "$env.config"
