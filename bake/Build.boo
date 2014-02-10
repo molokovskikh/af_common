@@ -1,6 +1,68 @@
 import System.Linq
 import Bake.Engine
 
+def StartServices(services as ServiceController*):
+	for service in services:
+		service.Start()
+
+def StopServices(services as ServiceController*):
+	for service in services:
+		if service.Status != ServiceControllerStatus.Stopped:
+			service.Stop()
+
+	for service in services:
+		done = false
+		iteration = 0
+		while not done:
+			iteration++
+			service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20))
+			done = service.Status == ServiceControllerStatus.Stopped or iteration > 3
+			if not done:
+				print "служба не остановилась за 20 секунд, буду ждать, всего жду 3 раза по 20 секунд"
+
+def Impersonate(globals as DuckDictionary, server as string, action as Action):
+	user as string
+	password as string
+	user = ""
+	password = ""
+
+	if globals.Maybe.User:
+		user = globals.User
+	if globals.Maybe.Password:
+		password = globals.Password
+
+	if String.IsNullOrEmpty(user) or String.IsNullOrEmpty(password):
+		Console.Write("user for $server: ")
+		user = Console.ReadLine()
+		Console.Write("password: ")
+		password = GetPassword()
+
+
+	LOGON32_PROVIDER_DEFAULT = 0;
+	LOGON32_LOGON_INTERACTIVE = 2;
+	tokenHandle = IntPtr.Zero;
+
+	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
+		raise Win32Exception()
+
+	globals.User = user
+	globals.Password = password
+
+	using WindowsIdentity.Impersonate(tokenHandle):
+		try:
+			action()
+		ensure:
+			CloseHandle(tokenHandle);
+
+def GetServices(serviceName as string, servers as string*):
+	services = List of ServiceController()
+	for server in servers:
+		serverServices = ServiceController.GetServices(server).Where({s| s.ServiceName == serviceName}).ToList()
+		if not serverServices.Count:
+			raise "Can`t find service \"${serviceName}\" on server ${server}"
+		services.AddRange(serverServices)
+	return services
+
 def GetBuildConfig(globals as DuckDictionary):
 	project = globals.Maybe.Project or globals.Maybe.project
 	unless project:
@@ -33,6 +95,17 @@ def Build(globals as DuckDictionary, project as string):
 		config = FileSet("$buildTo/*.config").Files.FirstOrDefault() or config
 	Cp(src, config, true) if Exist(src)
 
+def DeployService(globals as DuckDictionary, app as string, host as string):
+	DeployService(globals, host, """\\$host\app\$app""")
+
+def DeployService(globals as DuckDictionary, app as string, host as string, path as string):
+	buildTo, _ = GetBuildConfig(globals, app)
+	Impersonate(globals, host):
+		services = GetServices(app, (host, ))
+		StopServices(services)
+		RepeatTry:
+			XCopyDeploy(globals, app, path)
+		StartServices(services)
 
 def CopyAssets(output as string):
 	return unless Exist("packages")

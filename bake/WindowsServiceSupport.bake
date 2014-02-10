@@ -49,33 +49,7 @@ params = { "OutDir" : buildTo + "\\", "Configuration" : "release" }
 if Globals.IsDefined("platform"):
 	params.Add("Platform", Globals.platform)
 
-def StartServices(services as ServiceController*):
-	for service in services:
-		service.Start()
 
-def StopServices(services as ServiceController*):
-	for service in services:
-		if service.Status != ServiceControllerStatus.Stopped:
-			service.Stop()
-
-	for service in services:
-		done = false
-		iteration = 0
-		while not done:
-			iteration++
-			service.WaitForStatus(ServiceControllerStatus.Stopped, TimeSpan.FromSeconds(20))
-			done = service.Status == ServiceControllerStatus.Stopped or iteration > 3
-			if not done:
-				print "служба не остановилась за 20 секунд, буду ждать, всего жду 3 раза по 20 секунд"
-
-def GetServices(serviceName as string, servers as string*):
-	services = List of ServiceController()
-	for server in servers:
-		serverServices = ServiceController.GetServices(server).Where({s| s.ServiceName == serviceName}).ToList()
-		if not serverServices.Count:
-			raise "Can`t find service \"${serviceName}\" on server ${server}"
-		services.AddRange(serverServices)
-	return services
 
 def Impersonate(server as string, action as Action):
 	user as string
