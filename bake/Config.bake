@@ -79,10 +79,8 @@ task @UpdateGlobals:
 
 task @Production:
 	if not Configuration.Maybe.Environment and not Configuration.Maybe.env:
-		print "update @pr"
 		Configuration.Environment = @Production
 		Globals.Environment = @Production
-	print "update globals"
 	UpdateGlobals()
 
 task "env", [@Production]
