@@ -1,4 +1,4 @@
-﻿import System
+import System
 import System.IO
 import System.Linq
 import System.Linq.Enumerable
@@ -389,3 +389,21 @@ task "db:seed":
 		Sh("$mysql < $filename")
 		unless Configuration.Maybe.DoNotClean:
 			Rm(filename)
+
+task "db:create:user":
+	user = Configuration.user
+	password = "newpass"
+	host = "91.209.124.%"
+	if Configuration.Maybe.host:
+		host = Configuration.host
+	privileges = ["Select_priv", "Update_priv", "Insert_priv", "Delete_priv"]
+	if Configuration.Maybe.permissions == @programmer:
+		privileges = ["Select_priv", "Update_priv", "Insert_priv", "Delete_priv", "Create_priv", "Drop_priv", "Index_priv", "Alter_priv", "Create_tmp_table_priv",
+			"Execute_priv", "Create_routine_priv", "Alter_routine_priv", "Trigger_priv"]
+	if Configuration.Maybe.permissions == @readonly:
+		privileges = ["Select_priv", "Create_tmp_table_priv", "Execute_priv"]
+	privilegesCommand = String.Join(",", privileges.Cast[of string]().ToArray())
+	yCommand = String.Join(",", Enumerable.Repeat("'Y'", privileges.Count))
+	Db.Execute("""insert into mysql.user(Host, User, Password, $privilegesCommand)
+values ('$host', '$user', password('$password'), $yCommand);
+flush privileges;""")

@@ -49,6 +49,8 @@ task "version:bump":
 
 	currentVersion = GetVersionTags().LastOrDefault() or Version(GetVersion())
 	revision = currentVersion.Revision
+	if revision == -1:
+		revision = 0
 	revision++
 	newVersion = Version(currentVersion.Major, currentVersion.Minor, currentVersion.Build, revision)
 	Sh("git tag v$newVersion")
