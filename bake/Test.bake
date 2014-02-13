@@ -82,6 +82,7 @@ desc """
 """
 task @CheckWritingErrors:
 	creareIgnore = Configuration.Maybe.CreateIgnoreFiles or Configuration.Maybe.CreateIgnoreFiles
+	return if Configuration.Maybe.skipCheckWritingErrors
 	if (creareIgnore):
 		Exec("SearchOfWriting", "CreateIgnoreFiles:" + creareIgnore).Execute()
 	else:
