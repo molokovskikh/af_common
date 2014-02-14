@@ -516,14 +516,20 @@ Desc """
 генерирует миграцю для обновления тригеров и таблицы логирования
 Пример bake UpdateLogMigration Table=Catalog Database=Catalogs
 """
-task @UpdateLogMigration, [@OnlyInProject]:
+task "db:generate:log", [@OnlyInProject]:
 	table = Configuration.Table
 	database = Configuration.Database
+	sufix = ""
+	rootConfig = Globals.Maybe.Config
+	if rootConfig:
+		config = rootConfig["db:generate:log"]
+		if config:
+			sufix = config["Sufix"]
 
-	updateTable = GetUpdateLogTableCommand(database, table)
-	deleteTrigger = GetLogTriggerCommand("DELETE", database, table)
-	updateTrigger = GetLogTriggerCommand("UPDATE", database, table)
-	insertTrigger = GetLogTriggerCommand("INSERT", database, table)
+	updateTable = GetUpdateLogTableCommand(database, table, sufix)
+	deleteTrigger = GetLogTriggerCommand("DELETE", database, table, sufix)
+	updateTrigger = GetLogTriggerCommand("UPDATE", database, table, sufix)
+	insertTrigger = GetLogTriggerCommand("INSERT", database, table, sufix)
 	filename = Path.Combine("migrations",  GetMigrationFileName("${database}${table}UpdateLogging"))
 	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
 	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)

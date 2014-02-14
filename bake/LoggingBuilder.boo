@@ -4,17 +4,14 @@ import Boo.Lang.PatternMatching
 import System.Linq.Enumerable
 import InflectorStringExtension from "inflector_extension"
 
-def GetLogTriggerTemplate(action as string, fields as string, database as string, table as string):
+def GetLogTriggerTemplate(action as string, fields as string, database as string, table as string, sufix as string):
 	operation = 0
 	operation = 2 if action == "DELETE"
 	operation = 1 if action == "UPDATE"
 	operation = 0 if action == "INSERT"
-	logTable = GetLogTableName(table)
-	SingularizedTable = InflectorStringExtension.InflectTo(ToPascal(table)).Singularized
-	if (SingularizedTable != null):
-		triggerName = ToPascal(SingularizedTable) + "Log" + ToPascal(action)
-	else:
-		triggerName = ToPascal(table) + "Log" + ToPascal(action)
+	logTable = GetLogTableName(table, sufix)
+	SingularizedTable = Singulize(ToPascal(table))
+	triggerName = ToPascal(SingularizedTable) + "Log" + ToPascal(action)
 	sql = """
 CREATE DEFINER = RootDBMS@127.0.0.1 TRIGGER ${database}.${triggerName} AFTER ${action} ON ${database}.${table}
 FOR EACH ROW BEGIN
@@ -30,11 +27,16 @@ END;
 	sql = "DROP TRIGGER IF EXISTS ${database}.${triggerName};" + sql
 	return sql
 
-def GetLogTableName(table as string):
-	table = ToPascal(table)
-	singulized = InflectorStringExtension.InflectTo(table).Singularized
-	singulized = table unless singulized
-	return singulized + "Logs"
+def GetLogTableName(table as string, sufix as string):
+	table = Singulize(ToPascal(table))
+	return table + sufix + "Logs"
+
+def Singulize(value as string):
+	try:
+		singulized = InflectorStringExtension.InflectTo(value).Singularized
+		singulized = value unless singulized
+	except:
+		return value
 
 def GetTableFields(db as string, table as string, getLine as Func[of duck, string, string]):
 	fields = Boo.Lang.List()
@@ -47,18 +49,18 @@ def GetTableFields(db as string, table as string, getLine as Func[of duck, strin
 	return join(fields, ",\r\n")
 
 def LogId(table as string):
-	SingularizedTable = InflectorStringExtension.InflectTo(ToPascal(table)).Singularized
-	if (SingularizedTable == null):
-		return LastWord(ToPascal(table)) + "Id"
-	return LastWord(SingularizedTable) + "Id"
-	
+	return LastWord(Singulize(table)) + "Id"
+
 
 def GetTableColumns(table as string, database as string) as IEnumerable[of (string)]:
 	for column in Db.Read("show columns from ${database}.${table}"):
 		yield (column.Field.ToString(), column.Type.ToString())
-				
+
 def GetUpdateLogTableCommand(db as string, table as string):
-	logTable = GetLogTableName(table)
+	return GetUpdateLogTableCommand(db, table, "")
+
+def GetUpdateLogTableCommand(db as string, table as string, sufix as string):
+	logTable = GetLogTableName(table, sufix)
 	notExistColumns = List[of (string)]()
 	logTableColumns = (name for name, type in GetTableColumns(logTable, "logs")).ToList()
 	for name, type in GetTableColumns(table, db):
@@ -71,7 +73,7 @@ def GetUpdateLogTableCommand(db as string, table as string):
 		fields += "add column ${name} ${type}"
 		fields += ",\r\n" if i < notExistColumns.Count - 1
 		i++
-	
+
 	return """
 alter table Logs.${logTable}
 ${fields}
@@ -79,6 +81,9 @@ ${fields}
 """
 
 def GetCreateLogTableCommand(db as string, table as string):
+	return GetCreateLogTableCommand(db, table, "")
+
+def GetCreateLogTableCommand(db as string, table as string, sufix as string):
 	fields = ""
 	for name, type in GetTableColumns(table, db):
 		if name.ToLower() == "id":
@@ -86,8 +91,8 @@ def GetCreateLogTableCommand(db as string, table as string):
 			fields += "  `${name}` ${type} not null,\r\n"
 			continue
 		fields += "  `${name}` ${type},\r\n"
-		
-	logTable = GetLogTableName(table)
+
+	logTable = GetLogTableName(table, sufix)
 	commandText = """
 CREATE TABLE  `logs`.`${logTable}` (
   `Id` int unsigned NOT NULL AUTO_INCREMENT,
@@ -100,7 +105,7 @@ ${fields}
 ) ENGINE=InnoDB DEFAULT CHARSET=cp1251;
 """
 	#if Configuration.Maybe.Force:
-	#	commandText  = "DROP TABLE IF EXISTS `logs`.`${logTable}`; " + commandText 
+	#	commandText  = "DROP TABLE IF EXISTS `logs`.`${logTable}`; " + commandText
 	return commandText
 
 def CheckForNull(column as duck):
@@ -109,6 +114,9 @@ def CheckForNull(column as duck):
 	return true
 
 def GetLogTriggerCommand(action as string, db as string, table as string):
+	return GetLogTriggerCommand(action, db, table, "")
+
+def GetLogTriggerCommand(action as string, db as string, table as string, sufix as string):
 	match action:
 		case "INSERT":
 			fields = GetTableFields(db, table, {column, logTo| "${logTo} = NEW.${column.Field}"})
@@ -119,5 +127,5 @@ def GetLogTriggerCommand(action as string, db as string, table as string):
 				return "${logTo} = OLD.${column.Field}" unless CheckForNull(column)
 				return "${logTo} = NULLIF(NEW.${column.Field}, OLD.${column.Field})"
 			fields = GetTableFields(db, table, getLine)
-	
-	return GetLogTriggerTemplate(action, fields, db, table)
+
+	return GetLogTriggerTemplate(action, fields, db, table, sufix)
