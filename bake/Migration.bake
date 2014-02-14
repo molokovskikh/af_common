@@ -316,10 +316,11 @@ def StartEditor(fileName as string):
 
 def ProcessMigration(migration as Migration):
 	migration.Print()
-	if Configuration.Maybe.file:
-		migration.FileName = GetMigrationFileName(Configuration.Maybe.file)
-	else:
-		migration.FileName = GetMigrationFileNameByRequest()
+	unless migration.FileName:
+		if Configuration.Maybe.file:
+			migration.FileName = GetMigrationFileName(Configuration.Maybe.file)
+		else:
+			migration.FileName = GetMigrationFileNameByRequest()
 
 	quiet = false
 	if Configuration.Maybe.quiet:
@@ -525,41 +526,14 @@ task "db:generate:log", [@OnlyInProject]:
 		config = rootConfig["db:generate:log"]
 		if config:
 			sufix = config["Sufix"]
+	migration = Migration()
 
-	updateTable = GetUpdateLogTableCommand(database, table, sufix)
-	deleteTrigger = GetLogTriggerCommand("DELETE", database, table, sufix)
-	updateTrigger = GetLogTriggerCommand("UPDATE", database, table, sufix)
-	insertTrigger = GetLogTriggerCommand("INSERT", database, table, sufix)
-	filename = Path.Combine("migrations",  GetMigrationFileName("${database}${table}UpdateLogging"))
-	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
-	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
-
-Desc """
-генерирует миграцю только для тригеров
-Пример bake UpdateLogTriggersMigration Table=Catalog Database=Catalogs
-"""
-task @UpdateLogTriggersMigration, [@OnlyInProject]:
-	table = Configuration.Table
-	database = Configuration.Database
-
-	deleteTrigger = GetLogTriggerCommand("DELETE", database, table)
-	updateTrigger = GetLogTriggerCommand("UPDATE", database, table)
-	insertTrigger = GetLogTriggerCommand("INSERT", database, table)
-	filename = Path.Combine("migrations",  GetMigrationFileName("${database}${table}UpdateLoggingTriggers"))
-	File.WriteAllLines(filename, (deleteTrigger, updateTrigger, insertTrigger))
-	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
-
-task @CreateLogMigration, [@OnlyInProject]:
-	table = Configuration.Table
-	database = Configuration.Database
-
-	updateTable = GetCreateLogTableCommand(database, table)
-	deleteTrigger = GetLogTriggerCommand("DELETE", database, table)
-	updateTrigger = GetLogTriggerCommand("UPDATE", database, table)
-	insertTrigger = GetLogTriggerCommand("INSERT", database, table)
-	filename = Path.Combine("migrations", GetMigrationFileName("${database}${table}CreateLogging"))
-	File.WriteAllLines(filename, (updateTable, deleteTrigger, updateTrigger, insertTrigger))
-	PrintMigration(Path.GetFileNameWithoutExtension(filename), filename)
+	migration.Commands.Add(GetUpdateLogTableCommand(database, table, sufix))
+	migration.Commands.Add(GetLogTriggerCommand("DELETE", database, table, sufix))
+	migration.Commands.Add(GetLogTriggerCommand("UPDATE", database, table, sufix))
+	migration.Commands.Add(GetLogTriggerCommand("INSERT", database, table, sufix))
+	migration.FileName = GetMigrationFileName("${database}${table}UpdateLogging")
+	ProcessMigration(migration)
 
 def AlterRoutnie(type as string, db as string, name as string):
 	text = Db.Read("SHOW CREATE $type $db.$name").First()["Create $type"]
