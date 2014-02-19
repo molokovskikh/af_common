@@ -186,7 +186,7 @@ Retarget - при установки опции ссылки на сборку S
 """
 task "fix:packages":
 	verbose = Configuration.Maybe.verbose
-	excludes = ("Xceed.Wpf.Toolkit", )
+	excludes = ("Xceed.Wpf.Toolkit", "Mono.Cecil")
 	root = Configuration.Maybe.root or "packages"
 	files = FileSet("$root/**/*.dll")
 	assemblyNames = files.Select({f| TryLoad(f)}).Where({a| a != null}).ToLookup({a| a.Name.Name})
