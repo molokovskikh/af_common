@@ -43,13 +43,20 @@ class Migration:
 
 		using stream = StreamWriter(File.OpenWrite(FileName)):
 			for sql in Commands:
+				sql = sql.Trim()
 				stream.Write(sql)
-				stream.WriteLine(";")
+				unless sql.EndsWith(";"):
+					stream.Write(";")
+				stream.WriteLine()
 
-		using stream = StreamWriter(File.OpenWrite(GetRollbackFile())):
-			for sql in Rollback:
-				stream.Write(sql)
-				stream.WriteLine(";")
+		if Rollback.Count:
+			using stream = StreamWriter(File.OpenWrite(GetRollbackFile())):
+				for sql in Rollback:
+					sql = sql.Trim()
+					stream.Write(sql)
+					unless sql.EndsWith(";"):
+						stream.Write(";")
+					stream.WriteLine()
 
 		print "saved to $FileName"
 

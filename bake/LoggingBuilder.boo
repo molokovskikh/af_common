@@ -35,6 +35,7 @@ def Singulize(value as string):
 	try:
 		singulized = InflectorStringExtension.InflectTo(value).Singularized
 		singulized = value unless singulized
+		return singulized
 	except:
 		return value
 
