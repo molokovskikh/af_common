@@ -384,7 +384,7 @@ task "packages:update":
 	packages = packageSorter.GetPackagesByDependencyOrder(localRepository).Reverse().ToList()
 	c as IPackageConstraintProvider = NullConstraintProvider.Instance
 	packageManager = PackageManager(sourceRep, pathResolver, fs, localRepository)
-	reffiles = GetSlnPackageConfigs().Select({f| PackageReferenceRepository(PhysicalFileSystem(Path.GetDirectoryName(f)), localRepository)}).ToArray()
+	reffiles = GetSlnPackageConfigs().Select({f| PackageReferenceRepository(PhysicalFileSystem(Path.GetDirectoryName(f)), "", localRepository)}).ToArray()
 	for package in packages:
 		print package
 		versionConstraint = Hint.GetConstrain(package)
