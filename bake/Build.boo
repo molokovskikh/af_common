@@ -70,12 +70,14 @@ def GetBuildConfig(globals as DuckDictionary):
 		raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
 		project = Path.GetFileNameWithoutExtension(sln)
 	buildTo = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
-	projectFile = FileSet("src/${project}/${project}.*proj").First()
+	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
+	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
 	return (project, buildTo, projectFile)
 
 def GetBuildConfig(globals as DuckDictionary, project as string):
 	buildTo = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
-	projectFile = FileSet("src/${project}/${project}.*proj").First()
+	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
+	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
 	return (buildTo, projectFile)
 
 def Build(globals as DuckDictionary):
@@ -96,7 +98,7 @@ def Build(globals as DuckDictionary, project as string):
 	Cp(src, config, true) if Exist(src)
 
 def DeployService(globals as DuckDictionary, app as string, host as string):
-	DeployService(globals, host, """\\$host\app\$app""")
+	DeployService(globals, app, host, "\\\\$host\\app\\$app")
 
 def DeployService(globals as DuckDictionary, app as string, host as string, path as string):
 	buildTo, _ = GetBuildConfig(globals, app)
