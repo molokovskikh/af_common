@@ -118,7 +118,7 @@ def GetPassword():
 def LastWord(table as string):
 	word = ""
 	for c in reversed(table):
-		if c == char('.') or c == "_":
+		if c == char('.') or c == char('_'):
 			break;
 		if Char.IsUpper(c):
 			word = c + word
