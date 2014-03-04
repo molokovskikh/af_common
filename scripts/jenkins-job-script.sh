@@ -54,6 +54,7 @@ else
 	if [ $? -ne 0 ]; then
 		exit $?
 	fi
+	bake -s fix:packages
 fi
 bake TryToBuild Port=$port notInteractive=true
 if [ -z "$SKIP_DB" ]; then
