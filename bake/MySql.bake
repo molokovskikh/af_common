@@ -32,7 +32,7 @@ def Run(exe as string, args as string, input as string):
 	if process.ExitCode != 0:
 		raise "Процесс '$exe $args' завершился ошибкой ${process.ExitCode} $error $output"
 
-def InitMySql(datadir, port):
+def InitMySql(datadir, options):
 	dbPath = Path.Combine(datadir, "mysql")
 	return if Exist(dbPath)
 	MkDir(datadir)
@@ -46,7 +46,9 @@ def InitMySql(datadir, port):
 	for file in initScriptFiles:
 		initSql += File.ReadAllText(Path.Combine(mysqlDir, file))
 
-	Run("mysqld", "--console --standalone --port=$port --datadir=\"$datadir\" --bootstrap", initSql)
+	Run("mysqld", "--console --standalone $options --datadir=\"$datadir\" --bootstrap", initSql)
+
+task @RunMySql, ["db:start"]
 
 desc """
 запускает mysql сервер
@@ -55,7 +57,7 @@ path - путь к данным, по умолчанию data
 randomPort - выбрать случайный порт
 port - задать порт
 """
-task @RunMySql:
+task "db:start":
 	dataRoot = Configuration.Maybe.path or "data"
 	datadir = Path.GetFullPath(dataRoot).Replace("\\", "/")
 	port = Random().Next(10000, 20000).ToString() if Configuration.Maybe.randomPort
@@ -63,21 +65,24 @@ task @RunMySql:
 	print port
 
 	MkDir(dataRoot) unless Exist(dataRoot)
-	InitMySql(datadir, port)
+	options = ""
+	if Exist("build/my.ini"):
+		config = Path.GetFullPath("build/my.ini").Replace("\\", "/")
+		options += " --defaults-extra-file=$config"
+	if port:
+		options += " --port=$port"
+	InitMySql(datadir, options)
 
 	pidFile = Directory.GetFiles(datadir, "*.pid")
-	File.WriteAllText(Path.Combine(datadir, "port"), port.ToString())
+	if port:
+		File.WriteAllText(Path.Combine(datadir, "port"), port.ToString())
 	mysqlProcess as Process
 	if pidFile.Length:
 		text = File.ReadAllText(pidFile[0])
 		pid = 0
 		if text and int.TryParse(text, pid):
 			mysqlProcess = Process.GetProcesses().FirstOrDefault({p| p.Id == pid})
-	options = ""
-	if Exist("build/my.ini"):
-		config = Path.GetFullPath("build/my.ini").Replace("\\", "/")
-		options += " --defaults-extra-file=$config"
 
 	unless mysqlProcess:
-		Process.Start("mysqld", "$options --console --standalone --port=$port --datadir=\"$datadir\"")
+		Process.Start("mysqld", "$options --console --standalone --datadir=\"$datadir\"")
 		Thread.Sleep(2000)
