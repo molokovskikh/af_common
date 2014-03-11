@@ -2111,31 +2111,6 @@
             </summary>
             <value>The unsaved value.</value>
         </member>
-        <member name="M:Castle.ActiveRecord.ByteCode.LazyInitializer.Initialize">
-            <summary>
-            Perform an ImmediateLoad of the actual object for the Proxy.
-            </summary>
-        </member>
-        <member name="M:Castle.ActiveRecord.ByteCode.ProxyFactory.GetProxy(System.Object,NHibernate.Engine.ISessionImplementor)">
-            <summary>
-            Build a proxy using the Castle.DynamicProxy library, that overrides the default <see cref="T:NHibernate.ByteCode.Castle.LazyInitializer"/>
-            </summary>
-            <param name="id">The value for the Id.</param>
-            <param name="session">The Session the proxy is in.</param>
-            <returns>A fully built <c>INHibernateProxy</c>.</returns>
-        </member>
-        <member name="M:Castle.ActiveRecord.ByteCode.ProxyFactory.GetFieldInterceptionProxy">
-            <summary>
-            Returns a proxy capable of field interception.
-            </summary>
-            <returns></returns>
-        </member>
-        <member name="T:Castle.ActiveRecord.ByteCode.ProxyFactoryFactory">
-            <summary>
-            The factory infrastructure used to build AR proxy objects.
-            Use this one if you want automatic session management durring proxy hydration.
-            </summary>
-        </member>
         <member name="T:Castle.ActiveRecord.NHibernateDelegate">
             <summary>
             Allow custom executions using the NHibernate's ISession.
@@ -9764,8 +9739,7 @@
         </member>
         <member name="M:Castle.ActiveRecord.Framework.Config.FluentStorageConfiguration.ProxiedBy``1">
             <summary>
-            The proxy factory to use. This value defaults to 
-            <see cref="T:Castle.ActiveRecord.ByteCode.ProxyFactoryFactory"/>.
+            The proxy factory to use.
             </summary>
             <typeparam name="T"></typeparam>
             <returns></returns>
@@ -9897,34 +9871,6 @@
             </summary>
             <typeparam name="T">The type whose assembly will be searched.</typeparam>
             <returns>The mapping object itself.</returns>
-        </member>
-        <member name="T:Castle.ActiveRecord.Framework.NHSearchContributor">
-            <summary>
-            Contributor to add the NHSearch event listeners
-            </summary>
-        </member>
-        <member name="T:Castle.ActiveRecord.Framework.AbstractNHContributor">
-            <summary>
-            Defines an abstract base class for <see cref="T:Castle.ActiveRecord.Framework.INHContributor"/> which applies
-            to all root types by default.
-            </summary>
-        </member>
-        <member name="M:Castle.ActiveRecord.Framework.AbstractNHContributor.Contribute(NHibernate.Cfg.Configuration)">
-            <summary>
-            The actual contribution method.
-            </summary>
-            <param name="configuration">The configuration to be modified.</param>
-        </member>
-        <member name="P:Castle.ActiveRecord.Framework.AbstractNHContributor.AppliesToRootType">
-            <summary>
-            Implements <see cref="P:Castle.ActiveRecord.Framework.INHContributor.AppliesToRootType"/>
-            </summary>
-        </member>
-        <member name="M:Castle.ActiveRecord.Framework.NHSearchContributor.Contribute(NHibernate.Cfg.Configuration)">
-            <summary>
-            The actual contribution method.
-            </summary>
-            <param name="configuration">The configuration to be modified.</param>
         </member>
         <member name="T:Castle.ActiveRecord.Queries.ValueAndTypeTuple">
             <summary>
@@ -10229,6 +10175,23 @@
         <member name="M:Castle.ActiveRecord.Framework.NotWrappedException.#ctor">
             <summary>
             Calls the base class' constructor with the preconfigured message.
+            </summary>
+        </member>
+        <member name="T:Castle.ActiveRecord.Framework.AbstractNHContributor">
+            <summary>
+            Defines an abstract base class for <see cref="T:Castle.ActiveRecord.Framework.INHContributor"/> which applies
+            to all root types by default.
+            </summary>
+        </member>
+        <member name="M:Castle.ActiveRecord.Framework.AbstractNHContributor.Contribute(NHibernate.Cfg.Configuration)">
+            <summary>
+            The actual contribution method.
+            </summary>
+            <param name="configuration">The configuration to be modified.</param>
+        </member>
+        <member name="P:Castle.ActiveRecord.Framework.AbstractNHContributor.AppliesToRootType">
+            <summary>
+            Implements <see cref="P:Castle.ActiveRecord.Framework.INHContributor.AppliesToRootType"/>
             </summary>
         </member>
         <member name="T:Castle.ActiveRecord.Framework.Internal.EventListener.EventListenerConfig">
