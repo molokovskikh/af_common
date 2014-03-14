@@ -1,7 +1,7 @@
 #!/bin/sh
 
 name=$(echo $1 | tr [A-Z] [a-z])
-for f in `git ls-files | /bin/egrep '\.brail$|\.aspx$' | xargs grep -li "$1-$2"`
+for f in `git ls-files | /bin/egrep '\.brail$|\.aspx$|\.master$' | xargs grep -li "$1-$2"`
 do
 	sed -r -i "s/$1-$2(.min)?\.js/$name-$3.min.js/gI" $f
 	unix2dos $f
