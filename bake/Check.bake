@@ -1,0 +1,137 @@
+import System
+import System.IO
+import System.Net
+
+class JenkinsStatus:
+	property Number as string
+	property Status as string
+
+	def constructor(element as XElement):
+		Number = cast(string, element.XPathSelectElement("number"))
+		Status = cast(string, element.XPathSelectElement("result"))
+
+class GitStatus:
+	public Branch as string
+	public ChangesExists as bool
+	public NeedPush as bool
+
+	def constructor(status as string):
+		status = status.Trim()
+		ChangesExists = status.IndexOf("nothing to commit", StringComparison.OrdinalIgnoreCase) < 1
+		NeedPush = status.IndexOf("Your branch is ahead of", StringComparison.OrdinalIgnoreCase) > 0
+		branchString = "# On branch "
+		branchStringLen = branchString.Length
+		if status.StartsWith(branchString, StringComparison.OrdinalIgnoreCase):
+			nextSeparator = status.IndexOfAny(" \r\n".ToCharArray(), branchStringLen)
+			Branch = status.Substring(branchStringLen, nextSeparator - branchStringLen + 1).Trim() if nextSeparator > 0
+
+	def IsBranchMaster() as bool:
+		return Branch.Equals("master", StringComparison.OrdinalIgnoreCase)
+
+	override def ToString() as string:
+		return "Branch: ${Branch};  ChangesExists: ${ChangesExists};  NeedPush: ${NeedPush}"
+
+def Clean(path as string):
+	return path if path[0] != char('\\')
+	return path.Remove(0, 1)
+
+def CheckRepository(path as string):
+	if DetectScm() == "git":
+		gitStatus = GitStatus(GetGitDir("status", path))
+		raise "В репозитории $path имеются неподтвержденные изменения. Надо произвести Commit и потом выполнить deploy." if gitStatus.ChangesExists
+		raise "Текущая ветка ${gitStatus.Branch} репозитория $path не является master-веткой. Надо переключиться в ветку master и потом выполнить deploy." if not gitStatus.IsBranchMaster()
+		raise "В текущей ветки репозитория $path есть изменения, не сохраненные в удаленном репозитории. Надо сделать push и потом выполнить deploy." if gitStatus.NeedPush
+
+		localHead = GetGitHead(path)
+		remotes = GetGitDir("ls-remote", path)
+		remoteHead = /([0-9,a-f]{5,40})\s+HEAD/.Match(remotes).Groups[1].Value
+		if remoteHead != localHead:
+			raise "На удаленном сервере есть изменения которые не загружены в репозиторий $path. "\
+				+ "Для того что бы продолжить нужно выполнить git pull и потом повторить bake deploy"
+
+task "check", ["check:common:error", "check:common", "check:current", "check:jenkins"]
+
+desc """
+будут созданы файлы игнора,
+либо просто запущен процесс поиска ошибок
+"""
+task "check:common:error":
+	patterns = ("browser.ShowWindow", "QueryCatcher.Catch", "Console.WriteLine", "style=\"")
+	masks = {"browser.ShowWindow" : "*.cs", "QueryCatcher.Catch": "*.cs", "Console.WriteLine": "*.cs", "style=\"": "*.brail"}
+	ignoreConfigs = {"browser.ShowWindow" : "", "QueryCatcher.Catch": "", "Console.WriteLine": "ignoreStyle/Console.txt", "style=\"": "ignoreStyle/Style.txt"}
+
+	for pattern in patterns:
+		mask = masks[pattern]
+		ignore = ignoreConfigs[pattern]
+		excludes = (of string:,).ToList()
+		if File.Exists(ignore):
+			excludes = File.ReadAllLines(ignore).Where({l| l.Length > 0}).Select({l| Clean(l)}).ToList()
+		files = FileSet("**/*.cs", Excludes: Boo.Lang.List(excludes))
+		for file in files:
+			index = 0
+			for line in File.ReadLines(file):
+				index++
+				if line.IndexOf(pattern) >= 0:
+					print "файл $file строка $index найдено запрещенное значение $pattern"
+
+task "check:current":
+	return if Globals.Environment == @Test
+	return if Configuration.Maybe.skipCheckCurrent
+
+	CheckRepository(Path.GetFullPath("."))
+
+desc """
+проверяет состояние репозитория common
+skipCheckCommon=true что бы обойти проверку
+"""
+task "check:common":
+	return if Globals.Environment == @Test
+	return if Configuration.Maybe.skipCheckCommon
+
+	CheckRepository(AppDomain.CurrentDomain.BaseDirectory)
+
+desc """
+проверяет состояние проекта в jenkins
+skipCheckJenkins=true, что бы игнорировать результаты проверки
+"""
+task "check:jenkins":
+	return if Globals.Environment == @Test
+	jenkinsProject  = Globals.Maybe.JenkinsProject or Globals.Maybe.Project or Globals.Maybe.project
+	url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
+	uri = url + "/api/xml?depth=1"
+	try:
+		try:
+			try:
+				doc = XDocument.Load(uri)
+			except e as WebException:
+				jenkinsProject = jenkinsProject.Replace(".", "-")
+				url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
+				uri = url + "/api/xml?depth=1"
+				doc = XDocument.Load(uri)
+		except e:
+			message = "Не удалось проверить состояние проекта в jenkins,"\
+				+ " проверь что имена проектов совпадают"
+			raise Exception(message, e)
+		head = GetGitHead(null)
+		query = "freeStyleProject/build[action/lastBuiltRevision/SHA1[text() = \"$head\"]]"
+		elements = doc.XPathSelectElements(query).Select({e| JenkinsStatus(e)}).ToArray()
+		if elements.Length:
+			element = elements.Where({s| s.Status == "SUCCESS"}).DefaultIfEmpty(elements.First()).First()
+			build = element.Number
+			result = element.Status
+			Globals.JenkinsStatus = "Номер сборки $build результат тестирования $result"
+			if result != "SUCCESS":
+				raise "Некоторые тесты сломаны подробней $url,"\
+					+ " перед развертыванием следует исправить ошибки"
+		else:
+			Globals.JenkinsStatus = "Тесты не запускались"
+			raise "Тесты для ревизии $head не запускались,"\
+				+ " перед развертывание следует прогнать все тесты в jenkins"
+	except e:
+		message = "Не удалось проверить результаты тестов в jenkins,"\
+				+ " skipCheckJenkins=true что бы обойти проверку"
+		if Configuration.Maybe.skipCheckJenkins:
+			print message
+			print e
+		else:
+			raise Exception(message, e)

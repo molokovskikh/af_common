@@ -71,22 +71,9 @@ task @integration, [@test]
 
 task @test, [@RunTests]
 
-task @PrepareBuild, [@CheckWritingErrors, "packages:install"]:
+task @PrepareBuild, ["check:common:error", "packages:install"]:
 	if Exist("build/version.txt"):
 		Engine.Execute("GenerateAssemblyInfo")
-
-desc """
-Если сказать CreateIgnoreFiles=True,
-будут созданы файлы игнора,
-либо просто запущен процесс поиска ошибок
-"""
-task @CheckWritingErrors:
-	creareIgnore = Configuration.Maybe.CreateIgnoreFiles or Configuration.Maybe.CreateIgnoreFiles
-	return if Configuration.Maybe.skipCheckWritingErrors
-	if (creareIgnore):
-		Exec("SearchOfWriting", "CreateIgnoreFiles:" + creareIgnore).Execute()
-	else:
-		Exec("SearchOfWriting").Execute()
 
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()

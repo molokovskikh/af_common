@@ -150,3 +150,51 @@ def GetConfigSufix(Globals as duck):
 		return ".config"
 	env = Globals.Environment.ToLower()
 	return "$env.config"
+
+def GetGitDir(command as string, workDir as string):
+	output = ""
+	error = ""
+	startInfo = ProcessStartInfo("git", command,
+		RedirectStandardOutput : true,
+		RedirectStandardError: true,
+		RedirectStandardInput: true,
+		StandardOutputEncoding  : Encoding.UTF8,
+		CreateNoWindow : true,
+		UseShellExecute : false,
+		WorkingDirectory: workDir)
+	process = Process.Start(startInfo)
+	process.OutputDataReceived += do(s, a):
+		output += "\r\n" + a.Data
+	process.ErrorDataReceived += do(s, a):
+		error += "\r\n" + a.Data
+	process.BeginOutputReadLine()
+	process.BeginErrorReadLine()
+	process.WaitForExit()
+	if process.ExitCode and error.Trim():
+		raise error
+	return output
+
+def GetGit(command as string):
+	return GetGitDir(command, null)
+
+def GetLastMessagesFromGit():
+	return GetGit("log -50")
+
+def GetLastScmMessages():
+	scm = DetectScm()
+	if scm == "git":
+		return GetLastMessagesFromGit()
+	return ""
+
+def GetGitStatus():
+	return GetGit("status")
+
+def GetGitHead(path as string):
+	localHead = GetGitDir("show-ref --head HEAD", path)
+	lines = localHead.Trim().Split(char(' '))
+	return lines[0].Trim()
+
+def DetectScm():
+	return "git" if Exist(".git")
+	print "Can not detect scm"
+	return ""
