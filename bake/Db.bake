@@ -311,16 +311,6 @@ desc """
 task "db:setup", ["db:seed", "db:migrate"]
 
 desc """
-используй db:setup
-"""
-task @CleanDb, ["db:setup"]
-
-desc """
-используй db:seed
-"""
-task @PrepareLocal, ["db:seed"]
-
-desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
 параметры:
 debug - выводит запускаемые комманды

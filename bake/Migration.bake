@@ -440,6 +440,7 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 	metaKeys = field.GetValue(metadata)
 	if not metaKeys:
 		return false
+	indexes = typeof(AbstractTableMetadata).GetField("indexes", BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.FlattenHierarchy).GetValue(metadata)
 	keyColumns = key.ColumnIterator.ToArray()
 	for keyMetadata as IForeignKeyMetadata in metaKeys.Values:
 		columns = keyMetadata.Columns
@@ -449,9 +450,8 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 			match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
 			if match:
 				return true
-	return false
 
-	for keyMetadata as IIndexMetadata in metaKeys.Values:
+	for keyMetadata as IIndexMetadata in indexes.Values:
 		columns = keyMetadata.Columns
 		keyColumns = key.ColumnIterator.ToArray()
 		for c in keyMetadata.Columns:
@@ -497,11 +497,12 @@ task "db:migration:generate":
 			for sql in sqls:
 				migration.Commands.Add(sql) if sql
 
-			#for key in table.ForeignKeyIterator:
-			#	column = key.Columns.First()
-			#	key.Name = "FK_$(key.Table.Name)_$(column.Name)"
-			#	unless HasKey(tableMetadata, key):
-			#		migration.Commands.Add(key.SqlCreateString(dialect, mapping, null, null));
+			for key in table.ForeignKeyIterator:
+				columns = String.Join("_", key.Columns.Select({c| c.Name}).ToArray())
+				column = key.Columns.First()
+				key.Name = "FK_${table.Schema}_$(key.Table.Name)_$columns"
+				unless HasKey(tableMetadata, key):
+					migration.Commands.Add(key.SqlCreateString(dialect, mapping, null, null));
 		else:
 			sql = formatter.Format(table.SqlCreateString(dialect, mapping, null, null))
 			migration.Commands.Add(sql)
