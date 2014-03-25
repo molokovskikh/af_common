@@ -98,7 +98,7 @@ def Build(globals as DuckDictionary, project as string):
 	Cp(src, config, true) if Exist(src)
 
 def DeployService(globals as DuckDictionary, app as string, host as string):
-	DeployService(globals, app, host, "\\\\$host\\app\\$app")
+	DeployService(globals, app, host, "\\\\$host\\apps\\$app")
 
 def DeployService(globals as DuckDictionary, app as string, host as string, path as string):
 	buildTo, _ = GetBuildConfig(globals, app)
