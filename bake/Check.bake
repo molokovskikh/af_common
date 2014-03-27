@@ -1,6 +1,8 @@
 import System
 import System.IO
 import System.Net
+import System.Collections.Generic
+import Newtonsoft.Json
 
 class JenkinsStatus:
 	property Number as string
@@ -49,6 +51,11 @@ def CheckRepository(path as string):
 			raise "На удаленном сервере есть изменения которые не загружены в репозиторий $path. "\
 				+ "Для того что бы продолжить нужно выполнить git pull и потом повторить bake deploy"
 
+def ReadIgnoreConfig(name as string):
+	if File.Exists(name):
+		return File.ReadAllLines(name).Where({l| l.Length > 0}).Select({l| Clean(l)}).ToList()
+	return List of string()
+
 task "check", ["check:common:error", "check:common", "check:current", "check:jenkins"]
 
 desc """
@@ -58,14 +65,21 @@ desc """
 task "check:common:error":
 	patterns = ("browser.ShowWindow", "QueryCatcher.Catch", "Console.WriteLine", "style=\"")
 	masks = {"browser.ShowWindow" : "*.cs", "QueryCatcher.Catch": "*.cs", "Console.WriteLine": "*.cs", "style=\"": "*.brail"}
-	ignoreConfigs = {"browser.ShowWindow" : "", "QueryCatcher.Catch": "", "Console.WriteLine": "ignoreStyle/Console.txt", "style=\"": "ignoreStyle/Style.txt"}
+	ignoreConfigs = {"browser.ShowWindow" : List of string(),
+			"QueryCatcher.Catch": List of string(),
+			"Console.WriteLine": ReadIgnoreConfig("ignoreStyle/Console.txt"),
+			"style=\"": ReadIgnoreConfig("ignoreStyle/Style.txt")}
+	if Exist("Lintfile"):
+		lintconfig = JsonConvert.DeserializeObject[of Dictionary[of string, (string)]](File.ReadAllText("Lintfile"))
+		for k in lintconfig:
+			if ignoreConfigs.ContainsKey(k.Key):
+				ignoreConfigs[k.Key] = k.Value.ToList()
+			else:
+				ignoreConfigs.Add(k.Key, k.Value)
 
 	for pattern in patterns:
 		mask = masks[pattern]
-		ignore = ignoreConfigs[pattern]
-		excludes = (of string:,).ToList()
-		if File.Exists(ignore):
-			excludes = File.ReadAllLines(ignore).Where({l| l.Length > 0}).Select({l| Clean(l)}).ToList()
+		excludes = cast(List of string, ignoreConfigs[pattern])
 		files = FileSet("**/*.cs", Excludes: Boo.Lang.List(excludes))
 		for file in files:
 			index = 0
@@ -74,6 +88,10 @@ task "check:common:error":
 				if line.IndexOf(pattern) >= 0:
 					print "файл $file строка $index найдено запрещенное значение $pattern"
 
+desc """
+проверяет состояние текущего репозитория
+skipCheckCurrent=true что бы обойти проверку
+"""
 task "check:current":
 	return if Globals.Environment == @Test
 	return if Configuration.Maybe.skipCheckCurrent
