@@ -15,19 +15,21 @@ class Project:
 	_projectFile as string
 	_isX86 as bool
 	_frameworkVersion as string
+	_targetFramework as string
 
 	property BuildOutput as string
 	property TestOutput as string
 
-	def constructor(projectFile as string, isX86 as bool, frameworkVersion as string):
+	def constructor(projectFile as string, isX86 as bool, frameworkVersion as string, targetFramework as string):
 		_projectFile = projectFile
 		_project = Path.GetFileNameWithoutExtension(projectFile)
 		_isX86 = isX86
 		_frameworkVersion = frameworkVersion
+		_targetFramework = targetFramework
 
 	def Build():
 		conf = "debug"
-		if _frameworkVersion == "net45":
+		if _targetFramework == "net45":
 			conf = "debug-net45"
 		clean = MsBuild(_projectFile,
 			Target : "clean",
@@ -64,11 +66,10 @@ class Project:
 	def ToString():
 		return _project
 
-frameworkVersion = Globals.FrameworkVersion
-
 def GetProjects():
+	frameworkVersion = Globals.FrameworkVersion
 	isx86 = Globals.Maybe.platform == "x86" or Globals.Maybe.Platform == "x86"
-	return GetProjectsForTest().Select({f| Project(f, isx86, frameworkVersion)}).ToList()
+	return GetProjectsForTest().Select({f| Project(f, isx86, frameworkVersion, Globals.TargetFramework)}).ToList()
 
 task @integration, [@test]
 
