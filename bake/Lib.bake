@@ -153,7 +153,7 @@ def BuildLibProperties(prefix as string, filename as string, libPath as string, 
 
 def CheckPlatformSpecificVersion(path as string, max as string):
 	aliases = {
-		"net45" : "net45",
+		"net45" : ("net45", ),
 		"net40" : ("net40-full", "net-4.0", "net4", "net40", "NET40ClientProfile", "net40-client"),
 		"net20" : ("net35", "20", "2.0", "2", "net20", "net"),
 	}
