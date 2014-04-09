@@ -26,15 +26,18 @@ class Project:
 		_frameworkVersion = frameworkVersion
 
 	def Build():
+		conf = "debug"
+		if _frameworkVersion == "net45":
+			conf = "debug-net45"
 		clean = MsBuild(_projectFile,
 			Target : "clean",
-			Parameters : { "Configuration" : "debug" },
+			Parameters : { "Configuration" : conf },
 			FrameworkVersion : _frameworkVersion)
 		clean.Arguments.Add("/verbosity:minimal")
 
 		build = MsBuild(_projectFile,
 			Target : "build",
-			Parameters : { "Configuration" : "debug" },
+			Parameters : { "Configuration" : conf },
 			FrameworkVersion : _frameworkVersion)
 		build.Arguments.Add("/verbosity:minimal")
 		clean.Execute()
