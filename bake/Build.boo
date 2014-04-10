@@ -147,8 +147,9 @@ def BuildWeb(globals as DuckDictionary, project as string):
 		"Configuration" : "Release"}
 	if globals.Maybe.Platform:
 		params.Add("Platform", globals.Platform)
-	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
-			Target : "build",
+	sln = FileSet("src/*.sln").First()
+	MsBuild(sln, "/verbosity:quiet", "/nologo",
+			Target : "$project",
 			Parameters : params,
 			FrameworkVersion : globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/bin/*.xml")
@@ -184,10 +185,11 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	Cp("$projectPath/web.$sufix", "${buildTo}/Web.config")
 	CopyAssets(buildTo)
 
-def CleanWeb(globals as DuckDictionary, name as string):
-	buildTo, projectFile = GetBuildConfig(globals, name)
-	MsBuild(projectFile, "/verbosity:quiet", "/nologo",
-			Target : "clean",
+def CleanWeb(globals as DuckDictionary, project as string):
+	buildTo, projectFile = GetBuildConfig(globals, project)
+	sln = FileSet("src/*.sln").First()
+	MsBuild(sln, "/verbosity:quiet", "/nologo",
+			Target : "$project:clean",
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						"Configuration" : "release" },
 			FrameworkVersion : globals.FrameworkVersion).Execute()
