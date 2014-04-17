@@ -14,6 +14,7 @@ git submodule foreach git clean -fdx
 #правим ссылки в файлах проектов, что бы удалить номер версии
 fix-ref.sh
 update-stylecop.sh
+fix-stylecop.sh
 git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :
 fix-js.sh
