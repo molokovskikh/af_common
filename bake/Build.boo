@@ -69,9 +69,7 @@ def GetBuildConfig(globals as DuckDictionary):
 		sln = FileSet("src/*.sln").Files.FirstOrDefault()
 		raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
 		project = Path.GetFileNameWithoutExtension(sln)
-	buildTo = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
-	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
-	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
+	buildTo, projectFile = GetBuildConfig(globals, project)
 	return (project, buildTo, projectFile)
 
 def GetBuildConfig(globals as DuckDictionary, project as string):
@@ -84,6 +82,12 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
 	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
 	return (buildTo, projectFile)
+
+def CleanDeployDir(globals as DuckDictionary, project as string):
+	deployTo = GetDeploy(globals, globals.Project.ToString())
+	excludes = GetExcludes(globals);
+	excludes.Add("*.log")
+	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
 
 def Build(globals as DuckDictionary):
 	project, _, _ = GetBuildConfig(globals)
@@ -225,8 +229,7 @@ def Clean(globals as DuckDictionary, project as string):
 
 def XCopyDeploy(globals as DuckDictionary):
 	project, _, _ = GetBuildConfig(globals)
-	deploy = GetDeploy(globals, project)
-	XCopyDeploy(globals, project, deploy)
+	XCopyDeploy(globals, project)
 
 def XCopyDeploy(globals as DuckDictionary, project as string):
 	deploy = GetDeploy(globals, project)
@@ -234,6 +237,8 @@ def XCopyDeploy(globals as DuckDictionary, project as string):
 
 def XCopyDeploy(globals as DuckDictionary, name as string, deployTo as string):
 	buildTo, _ = GetBuildConfig(globals, name)
+
+	CleanDeployDir(globals, name)
 
 	files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
 	conf as DuckDictionary = globals.Configuration

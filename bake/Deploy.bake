@@ -102,7 +102,4 @@ task @CopyTiny:
 	Cp(files, deployTo + "/Assets/Javascripts/", true)
 
 task @WebClean:
-	deployTo = GetDeployTo(Globals.Project.ToString())
-	excludes = GetExcludes(Globals);
-	excludes.Add("*.log")
-	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
+	CleanDeployDir(Globals, Globals.Project.ToString())
