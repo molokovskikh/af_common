@@ -10,10 +10,6 @@ import System.Linq.Enumerable from System.Core
 import System.Globalization
 import System.Text.RegularExpressions
 
-
-def GetDeployTo(project as string):
-	return GetDeploy(Globals, project)
-
 backupRoot = """\\offdc\MMedia\AppBackUp\"""
 
 def FindLastBackup(project as string):
@@ -97,7 +93,7 @@ task @WebDeploy, [@WebClean]:
 	XCopyDeploy(Globals)
 
 task @CopyTiny:
-	deployTo = GetDeployTo(Globals.Project.ToString())
+	deployTo = GetDeploy(Globals, Globals.Project.ToString())
 	files = FileSet("**/*.*", Excludes : [], BaseDirectory : "packages/TinyMCE.3.4.5/content/Scripts/")
 	Cp(files, deployTo + "/Assets/Javascripts/", true)
 
