@@ -9,6 +9,7 @@ import System.Xml.XPath.Extensions from System.Xml.Linq
 import System.IO
 import System.Net.Mail
 import Mono.Cecil
+import FubuCsProjFile
 
 class Project:
 	_project as string
@@ -49,6 +50,9 @@ class Project:
 
 	def Test():
 		assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/${_project}.dll")
+		unless Exist(assembly):
+			name = CsProjFile.LoadFrom(_projectFile).AssemblyName
+			assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/$name.dll")
 		print "test $assembly"
 		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
 		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386

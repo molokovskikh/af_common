@@ -61,7 +61,7 @@ if [ -z "$SKIP_DB" ]; then
 	bake db:setup Port=$port notInteractive=true
 fi
 bake generate:binding:redirection notInteractive=true
-bake test Port=$port notInteractive=true
+bake test Port=$port notInteractive=true | iconv -f cp866 -t cp1251
 
 git checkout .
 git submodule foreach git checkout .
