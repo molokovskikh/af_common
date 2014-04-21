@@ -75,6 +75,11 @@ def GetBuildConfig(globals as DuckDictionary):
 	return (project, buildTo, projectFile)
 
 def GetBuildConfig(globals as DuckDictionary, project as string):
+	if Exist(project):
+		#предполагаю что имя проекта в формате src/<project>/app/app.csproj
+		output = Path.Combine(globals.BuildRoot, Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(project))))
+		output = Path.GetFullPath(output)
+		return (output, project)
 	buildTo = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
 	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
 	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
@@ -148,8 +153,12 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	if globals.Maybe.Platform:
 		params.Add("Platform", globals.Platform)
 	sln = FileSet("src/*.sln").First()
+	target = project
+	if Exist(project):
+		target = "Build"
+		sln = project
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
-			Target : "$project",
+			Target : target,
 			Parameters : params,
 			FrameworkVersion : globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/bin/*.xml")
@@ -188,8 +197,12 @@ def BuildWeb(globals as DuckDictionary, project as string):
 def CleanWeb(globals as DuckDictionary, project as string):
 	buildTo, projectFile = GetBuildConfig(globals, project)
 	sln = FileSet("src/*.sln").First()
+	target = "$project:clean"
+	if Exist(project):
+		target = "Clean"
+		sln = project
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
-			Target : "$project:clean",
+			Target : target,
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						"Configuration" : "release" },
 			FrameworkVersion : globals.FrameworkVersion).Execute()
