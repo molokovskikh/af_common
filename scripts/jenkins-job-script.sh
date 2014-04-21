@@ -40,7 +40,7 @@ then
 fi
 
 if [ -z "$SKIP_DB" ]; then
-	bake -s RunMySql path=data randomPort=true notInteractive=true
+	bake -s RunMySql path=data randomPort=true notInteractive=true | iconv -f cp866 -t cp1251
 	port=$(cat data/port)
 	grep "(Data Source|server)=localhost" src -lRP | xargs perl -i -pe "s/connectionString=\"([^\"]*)?port=\d+;([^\"]*)?\"/connectionString=\"port="$port";\1\2\"/gi"
 	grep "(Data Source|server)=localhost" src -lRP | xargs perl -i -pe 's/(Data Source|server)=localhost/Data Source=localhost;port='$port'/gi'
@@ -50,15 +50,15 @@ if [ -e ./scripts/prepare.sh ]
 then
 	./scripts/prepare.sh
 else
-	bake -s packages:install notInteractive=true
+	bake -s packages:install notInteractive=true | iconv -f cp866 -t cp1251
 	if [ $? -ne 0 ]; then
 		exit $?
 	fi
-	bake -s fix:packages
+	bake -s fix:packages | iconv -f cp866 -t cp1251
 fi
-bake TryToBuild Port=$port notInteractive=true
+bake TryToBuild Port=$port notInteractive=true | iconv -f cp866 -t cp1251
 if [ -z "$SKIP_DB" ]; then
-	bake db:setup Port=$port notInteractive=true
+	bake db:setup Port=$port notInteractive=true | iconv -f cp866 -t cp1251
 fi
 bake generate:binding:redirection notInteractive=true
 bake test Port=$port notInteractive=true | iconv -f cp866 -t cp1251
