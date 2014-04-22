@@ -100,7 +100,7 @@ def Build(globals as DuckDictionary, project as string):
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
 			FrameworkVersion : globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/*.xml")
-	src = Path.Combine("src/${project}/", "App." + GetConfigSufix(globals))
+	src = Path.Combine(Path.GetDirectoryName(projectFile), "App." + GetConfigSufix(globals))
 	config = "${buildTo}/${project}.exe.config"
 	unless Exist(config):
 		config = FileSet("$buildTo/*.config").Files.FirstOrDefault() or config
