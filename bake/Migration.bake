@@ -521,6 +521,7 @@ task "db:migration:generate":
 
 	ProcessMigration(migration)
 
+
 Desc """
 генерирует миграцю для обновления тригеров и таблицы логирования
 Пример bake UpdateLogMigration Table=Catalog Database=Catalogs
@@ -528,12 +529,7 @@ Desc """
 task "db:generate:log", [@OnlyInProject]:
 	table = Configuration.Table
 	database = Configuration.Database
-	sufix = ""
-	rootConfig = Globals.Maybe.Config
-	if rootConfig:
-		config = rootConfig["db:generate:log"]
-		if config:
-			sufix = config["Sufix"]
+	sufix = ReadGlobalConfig(Globals, "db:generate:log", "Sufix")
 	migration = Migration()
 
 	migration.Commands.Add(GetUpdateLogTableCommand(database, table, sufix))

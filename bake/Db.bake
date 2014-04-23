@@ -38,18 +38,7 @@ def PrintCommand(sql as string):
 emptyProfile = DbProfile(\
 	ImportTables: ("logs.SchemaMigrations", "Farm.Regions", "Usersettings.Defaults", "Billing.Recipients",
 		"ordersendrules.order_handlers", "accessright.permissions", "Usersettings.UserPermissions",
-		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types",
-		"internet.AccessCategories",
-		"internet.categoriesaccessset",
-		"internet.usercategories",
-		"internet.status",
-		"internet.AdditionalStatus",
-		"internet.Services",
-		"internet.statuscorrelation",
-		"internet.connectbrigads",
-		"internet.partners",
-		"internet.tariffs",
-		"internet.networkzones")
+		"farm.sourcetypes", "farm.pricefmts", "documents.waybill_source_types")
 )
 
 catalogProfile = DbProfile(emptyProfile)
@@ -129,11 +118,23 @@ documentsProfile.Tables(("documents.documentheaders", "documents.documentbodies"
 emptyOrdersProfile = DbProfile()
 emptyOrdersProfile.Tables(("Orders.OrdersHead", "Orders.OrdersList"))
 
-InternetProfile = DbProfile(\
-	ImportDbs: ("accessright", "analit", "internet"),
-	ImportTables : emptyProfile.ImportTables,
-	IgnoreTables : emptyProfile.ImportTables
-)
+internetProfile = DbProfile(\
+	ImportTables: ("logs.SchemaMigrations",
+		"internet.AccessCategories",
+		"internet.categoriesaccessset",
+		"internet.usercategories",
+		"internet.status",
+		"internet.AdditionalStatus",
+		"internet.Services",
+		"internet.statuscorrelation",
+		"internet.connectbrigads",
+		"internet.partners",
+		"internet.tariffs",
+		"internet.MenuField",
+		"internet.submenufield",
+		"internet.sitecontent",
+		"internet.ViewTexts",
+		"internet.networkzones"))
 
 PrgDataProfile = DbProfile(\
 	ImportTables: ("logs.SchemaMigrations", "accessright.permissions",
@@ -220,7 +221,7 @@ set PriceDate = now(), LastFormalization = now();
 profiles = {@empty: emptyProfile,
 	@catalog: catalogProfile,
 	@core: coreProfile,
-	@internet: InternetProfile,
+	@Internet: internetProfile,
 	@reportTypes: reportTypesProfile,
 	@reports: reportsProfile,
 	@drug: drugsProfile,
@@ -300,11 +301,6 @@ def ImportTables(mysqldump as string, mysql as string, tables as (string)):
 		unless Configuration.Maybe.DoNotClean:
 			Rm(filename)
 
-def ReadEnvVariable(name as string, defaultValue):
-	return Configuration[name] if Configuration.IsDefined(name)
-	return Globals[ToPascal(name)] if Globals.IsDefined(ToPascal(name))
-	return defaultValue
-
 desc """
 Загружает тестовые данные и применяет не примененные миграции
 """
@@ -346,7 +342,7 @@ task "db:seed":
 			local += ";port=$port" unless local.Contains("port")
 			localLong += ";port=$port" unless localLong.Contains("port")
 
-	profileName = ReadEnvVariable(@profile, @empty)
+	profileName = ReadGlobalConfig(Globals, "db:seed", @profile) or @empty
 	profile = profiles[profileName]
 	unless profile:
 		all = join(profiles.Keys)

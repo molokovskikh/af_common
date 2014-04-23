@@ -198,3 +198,13 @@ def DetectScm():
 	return "git" if Exist(".git")
 	print "Can not detect scm"
 	return ""
+
+def ReadGlobalConfig(globals as DuckDictionary, name as string, key as string):
+	rootConfig = globals.Maybe.Config
+	if rootConfig:
+		config = rootConfig[name]
+		if config:
+			value = config[ToPascal(key)]
+			return value if value
+	return globals[ToPascal(key)] if globals.IsDefined(ToPascal(key))
+	return globals.Configuration[key] if globals.Configuration.IsDefined(key)
