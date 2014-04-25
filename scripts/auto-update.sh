@@ -34,7 +34,7 @@ git add -f -- packages/packages.config || :
 #обновляем пакеты
 bake -s packages:update
 bake -s packages:save
-bake -s packages:install
+bake packages:install || bake -s packages:install
 #правим ссылки в сборках
 bake -s fix:packages
 bake -s fix:js:ref
