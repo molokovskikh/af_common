@@ -23,7 +23,10 @@ fix-npoi.sh
 git ls-files | grep \.cs$ | xargs git add -f || :
 
 #получаем известные библиотеки из nuget, lib -> nuget
-bake -s packages:install
+#нужно попробовать установить библиотеки используя конфигурацию из bake
+#если это не получилось то всего скорее для запуска bake не хватает библиотек
+#нужно устанавливать игнорируя локальную конфигурацию
+bake packages:install || bake -s packages:install
 update-packages.sh
 git add -A -- lib || :
 git add -f -- packages/packages.config || :
