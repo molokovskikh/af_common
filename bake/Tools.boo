@@ -200,6 +200,9 @@ def DetectScm():
 	return ""
 
 def ReadGlobalConfig(globals as DuckDictionary, name as string, key as string):
+	conf as DuckDictionary = globals.Configuration
+	return conf[key] if conf.IsDefined(key)
+
 	rootConfig = globals.Maybe.Config
 	if rootConfig:
 		config = rootConfig[name]
@@ -207,5 +210,3 @@ def ReadGlobalConfig(globals as DuckDictionary, name as string, key as string):
 			value = config[ToPascal(key)]
 			return value if value
 	return globals[ToPascal(key)] if globals.IsDefined(ToPascal(key))
-	conf as DuckDictionary = globals.Configuration
-	return conf[key] if conf.IsDefined(key)

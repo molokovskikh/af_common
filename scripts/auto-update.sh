@@ -21,6 +21,7 @@ fix-js.sh
 git ls-files | grep \.js$ | xargs git add -f || :
 fix-npoi.sh
 git ls-files | grep \.cs$ | xargs git add -f || :
+git submodule foreach "git ls-files | grep \.cs | xargs git add -f || :" || :
 
 #получаем известные библиотеки из nuget, lib -> nuget
 #нужно попробовать установить библиотеки используя конфигурацию из bake
@@ -32,16 +33,16 @@ git add -A -- lib || :
 git add -f -- packages/packages.config || :
 
 #обновляем пакеты
-bake -s packages:update
-bake -s packages:save
-bake packages:install || bake -s packages:install
+bake -s packages:update | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+bake -s packages:save | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+bake packages:install || bake -s packages:install | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
 #правим ссылки в сборках
-bake -s fix:packages
-bake -s fix:js:ref
+bake -s fix:packages | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+bake -s fix:js:ref | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
 #пробуем собрать, но это может не получиться из-за специальной магии
 bake notInteractive=true|| :
 rm output -rf || :
-msbuild.exe src/*.sln
+msbuild.exe src/*.sln | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
 bake -s BuildTests notInteractive=true || :
 bake -s generate:binding:redirection
 #при сохранении конфига он может добавить пустых строк
