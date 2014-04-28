@@ -62,6 +62,8 @@ def GetUpdateLogTableCommand(db as string, table as string):
 
 def GetUpdateLogTableCommand(db as string, table as string, sufix as string):
 	logTable = GetLogTableName(table, sufix)
+	unless Db.Read("show tables in logs").Select({r| r[0].ToString()}).Contains(logTable, StringComparer.OrdinalIgnoreCase):
+		return GetCreateLogTableCommand(db, table, sufix)
 	notExistColumns = List[of (string)]()
 	logTableColumns = (name for name, type in GetTableColumns(logTable, "logs")).ToList()
 	for name, type in GetTableColumns(table, db):

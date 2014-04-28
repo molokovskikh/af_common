@@ -207,4 +207,5 @@ def ReadGlobalConfig(globals as DuckDictionary, name as string, key as string):
 			value = config[ToPascal(key)]
 			return value if value
 	return globals[ToPascal(key)] if globals.IsDefined(ToPascal(key))
-	return globals.Configuration[key] if globals.Configuration.IsDefined(key)
+	conf as DuckDictionary = globals.Configuration
+	return conf[key] if conf.IsDefined(key)

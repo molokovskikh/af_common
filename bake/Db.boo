@@ -22,7 +22,7 @@ class Db:
 			current = value
 
 	public GetConnectionString as Func[of string]
-	
+
 	public ConnectionString:
 		get:
 			if not GetConnectionString:
@@ -60,13 +60,16 @@ class Db:
 					yield DuckRecord(record)
 
 class DuckRecord(IQuackFu):
-	
+
 	_record as DbDataRecord = null
 
 	def constructor(record as DbDataRecord):
 		_record = record
-		
+
 	def QuackGet(name as string, parameters as (object)) as object:
 		if parameters and parameters.Length:
-			name = parameters[0].ToString()
+			if parameters[0] isa int:
+				return _record[cast(int, parameters[0])]
+			else:
+				name = parameters[0].ToString()
 		return _record[name]

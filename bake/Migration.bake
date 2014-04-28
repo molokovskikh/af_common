@@ -524,7 +524,7 @@ task "db:migration:generate":
 
 Desc """
 генерирует миграцю для обновления тригеров и таблицы логирования
-Пример bake UpdateLogMigration Table=Catalog Database=Catalogs
+Пример bake db:generate:log Table=Catalog Database=Catalogs
 """
 task "db:generate:log", [@OnlyInProject]:
 	table = Configuration.Table
@@ -566,7 +566,7 @@ task @SafeDropTable:
 
 desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake AlterProcedure Db=Future Name=GetPrices
+пример bake db:alter:procedure Db=Future Name=GetPrices
 """
 task "db:alter:procedure":
 	db = Configuration.Db
@@ -576,7 +576,7 @@ task "db:alter:procedure":
 
 desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake AlterFunction Db=Future Name=GetPrices
+пример bake db:alter:function Db=Future Name=GetPrices
 """
 task "db:alter:function":
 	db = Configuration.Db
@@ -586,7 +586,7 @@ task "db:alter:function":
 
 desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake AlterEvent Db=Future Name=GetPrices
+пример bake db:alter:event Db=Future Name=GetPrices
 """
 task "db:alter:event":
 	db = Configuration.Db
@@ -596,7 +596,7 @@ task "db:alter:event":
 
 desc """
 создает миграцию и миграцию отката с текстом указанного триггера
-пример bake AlterTrigger Db=Future Name=IntersectionAfterInsert
+пример bake db:alter:trigger Db=Future Name=IntersectionAfterInsert
 """
 task "db:alter:trigger":
 	db = Configuration.Db
