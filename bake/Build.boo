@@ -1,5 +1,6 @@
 import System.Linq
 import Bake.Engine
+import FubuCsProjFile
 
 def StartServices(services as ServiceController*):
 	for service in services:
@@ -64,24 +65,26 @@ def GetServices(serviceName as string, servers as string*):
 	return services
 
 def GetBuildConfig(globals as DuckDictionary):
-	project = globals.Maybe.Project or globals.Maybe.project
-	unless project:
-		sln = FileSet("src/*.sln").Files.FirstOrDefault()
-		raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
-		project = Path.GetFileNameWithoutExtension(sln)
-	buildTo, projectFile = GetBuildConfig(globals, project)
-	return (project, buildTo, projectFile)
+	return GetBuildConfig(globals, null)
 
 def GetBuildConfig(globals as DuckDictionary, project as string):
+	unless project:
+		project = globals.Maybe.Project or globals.Maybe.project
+		unless project:
+			sln = FileSet("src/*.sln").Files.FirstOrDefault()
+			raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
+			project = Path.GetFileNameWithoutExtension(sln)
+
 	if Exist(project):
 		#предполагаю что имя проекта в формате src/<project>/app/app.csproj
-		output = Path.Combine(globals.BuildRoot, Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(project))))
-		output = Path.GetFullPath(output)
-		return (output, project)
-	buildTo = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
+		projectFile = project
+		projectName = CsProjFile.LoadFrom(projectFile).AssemblyName
+		output = Path.GetFullPath(Path.Combine(globals.BuildRoot, projectName))
+		return (projectName, output, projectFile)
+	output = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
 	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
 	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
-	return (buildTo, projectFile)
+	return (projectName, output, projectFile)
 
 def CleanDeployDir(globals as DuckDictionary, project as string):
 	deployTo = GetDeploy(globals, globals.Project.ToString())
@@ -90,11 +93,10 @@ def CleanDeployDir(globals as DuckDictionary, project as string):
 	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
 
 def Build(globals as DuckDictionary):
-	project, _, _ = GetBuildConfig(globals)
-	Build(globals, project)
+	Build(globals, null)
 
 def Build(globals as DuckDictionary, project as string):
-	buildTo, projectFile = GetBuildConfig(globals, project)
+	project, buildTo, projectFile = GetBuildConfig(globals, project)
 	MsBuild(projectFile,
 			Target : "build",
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
@@ -110,7 +112,6 @@ def DeployService(globals as DuckDictionary, app as string, host as string):
 	DeployService(globals, app, host, "\\\\$host\\apps\\$app")
 
 def DeployService(globals as DuckDictionary, app as string, host as string, path as string):
-	buildTo, _ = GetBuildConfig(globals, app)
 	Impersonate(globals, host):
 		services = GetServices(app, (host, ))
 		StopServices(services)
@@ -147,7 +148,7 @@ def CopyAssets(output as string):
 	Cp(styleSheets, assets) if styleSheets.Files.Count
 
 def BuildWeb(globals as DuckDictionary, project as string):
-	buildTo, projectFile = GetBuildConfig(globals, project)
+	project, buildTo, projectFile = GetBuildConfig(globals, project)
 	projectPath = Path.GetDirectoryName(projectFile)
 
 	MkDir(buildTo) if not Exist(buildTo)
@@ -157,10 +158,9 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	if globals.Maybe.Platform:
 		params.Add("Platform", globals.Platform)
 	sln = FileSet("src/*.sln").First()
-	target = project
-	if Exist(project):
-		target = "Build"
-		sln = project
+	solution = Solution.LoadFrom(sln)
+	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
+	target = "${solutionProject.SolutionPath}"
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
 			Target : target,
 			Parameters : params,
@@ -199,12 +199,11 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	CopyAssets(buildTo)
 
 def CleanWeb(globals as DuckDictionary, project as string):
-	buildTo, projectFile = GetBuildConfig(globals, project)
+	project, buildTo, projectFile = GetBuildConfig(globals, project)
 	sln = FileSet("src/*.sln").First()
-	target = "$project:clean"
-	if Exist(project):
-		target = "Clean"
-		sln = project
+	solution = Solution.LoadFrom(sln)
+	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
+	target = "${solutionProject.SolutionPath}:clean"
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
 			Target : target,
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
@@ -213,11 +212,10 @@ def CleanWeb(globals as DuckDictionary, project as string):
 	Rm("${buildTo}/*", true) if Exist(buildTo)
 
 def Clean(globals as DuckDictionary):
-	project, _, _ = GetBuildConfig(globals)
-	Clean(globals, project)
+	Clean(globals, null)
 
 def Clean(globals as DuckDictionary, project as string):
-	buildTo, projectFile = GetBuildConfig(globals, project)
+	project, buildTo, projectFile = GetBuildConfig(globals, project)
 	MsBuild(projectFile,
 			Target : "clean",
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
@@ -228,17 +226,16 @@ def Clean(globals as DuckDictionary, project as string):
 		MkDir(buildTo)
 
 def XCopyDeploy(globals as DuckDictionary):
-	project, _, _ = GetBuildConfig(globals)
-	XCopyDeploy(globals, project)
+	XCopyDeploy(globals, null)
 
 def XCopyDeploy(globals as DuckDictionary, project as string):
-	deploy = GetDeploy(globals, project)
-	XCopyDeploy(globals, project, deploy)
+	XCopyDeploy(globals, project, null)
 
-def XCopyDeploy(globals as DuckDictionary, name as string, deployTo as string):
-	buildTo, _ = GetBuildConfig(globals, name)
+def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string):
+	project, buildTo, _ = GetBuildConfig(globals, project)
+	deployTo = deployTo or GetDeploy(globals, project)
 
-	CleanDeployDir(globals, name)
+	CleanDeployDir(globals, project)
 
 	files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
 	conf as DuckDictionary = globals.Configuration
@@ -261,10 +258,10 @@ def GetExcludes(globals as DuckDictionary):
 	return excludes
 
 def GetDeploy(globals as DuckDictionary):
-	project, _, _ = GetBuildConfig(globals)
-	return GetDeploy(globals, project)
+	return GetDeploy(globals, null)
 
 def GetDeploy(globals as DuckDictionary, project as string):
+	project, _, _ = GetBuildConfig(globals, project)
 	deployTo = Path.Combine(globals.DeployRoot, project)
 
 	if globals.Maybe.DeployAlias:
