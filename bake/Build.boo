@@ -232,8 +232,8 @@ def XCopyDeploy(globals as DuckDictionary, project as string):
 	XCopyDeploy(globals, project, null)
 
 def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string):
-	project, buildTo, _ = GetBuildConfig(globals, project)
 	deployTo = deployTo or GetDeploy(globals, project)
+	project, buildTo, _ = GetBuildConfig(globals, project)
 
 	CleanDeployDir(globals, project)
 
