@@ -84,7 +84,7 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 	output = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
 	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
 	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
-	return (projectName, output, projectFile)
+	return (project, output, projectFile)
 
 def CleanDeployDir(globals as DuckDictionary, project as string):
 	deployTo = GetDeploy(globals, globals.Project.ToString())
