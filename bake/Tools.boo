@@ -88,6 +88,10 @@ def ExecuteProcess(exe as string, command as string, baseDirectory as string):
 	process.OutputDataReceived += {p, a| output += a.Data + "\r\n" }
 	process.ErrorDataReceived += {p, a| error += a.Data + "\r\n"}
 	process.WaitForExit(TimeSpan.FromMinutes(2).TotalMilliseconds)
+	unless process.HasExited:
+		raise "Процесс $exe $command не завершился за 2 минуты $error $output"
+	if process.ExitCode != 0:
+		raise "Процесс $exe $command завершился со статусом ${process.ExitCode} $error $output"
 	if error.Trim():
 		raise "При запуске комманды '$exe $command' возникла ошибка, $error"
 	#иногда процесс уже завершился но данные гдето "блуждают"
