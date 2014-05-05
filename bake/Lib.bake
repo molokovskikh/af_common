@@ -23,7 +23,11 @@ class Hint:
 		if Match(package):
 			if Action == "d":
 				print "hint hit for $Id $Version uninstall $Target"
-				manager.UninstallPackage(Target)
+				try:
+					manager.UninstallPackage(Target)
+				except e as InvalidOperationException:
+					#игнорируем ошибки если пакет не установлен
+					print e
 			if Action == "i":
 				print "hint hit for $Id $Version install $Target"
 				manager.InstallPackage(Target)

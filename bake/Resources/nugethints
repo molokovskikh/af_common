@@ -4,6 +4,7 @@
 #c - ограничение версии
 NHibernate [3.1.0.4000] d NHibernate.Castle
 NHibernate [3.1.0.4000] x post-update-nhibernate-3.1.sh
+Castle.ActiveRecord 0.0 d NHibernate.Castle
 CassiniDev [3.5.1.2] s -
 #в 1.9.2 сломан метод Extract
 DotNetZip [1.9.1.8] s -
