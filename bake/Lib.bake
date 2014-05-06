@@ -364,7 +364,7 @@ task "packages:install", ["packages:clean"]:
 	Save(paths, path, filename, packagesNames)
 
 	for file in GetProjects():
-		if XDocument.Load(file).Descendants().Where({n| n.Name.LocalName == @Import}).Any({n| n.Attribute(@Project).Value.IndexOf("msbuild.gen.prop") >= 0}):
+		if XDocument.Load(file).Descendants().Where({n| n.Name.LocalName == @Import}).Any({n| n.Attribute(@Project) != null and n.Attribute(@Project).Value.IndexOf("msbuild.gen.prop") >= 0}):
 			SavePropfile(file, paths, packagesNames)
 
 desc """
