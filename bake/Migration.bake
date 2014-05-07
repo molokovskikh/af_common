@@ -112,7 +112,12 @@ def LoadProjectAssemblies():
 		if assembly = FindAssembly(name):
 			assemblies.Add(assembly)
 		else:
-			print "can`t find assembly $name"
+			project, _, projectFile = GetBuildConfig(Globals)
+			assembly = (Path.GetDirectoryName(projectFile), ).SelectMany({d| BinVariants(project).Select({b| Path.Combine(d, b)})}).FirstOrDefault({p| Exist(p)})
+			if assembly:
+				assemblies.Add(assembly)
+			else:
+				print "can`t find assembly $name"
 
 	if Globals.Maybe.AdditionalAssemblies:
 		for name in Globals.AdditionalAssemblies:
@@ -262,15 +267,9 @@ def Apply(fileName as string):
 	print "executed in ${seconds}s, ${rows} rows affected"
 	Db.Execute("insert into logs.SchemaMigrations Values('${migration}', now())")
 
-#def GetMark(migration as string):
-#	match migration:
-#		case /^\d+_/:
-#			return
-
 def ToTimeStamp(m as string):
 	chars = m[:m.IndexOf("_")].ToCharArray()
 	return Convert.ToUInt64(string(chars))
-
 
 def Migrate(migrations as string*):
 	migrated = GetMigrated()
@@ -444,22 +443,23 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 	keyColumns = key.ColumnIterator.ToArray()
 	for keyMetadata as IForeignKeyMetadata in metaKeys.Values:
 		columns = keyMetadata.Columns
-		for c in keyMetadata.Columns:
-			if columns.Length != keyColumns.Length:
-				continue
-			match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
-			if match:
-				return true
+		if columns.Length != keyColumns.Length:
+			continue
+		match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
+		if match:
+			return true
 
 	for keyMetadata as IIndexMetadata in indexes.Values:
 		columns = keyMetadata.Columns
-		keyColumns = key.ColumnIterator.ToArray()
-		for c in keyMetadata.Columns:
-			if columns.Length != keyColumns.Length:
-				continue
-			match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
-			if match:
-				return true
+		#mysql может использовать в кажестве индекса ключа композитный индекс если первый столбец совпадает
+		if keyColumns.Length == 1 and columns.Length > 1 and keyColumns[0].Name.ToLower() == columns[0].Name.ToLower():
+			return true
+		if columns.Length != keyColumns.Length:
+			continue
+		match = keyColumns.All({c| columns.Any({mc| mc.Name.ToLower() == c.Name.ToLower()}) })
+		if match:
+			return true
+
 	return false
 
 desc """

@@ -33,7 +33,7 @@ git add -A -- lib || :
 git add -f -- packages/packages.config || :
 
 #обновляем пакеты
-bake -s packages:update | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+bake -s packages:update
 bake -s packages:save | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
 bake packages:install || bake -s packages:install | iconv -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
 #правим ссылки в сборках
