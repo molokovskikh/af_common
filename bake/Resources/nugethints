@@ -22,3 +22,5 @@ Microsoft.AspNet.WebApi.Client 0.0 c [0.0,5.0)
 Microsoft.AspNet.WebApi.Core 0.0 c [0.0,5.0)
 Microsoft.AspNet.WebApi.SelfHost 0.0 c [0.0,3.0)
 Microsoft.AspNet.WebApi.WebHost 0.0 c [0.0,3.0)
+#reactiveuit 5 не совместим с .net 4
+reactiveui 0.0 c [0.0,5.0)
