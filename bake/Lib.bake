@@ -261,7 +261,7 @@ def GetProjects():
 
 def SavePropfile(projectfile as string, libPaths as string, libNames as (string)):
 	projectRoot = Path.GetDirectoryName(projectfile)
-	savePath = Path.Combine(projectRoot, "msbuild.gen.prop")
+	savePath = Path.Combine(projectRoot, "msbuild.gen.props")
 	rootPath = Path.GetDirectoryName(CalculateRelativePath(projectRoot, Path.GetFullPath(".")))
 	Save(libPaths, rootPath, savePath, libNames)
 
@@ -274,20 +274,22 @@ task @packages, ["packages:init", "packages:install"]:
 	libNames = GetPackages().Select({p| p.Name}).ToArray()
 	libPaths = GetLibPaths()
 	for file in GetProjects():
-		importPath = "src/ProjectLib.properties"
-		candidate1 = CalculateRelativePath(file, importPath)
-		if candidate1 == "..\\ProjectLib.properties":
-			importPath = candidate1
-		else:
-			candidate2 = CalculateRelativePath(file, "src/lib.properties")
-			if candidate2 == "..\\..\\lib.properties":
-				importPath = candidate2
-			else:
-				importPath = "msbuild.gen.prop"
-				SavePropfile(file, libPaths, libNames)
-
 		document = XDocument.Load(file)
 		projectNode = document.Elements().First()
+		toDelete = projectNode.Elements().Where({e| e.Name.LocalName == @Import and\
+			((e.Attribute(@Project).Value or "").ToLower().EndsWith("lib.properties")\
+			or (e.Attribute(@Project).Value or "").ToLower().EndsWith("projectlib.properties")\
+			or (e.Attribute(@Project).Value or "").ToLower().EndsWith("srclib.properties")\
+			or (e.Attribute(@Project).Value or "").ToLower().EndsWith("msbuild.gen.prop"))\
+		}).ToArray()
+		for el in toDelete:
+			el.Remove()
+		if toDelete.Length:
+			document.Save(file)
+
+		importPath = "msbuild.gen.props"
+		SavePropfile(file, libPaths, libNames)
+
 		importNode = projectNode.Elements().FirstOrDefault({e| e.Name.LocalName == @Import and\
 			e.Attribute(@Project).Value == importPath})
 		unless importNode:
@@ -350,21 +352,8 @@ task "packages:install", ["packages:clean"]:
 	packagesNames = nugetPackages.Select({p| p.Name}).ToArray()
 
 	paths = GetLibPaths()
-	#todo fix!
-	filename = "src/Lib.properties"
-	path = "..\\..\\.."
-	Save(paths, path, filename, packagesNames)
-
-	filename = "src/ProjectLib.properties"
-	path = "..\\.."
-	Save(paths, path, filename, packagesNames)
-
-	filename = "src/SrcLib.properties"
-	path = "..\\..\\..\\.."
-	Save(paths, path, filename, packagesNames)
-
 	for file in GetProjects():
-		if XDocument.Load(file).Descendants().Where({n| n.Name.LocalName == @Import}).Any({n| n.Attribute(@Project) != null and n.Attribute(@Project).Value.IndexOf("msbuild.gen.prop") >= 0}):
+		if XDocument.Load(file).Descendants().Where({n| n.Name.LocalName == @Import}).Any({n| n.Attribute(@Project) != null and n.Attribute(@Project).Value.IndexOf("msbuild.gen.props") >= 0}):
 			SavePropfile(file, paths, packagesNames)
 
 desc """
