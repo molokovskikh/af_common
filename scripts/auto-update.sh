@@ -15,6 +15,7 @@ git submodule foreach git clean -fdx
 fix-ref.sh
 update-stylecop.sh
 fix-stylecop.sh
+bake packages
 git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :
 fix-js.sh

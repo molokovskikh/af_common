@@ -134,6 +134,7 @@ internetProfile = DbProfile(\
 		"internet.submenufield",
 		"internet.sitecontent",
 		"internet.ViewTexts",
+		"internet.packagespeed",
 		"internet.networkzones"))
 
 PrgDataProfile = DbProfile(\
