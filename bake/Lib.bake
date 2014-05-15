@@ -257,7 +257,7 @@ def GetLibPaths():
 	return String.Join(";", packages.ToArray())
 
 def GetProjects():
-	return FileSet("src/**/*.*proj").Files.Concat(FileSet("test/**/*.*proj").Files)
+	return FileSet("src/**/*.*proj").Concat(FileSet("test/**/*.*proj")).Concat(FileSet("lib/**/*.csproj"))
 
 def SavePropfile(projectfile as string, libPaths as string, libNames as (string)):
 	projectRoot = Path.GetDirectoryName(projectfile)
