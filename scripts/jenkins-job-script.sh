@@ -1,5 +1,9 @@
 #!/bin/sh
 
+set -e
+set -x
+set -v
+
 function wait_pid {
 	for i in `seq 0 120`; do
 		pids=`ps -W | /bin/grep mysqld | awk '{print $1}'`
@@ -23,9 +27,6 @@ clean()
 
 trap "clean" ERR
 
-set -e
-set -x
-
 PATH=/cygdrive/c/Windows/Microsoft.NET/Framework/v4.0.30319/:$PATH
 
 if [ -z "$SKIP_DB" ]; then
@@ -40,7 +41,7 @@ then
 fi
 
 if [ -z "$SKIP_DB" ]; then
-	bake -s RunMySql path=data randomPort=true notInteractive=true | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+	bake -s RunMySql path=data randomPort=true notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 	port=$(cat data/port)
 	grep "(Data Source|server)=localhost" src -lRP | xargs perl -i -pe "s/connectionString=\"([^\"]*)?port=\d+;([^\"]*)?\"/connectionString=\"port="$port";\1\2\"/gi"
 	grep "(Data Source|server)=localhost" src -lRP | xargs perl -i -pe 's/(Data Source|server)=localhost/Data Source=localhost;port='$port'/gi'
@@ -50,18 +51,18 @@ if [ -e ./scripts/prepare.sh ]
 then
 	./scripts/prepare.sh
 else
-	bake -s packages:install notInteractive=true | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+	bake -s packages:install notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 	if [ $? -ne 0 ]; then
 		exit $?
 	fi
-	bake -s fix:packages | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+	bake -s fix:packages | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 fi
-bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 if [ -z "$SKIP_DB" ]; then
-	bake db:setup Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+	bake db:setup Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 fi
 bake generate:binding:redirection notInteractive=true
-bake test Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[0]} -eq 0
+bake test Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 
 git checkout .
 git submodule foreach git checkout .
