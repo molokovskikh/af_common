@@ -15,7 +15,7 @@ git submodule foreach git clean -fdx
 fix-ref.sh
 update-stylecop.sh
 fix-stylecop.sh
-bake packages
+bake -s packages
 git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :
 for f in `find -iname '.gitignore' | xargs grep -L '\*\.gen\.\*'`; do echo -ne "\n*.gen.*" >> $f; done;
