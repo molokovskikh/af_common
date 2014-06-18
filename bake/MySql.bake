@@ -46,7 +46,7 @@ def InitMySql(datadir, options):
 	for file in initScriptFiles:
 		initSql += File.ReadAllText(Path.Combine(mysqlDir, file))
 
-	Run("mysqld", "--console --standalone $options --datadir=\"$datadir\" --bootstrap", initSql)
+	Run("mysqld", "$options --console --standalone --datadir=\"$datadir\" --bootstrap", initSql)
 
 task @RunMySql, ["db:start"]
 
