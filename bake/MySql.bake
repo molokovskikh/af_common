@@ -62,6 +62,9 @@ task "db:start":
 	datadir = Path.GetFullPath(dataRoot).Replace("\\", "/")
 	port = Random().Next(10000, 20000).ToString() if Configuration.Maybe.randomPort
 	port = Globals.Maybe.Port or Configuration.Maybe.port unless port
+	unless port:
+		if Exist("data/port"):
+			port = File.ReadAllText("data/port")
 	print port
 
 	MkDir(dataRoot) unless Exist(dataRoot)
