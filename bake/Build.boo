@@ -87,7 +87,10 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 	return (project, output, projectFile)
 
 def CleanDeployDir(globals as DuckDictionary, project as string):
-	deployTo = GetDeploy(globals, globals.Project.ToString())
+	CleanDeployDir(globals, project, null)
+
+def CleanDeployDir(globals as DuckDictionary, project as string, deployTo as string):
+	deployTo = deployTo or GetDeploy(globals, project)
 	excludes = GetExcludes(globals);
 	excludes.Add("*.log")
 	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
@@ -235,7 +238,7 @@ def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string
 	deployTo = deployTo or GetDeploy(globals, project)
 	project, buildTo, _ = GetBuildConfig(globals, project)
 
-	CleanDeployDir(globals, project)
+	CleanDeployDir(globals, project, deployTo)
 
 	files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
 	conf as DuckDictionary = globals.Configuration
