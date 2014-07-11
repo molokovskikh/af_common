@@ -18,6 +18,7 @@ import NHibernate.AdoNet.Util
 import NHibernate.Tool.hbm2ddl
 import NHibernate.Dialect.Schema
 
+
 class Migration:
 	property Version as string
 	property MigratedOn as DateTime?
@@ -60,6 +61,14 @@ class Migration:
 
 		print "saved to $FileName"
 
+	def Save(filename as string):
+		unless FileName:
+			if filename:
+				FileName = GetMigrationFileName(filename)
+			else:
+				FileName = GetMigrationFileNameByRequest()
+		Save()
+
 	def GetRollbackFile():
 		id = GetId()
 		return Path.Combine("migrations", "${id}_rollback.sql")
@@ -95,6 +104,23 @@ class Migration:
 
 	override def ToString():
 		return Version
+
+	static def GetMigrationFileName(filename as string) as string:
+		extension = Path.GetExtension(filename)
+		filename = Path.GetFileNameWithoutExtension(filename)
+		if not extension:
+			extension = ".sql"
+		mark = Convert.ToInt32(DateTime.Now.Subtract(DateTime(2011, 1, 1)).TotalDays)
+		countMigrationMark = "00"
+		if Exist(@migrations):
+			localMigrations = Directory.GetFiles("migrations", "${mark}_*.*")
+			countMigrationMark = localMigrations.Where({m| not m.ToLower().EndsWith("_rollback.sql")}).Count().ToString("00")
+		return "${mark}_${countMigrationMark}_${filename}${extension}"
+
+	static def GetMigrationFileNameByRequest() as string:
+		Console.Write("enter file name:")
+		filename = Console.ReadLine()
+		return GetMigrationFileName(filename.Trim())
 
 activeRecordInitalized = false
 
@@ -283,26 +309,10 @@ def Migrate(migrations as string*):
 		PrintMigration(migration, fileName)
 		Apply(fileName)
 
-def GetMigrationFileName(filename as string) as string:
-	extension = Path.GetExtension(filename)
-	filename = Path.GetFileNameWithoutExtension(filename)
-	if not extension:
-		extension = ".sql"
-	mark = Convert.ToInt32(DateTime.Now.Subtract(DateTime(2011, 1, 1)).TotalDays)
-	countMigrationMark = "00"
-	if Exist(@migrations):
-		localMigrations = Directory.GetFiles("migrations", "${mark}_*.*")
-		countMigrationMark = localMigrations.Where({m| not m.ToLower().EndsWith("_rollback.sql")}).Count().ToString("00")
-	return "${mark}_${countMigrationMark}_${filename}${extension}"
-
-def GetMigrationFileNameByRequest() as string:
-	Console.Write("enter file name:")
-	filename = Console.ReadLine()
-	return GetMigrationFileName(filename.Trim())
 
 def Save(filename as string, commands as string*):
 	if not filename:
-		filename = GetMigrationFileNameByRequest()
+		filename = Migration.GetMigrationFileNameByRequest()
 
 	if not Exist("migrations"):
 		MkDir("migrations")
@@ -322,11 +332,7 @@ def StartEditor(fileName as string):
 
 def ProcessMigration(migration as Migration):
 	migration.Print()
-	unless migration.FileName:
-		if Configuration.Maybe.file:
-			migration.FileName = GetMigrationFileName(Configuration.Maybe.file)
-		else:
-			migration.FileName = GetMigrationFileNameByRequest()
+	filename = Configuration.Maybe.file
 
 	quiet = false
 	if Configuration.Maybe.quiet:
@@ -336,15 +342,15 @@ def ProcessMigration(migration as Migration):
 		migration.Save()
 		return
 
-	Console.Write("what should I do [s]ave migration, [a]ply and save or [e]dit?")
+	Console.Write("what should I do [s]ave migration, [a]ply and save, [e]dit, e[x]it?")
 	match Console.ReadLine():
 		case "a":
-			migration.Save()
+			migration.Save(filename)
 			Apply(migration.FileName)
 		case "s":
-			migration.Save()
+			migration.Save(filename)
 		case "e":
-			migration.Save()
+			migration.Save(filename)
 			StartEditor(migration.FileName)
 		otherwise:
 			return
@@ -398,7 +404,7 @@ desc """
 task "db:migration:init":
 	if ImInProject():
 		MkDir("migrations") if not Exist("migrations")
-		filename = GetMigrationFileNameByRequest()
+		filename = Migration.GetMigrationFileNameByRequest()
 		filename = Path.Combine("migrations", filename)
 		File.WriteAllText(filename, "")
 		print "saved to ${filename}"
@@ -536,7 +542,7 @@ task "db:generate:log", [@OnlyInProject]:
 	migration.Commands.Add(GetLogTriggerCommand("DELETE", database, table, sufix))
 	migration.Commands.Add(GetLogTriggerCommand("UPDATE", database, table, sufix))
 	migration.Commands.Add(GetLogTriggerCommand("INSERT", database, table, sufix))
-	migration.FileName = GetMigrationFileName("${database}${table}UpdateLogging")
+	migration.FileName = Migration.GetMigrationFileName("${database}${table}UpdateLogging")
 	ProcessMigration(migration)
 
 def AlterRoutnie(type as string, db as string, name as string):
