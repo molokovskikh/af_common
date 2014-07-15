@@ -263,12 +263,10 @@ def GetExcludes(globals as DuckDictionary):
 def GetDeploy(globals as DuckDictionary):
 	return GetDeploy(globals, null)
 
-def GetDeploy(globals as DuckDictionary, project as string):
+def GetDeploy(globals as DuckDictionary, project as string, deployAlias as string):
 	project, _, _ = GetBuildConfig(globals, project)
-	deployTo = Path.Combine(globals.DeployRoot, project)
-
-	if globals.Maybe.DeployAlias:
-		deployTo = Path.Combine(globals.DeployRoot, globals.DeployAlias)
+	name = deployAlias or project
+	deployTo = Path.Combine(globals.DeployRoot, name)
 
 	if globals.Maybe.deployTo:
 		deployTo = globals.deployTo
@@ -280,3 +278,6 @@ def GetDeploy(globals as DuckDictionary, project as string):
 		raise """Не знаю куда разворачивать проект нужно задать либо Globals.DeployTo = '<путь куда выкладывать>'
 	либо название проекта Globals.Project тогда он будет выложен на Globals.DeployRoot по умолчанию это \\acdcserv.adc.analit.net\WebApps\"""
 	return deployTo
+
+def GetDeploy(globals as DuckDictionary, project as string):
+	return GetDeploy(globals, project, globals.Maybe.DeployAlias)
