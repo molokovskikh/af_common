@@ -2,6 +2,14 @@ import System.Linq
 import Bake.Engine
 import FubuCsProjFile
 
+def GetConfigSufix(Globals as duck):
+	if Globals.Environment == @Production:
+		return "release.config"
+	if Globals.Environment == @Local:
+		return "config"
+	env = Globals.Environment.ToLower()
+	return "$env.config"
+
 def StartServices(services as ServiceController*):
 	for service in services:
 		service.Start()
@@ -110,6 +118,7 @@ def Build(globals as DuckDictionary, project as string):
 	unless Exist(config):
 		config = FileSet("$buildTo/*.config").Files.FirstOrDefault() or config
 	Cp(src, config, true) if Exist(src)
+	RmDir("$buildTo/_PublishedWebsites", true)
 
 def DeployService(globals as DuckDictionary, app as string, host as string):
 	DeployService(globals, app, host, "\\\\$host\\apps\\$app")

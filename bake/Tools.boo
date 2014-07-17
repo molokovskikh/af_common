@@ -147,14 +147,6 @@ def ToPascal(text as string):
 		toUpper = false
 	return pascaled[0].ToString().ToUpper() + pascaled[1:]
 
-def GetConfigSufix(Globals as duck):
-	if Globals.Environment == @Production:
-		return "release.config"
-	if Globals.Environment == @Local:
-		return ".config"
-	env = Globals.Environment.ToLower()
-	return "$env.config"
-
 def GetGitDir(command as string, workDir as string):
 	output = ""
 	error = ""
