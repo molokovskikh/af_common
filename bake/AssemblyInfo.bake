@@ -32,6 +32,10 @@ def GetVersionTags():
 
 task @UpdateRevision, ["version:bump"]
 
+desc """
+создает новый тего версии увеличиваю существующий на 1
+что пропустить skipVersionBump=true
+"""
 task "version:bump":
 	return unless Globals.Environment == @Production
 	return if Configuration.Maybe.skipVersionBump
