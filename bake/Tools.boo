@@ -39,7 +39,7 @@ def RepeatTry(action as callable()):
 			if interation >= 10:
 				raise
 			print "can`t access files, sleep..."
-			System.Threading.Thread.Sleep(1000)
+			System.Threading.Thread.Sleep(5000)
 
 def CalculateRelativePath(base as string, dst as string):
 	return Uri(Path.GetFullPath(base)).MakeRelative(Uri(Path.GetFullPath(dst))).Replace("/", "\\")
