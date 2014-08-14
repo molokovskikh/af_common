@@ -10,11 +10,19 @@ import NuGet from NuGet.Core
 import NuGet.PackageRepositoryExtensions from NuGet.Core
 
 class Hint:
-	public static Hints as List of Hint
 	public Id as string
 	public Version as IVersionSpec
 	public Action as string
 	public Target as string
+
+	def constructor():
+		pass
+
+	def constructor(id as string, version as string, action as string, target as string):
+		Id = id
+		Version = VersionUtility.ParseVersionSpec(version)
+		Action = action
+		Target = target
 
 	def Match(package as IPackage):
 		return Id == package.Id and Version.Satisfies(package.Version)
@@ -46,28 +54,29 @@ class Hint:
 			return null
 		return Hint(Id: parts[0], Version: VersionUtility.ParseVersionSpec(parts[1]), Action: parts[2], Target: parts[3])
 
-	static def GetHints():
-		hints = Hint.Hints
-		unless hints:
-			hints = List[of Hint]()
-			Hint.Hints = hints
-			hintsfile = GetResource(@nugethints)
-			if Exist(hintsfile):
-				lines = File.ReadAllLines(hintsfile)
-				for line in lines:
-					hint = Hint.TryParse(line)
-					continue unless hint
-					hints.Add(hint)
-			print "loaded ${hints.Count} hints"
+	static def GetHints(globals as DuckDictionary):
+		hints = List[of Hint]()
+		hintsfile = GetResource(@nugethints)
+		unparsedHints = ReadGlobalConfig(globals, "packages:update", @hints) or (of string:,)
+		if Exist(hintsfile):
+			unparsedHints = File.ReadAllLines(hintsfile).Concat(unparsedHints).ToArray()
+		for line in unparsedHints:
+			hint = Hint.TryParse(line)
+			continue unless hint
+			hints.Add(hint)
+		print "loaded ${hints.Count} hints"
 		return hints
 
-	static def GetConstrain(package as IPackage):
-		return GetHints().Where({h| h.Match(package) and h.Action == "c"})\
+	override def ToString():
+		return "$Id $Version $Action $Target"
+
+	static def GetConstrain(hints as Hint*, package as IPackage):
+		return hints.Where({h| h.Match(package) and h.Action == "c"})\
 			.Select({h| VersionUtility.ParseVersionSpec(h.Target)})\
 			.FirstOrDefault()
 
-def CheckHints(package as IPackage, update as IPackage, manager as PackageManager):
-	for hint in Hint.GetHints():
+def CheckHints(hints as Hint*, package as IPackage, update as IPackage, manager as PackageManager):
+	for hint in hints:
 		return false unless hint.Apply(package, update, manager)
 	return true
 
@@ -360,6 +369,7 @@ desc """
 обновляет пакеты из packages.config
 """
 task "packages:update":
+	hints = Hint.GetHints(Globals)
 	root = Path.GetFullPath("packages")
 	fs = PhysicalFileSystem(root)
 	settings = Settings.LoadDefaultSettings(fs, null, null)
@@ -380,11 +390,11 @@ task "packages:update":
 	reffiles = GetSlnPackageConfigs().Select({f| PackageReferenceRepository(PhysicalFileSystem(Path.GetDirectoryName(f)), "", localRepository)}).ToArray()
 	for package in packages:
 		print package
-		versionConstraint = Hint.GetConstrain(package)
+		versionConstraint = Hint.GetConstrain(hints, package)
 		updated as IPackage = PackageRepositoryExtensions.FindPackage(rep, package.Id, versionConstraint, c, false, false)
 		continue unless updated
 		continue if package.Version >= updated.Version
-		continue unless CheckHints(package, updated, packageManager)
+		continue unless CheckHints(hints, package, updated, packageManager)
 		try:
 			packageManager.UpdatePackage(package.Id, versionConstraint, true, false)
 			for reffile in reffiles:
