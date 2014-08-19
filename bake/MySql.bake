@@ -48,8 +48,6 @@ def InitMySql(datadir, options):
 
 	Run("mysqld", "$options --console --standalone --datadir=\"$datadir\" --bootstrap", initSql)
 
-task @RunMySql, ["db:start"]
-
 desc """
 запускает mysql сервер
 параметры
