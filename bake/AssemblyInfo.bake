@@ -28,7 +28,7 @@ def GetVersionTags():
 		v as Version
 		if Version.TryParse(tag.Replace("v", ""), v):
 			versions.Add(v)
-	return versions
+	return versions.OrderBy({v| return v}).ToList()
 
 task @UpdateRevision, ["version:bump"]
 
