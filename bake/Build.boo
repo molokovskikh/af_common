@@ -172,7 +172,8 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	sln = FileSet("src/*.sln").First()
 	solution = Solution.LoadFrom(sln)
 	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
-	target = "${solutionProject.SolutionPath}"
+	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
+	target = projectNameForMsbuild
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
 			Target : target,
 			Parameters : params,
@@ -215,7 +216,8 @@ def CleanWeb(globals as DuckDictionary, project as string):
 	sln = FileSet("src/*.sln").First()
 	solution = Solution.LoadFrom(sln)
 	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
-	target = "${solutionProject.SolutionPath}:clean"
+	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
+	target = "$projectNameForMsbuild:clean"
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
 			Target : target,
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
