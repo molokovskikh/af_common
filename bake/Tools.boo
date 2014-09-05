@@ -95,8 +95,7 @@ def ExecuteProcess(exe as string, command as string, baseDirectory as string):
 	if error.Trim():
 		raise "При запуске комманды '$exe $command' возникла ошибка, $error"
 	#иногда процесс уже завершился но данные гдето "блуждают"
-	unless output.Length:
-		Thread.Sleep(100)
+	Thread.Sleep(100)
 	return output
 
 def GetVersion():
