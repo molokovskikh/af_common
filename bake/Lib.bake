@@ -143,27 +143,6 @@ def CleanUp(value as string, libPath as string):
 def ReferencePath(prefix as string, libs as string*):
 	return String.Join(";", libs.Select({l| '$(' + prefix + ')\\' + l}).ToArray())
 
-def BuildLibProperties(prefix as string, filename as string, libPath as string, paths as string*):
-	xmlNamespace = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003")
-	if Exist(filename):
-		document = XDocument.Load(filename)
-		element = document.Descendants().First({e| e.Name.LocalName == @ReferencePath})
-		value = CleanUp(element.Value, libPath)
-		libs = paths.Where({p| value.IndexOf(p) < 0})
-		element.Value = value + ";" + ReferencePath(prefix, libs)
-
-		unless document.Descendants().FirstOrDefault({e| e.Name.LocalName == prefix}):
-			propertyGroup = document.Descendants().First({e| e.Name.LocalName == @PropertyGroup})
-			propertyGroup.AddFirst(XElement(xmlNamespace + prefix, libPath))
-
-		document.Save(filename)
-	else:
-		document = XDocument(XElement(xmlNamespace + @Project,\
-			XElement(xmlNamespace + @PropertyGroup,\
-				XElement(xmlNamespace + prefix, libPath),\
-				XElement(xmlNamespace + @ReferencePath, ReferencePath(prefix, paths)))))
-		document.Save(filename)
-
 def CheckPlatformSpecificVersion(path as string, max as string):
 	aliases = {
 		"net45" : ("net45", ),
@@ -190,38 +169,6 @@ def GetLibPath(dir as string):
 	version as Version
 	return subdirs[0] if version.TryParse(Path.GetFileName(subdirs[0]), version)
 	return dir
-
-def Serialize(filename as string, value):
-	serializer = XmlSerializer(value.GetType())
-	using stream = File.Create(filename):
-		serializer.Serialize(stream, value)
-
-def Save(paths as string, path as string, filename as string, names as (string)):
-	project = Project()
-	serializer = XmlSerializer(project.GetType())
-	project.PropertyGroup = PropertyGroup()
-	if Exist(filename):
-		#периодически файл оказывается поврежден, студия?
-		try:
-			using stream = File.OpenRead(filename):
-				project = cast(Project, serializer.Deserialize(stream))
-		except e:
-			Rm(filename)
-
-	project.PropertyGroup.LibPath = path
-	project.PropertyGroup.PackagePath = path
-	project.PropertyGroup.ReferencePath = paths
-	project.PropertyGroup.DefineConstants = String.Join(";", names.Select({n| n.Replace(".", "_").Replace("-", "_")}))
-
-	dir = Directory.GetDirectories(@packages)\
-		.Select({d| Path.GetFileName(d)})\
-		.FirstOrDefault({d| d.StartsWith("StyleCop.MSBuild.")})
-	project.PropertyGroup.StylecopPath = "\$(PackagePath)\\packages\\$dir"
-	dir = Directory.GetDirectories(@packages)\
-		.Select({d| Path.GetFileName(d)})\
-		.FirstOrDefault({d| d.StartsWith("StyleCopAddOn.")})
-	project.PropertyGroup.StylecopAddonPath = "\$(PackagePath)\\packages\\$dir"
-	Serialize(filename, project)
 
 
 def NugetInstall(config as string):
@@ -268,11 +215,36 @@ def GetLibPaths():
 def GetProjects():
 	return FileSet("src/**/*.*proj").Concat(FileSet("test/**/*.*proj")).Concat(FileSet("lib/**/*.csproj"))
 
-def SavePropfile(projectfile as string, libPaths as string, libNames as (string)):
+def SavePropfile(projectfile as string, libPaths as string, packages as Package*):
 	projectRoot = Path.GetDirectoryName(projectfile)
-	savePath = Path.Combine(projectRoot, "msbuild.gen.props")
+	filename = Path.Combine(projectRoot, "msbuild.gen.props")
 	rootPath = Path.GetDirectoryName(CalculateRelativePath(projectRoot, Path.GetFullPath(".")))
-	Save(libPaths, rootPath, savePath, libNames)
+	names = packages.Select({p| p.Name}).ToArray()
+	consts = String.Join(";", names.Select({n| n.Replace(".", "_").Replace("-", "_")}))
+	dir = Directory.GetDirectories(@packages)\
+		.Select({d| Path.GetFileName(d)})\
+		.FirstOrDefault({d| d.StartsWith("StyleCop.MSBuild.")})
+	stylecopPath = "\$(PackagePath)\\packages\\$dir"
+	dir = Directory.GetDirectories(@packages)\
+		.Select({d| Path.GetFileName(d)})\
+		.FirstOrDefault({d| d.StartsWith("StyleCopAddOn.")})
+	stylecopAddonPath = "\$(PackagePath)\\packages\\$dir"
+
+	xmlNamespace = XNamespace.Get("http://schemas.microsoft.com/developer/msbuild/2003")
+	node = XElement(xmlNamespace + @PropertyGroup,\
+			XElement(xmlNamespace + @LibPath, rootPath),\
+			XElement(xmlNamespace + @PackagePath, rootPath),\
+			XElement(xmlNamespace + @ReferencePath, libPaths),\
+			XElement(xmlNamespace + @DefineConstants, consts),\
+			XElement(xmlNamespace + @StyleCopPath, stylecopPath),\
+			XElement(xmlNamespace + @StylecopAddonPath, stylecopAddonPath)\
+	)
+	document = XDocument(XElement(xmlNamespace + @Project, node))
+	for package in packages:
+		nodeName = "Lib_" + package.Name.Replace(".", "_").Replace("-", "_")
+		nodeValue = "\$([System.Version]::Parse(\"${package.Version}\"))"
+		node.Add(XElement(xmlNamespace + nodeName, nodeValue))
+	document.Save(filename)
 
 desc """
 импортирует библиотки из packages в файлы проектов
@@ -280,7 +252,6 @@ desc """
 task @packages, ["packages:init", "packages:install"]:
 	return unless Exist(@packages)
 
-	libNames = GetPackages().Select({p| p.Name}).ToArray()
 	libPaths = GetLibPaths()
 	for file in GetProjects():
 		document = XDocument.Load(file)
@@ -297,7 +268,7 @@ task @packages, ["packages:init", "packages:install"]:
 			document.Save(file)
 
 		importPath = "msbuild.gen.props"
-		SavePropfile(file, libPaths, libNames)
+		SavePropfile(file, libPaths, GetPackages())
 
 		importNode = projectNode.Elements().FirstOrDefault({e| e.Name.LocalName == @Import and\
 			e.Attribute(@Project).Value == importPath})
@@ -358,12 +329,11 @@ task "packages:install", ["packages:clean"]:
 	for config in configs:
 		NugetInstall(config)
 		nugetPackages.AddRange(GetPackagesForConfig(config))
-	packagesNames = nugetPackages.Select({p| p.Name}).ToArray()
 
 	paths = GetLibPaths()
 	for file in GetProjects():
 		if XDocument.Load(file).Descendants().Where({n| n.Name.LocalName == @Import}).Any({n| n.Attribute(@Project) != null and n.Attribute(@Project).Value.IndexOf("msbuild.gen.props") >= 0}):
-			SavePropfile(file, paths, packagesNames)
+			SavePropfile(file, paths, nugetPackages)
 
 desc """
 обновляет пакеты из packages.config
