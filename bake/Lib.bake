@@ -242,7 +242,7 @@ def SavePropfile(projectfile as string, libPaths as string, packages as Package*
 	document = XDocument(XElement(xmlNamespace + @Project, node))
 	for package in packages:
 		nodeName = "Lib_" + package.Name.Replace(".", "_").Replace("-", "_")
-		nodeValue = "\$([System.Version]::Parse(\"${package.Version}\"))"
+		nodeValue = "[System.Version]::Parse(\"${package.Version}\")"
 		node.Add(XElement(xmlNamespace + nodeName, nodeValue))
 	document.Save(filename)
 
