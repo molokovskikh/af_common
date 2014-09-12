@@ -80,18 +80,6 @@ def CheckHints(hints as Hint*, package as IPackage, update as IPackage, manager 
 		return false unless hint.Apply(package, update, manager)
 	return true
 
-[XmlRoot(Namespace: "http://schemas.microsoft.com/developer/msbuild/2003")]
-class Project:
-	property PropertyGroup as PropertyGroup
-
-class PropertyGroup:
-	property LibPath as string
-	property PackagePath as string
-	property ReferencePath as string
-	property StylecopPath as string
-	property StylecopAddonPath as string
-	property DefineConstants as string
-
 class Package:
 	property Name as string
 	property Version as string
@@ -135,14 +123,6 @@ def IsValidPath(path as string, libPath as string):
 	return false if path.IndexOf("LibPath") >= 0
 	return Exist(path.Replace('$(PackagePath)', libPath))
 
-def CleanUp(value as string, libPath as string):
-	return value unless value
-	paths = value.Split(char(';'))
-	return String.Join(";", paths.Where({p| IsValidPath(p, libPath)}))
-
-def ReferencePath(prefix as string, libs as string*):
-	return String.Join(";", libs.Select({l| '$(' + prefix + ')\\' + l}).ToArray())
-
 def CheckPlatformSpecificVersion(path as string, max as string):
 	aliases = {
 		"net45" : ("net45", ),
@@ -169,7 +149,6 @@ def GetLibPath(dir as string):
 	version as Version
 	return subdirs[0] if version.TryParse(Path.GetFileName(subdirs[0]), version)
 	return dir
-
 
 def NugetInstall(config as string):
 	print config if Configuration.Maybe.debug
@@ -311,11 +290,6 @@ task "packages:clean":
 		#в директории похоже сидит студия, делаям несколько подходов
 		RepeatTry:
 			RmDir(package.Dir, true)
-
-desc """
-используй packages:install
-"""
-task @InstallPackages, ["packages:install"]
 
 desc """
 устанавливает пакеты описаные в packages.config
