@@ -138,12 +138,18 @@ def CopyAssets(output as string):
 	assets = Path.Combine(output, "Assets", "Javascripts")
 	for dir in Directory.GetDirectories("packages"):
 		path = Path.Combine(dir, "Content", "Scripts")
-		continue unless Exist(path)
-		javaScripts = FileSet("*.min.js", BaseDirectory: path)
-		if javaScripts.Files.Count:
-			Cp(javaScripts, assets)
-		else:
-			Cp(FileSet("**.*", BaseDirectory: path), assets)
+		if Exist(path):
+			javaScripts = FileSet("**.js", BaseDirectory: path)
+			if javaScripts.Files.Count:
+				Cp(javaScripts, assets)
+			else:
+				Cp(FileSet("**.*", BaseDirectory: path), assets)
+
+		fonts = Path.Combine(dir, "Content", "Fonts")
+		if Exist(fonts):
+			files = FileSet(["*.ttf", "*.svg", "*.woff", "*.eot"], BaseDirectory: fonts)
+			Cp(files, Path.Combine(output, "Assets", "Fonts"))
+
 	javaScripts = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/javascripts/**.*")
 	Cp(javaScripts, assets) if javaScripts.Files.Count
 
@@ -156,6 +162,13 @@ def CopyAssets(output as string):
 		path = Path.Combine(dir, "Content", "Content")
 		continue unless Exist(path)
 		Cp(FileSet("**.*", BaseDirectory: path), assets)
+
+	assets = Path.Combine(output, "Assets", "Stylesheets")
+	for dir in Directory.GetDirectories("packages"):
+		path = Path.Combine(dir, "Content", "Content", "Css")
+		continue unless Exist(path)
+		Cp(FileSet("**.*", BaseDirectory: path), assets)
+
 	styleSheets = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/Stylesheets/**.*")
 	Cp(styleSheets, assets) if styleSheets.Files.Count
 
