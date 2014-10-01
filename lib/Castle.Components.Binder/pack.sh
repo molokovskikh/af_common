@@ -4,6 +4,7 @@ name=binder
 url=git@github.com:radiy/Castle.Components.Binder.git
 mask=Castle.Components.Binder
 
+mkdir -p lib/net40
 if [ ! -d $name ]; then
 git clone $url $name
 fi

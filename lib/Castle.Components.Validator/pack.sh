@@ -4,6 +4,7 @@ name=validator
 url=git@git.analit.net:r.kvasov/validator.git
 mask=Castle.Components.Validator
 
+mkdir -p lib/net40
 if [ ! -d $name ]; then
 git clone $url $name
 fi
