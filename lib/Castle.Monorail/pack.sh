@@ -14,5 +14,6 @@ cp MonoRail/MR2/build/NET40/NET40-Release/bin/Boo.* lib/net40/
 cp MonoRail/MR2/build/NET40/NET40-Release/bin/anrControls.Markdown.NET.* lib/net40/
 cp MonoRail/MR2/build/NET40/NET40-Release/bin/Castle.MonoRail.* lib/net40/
 rm lib/net40/*.Tests.*
+rm lib/net40/*.config
 nuget pack -Verbose Package.nuspec -Exclude '**\MonoRail\**' -Exclude pack.sh
 mv *.nupkg ../../nuget

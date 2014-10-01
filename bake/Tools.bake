@@ -218,7 +218,11 @@ task "fix:packages":
 				reference.PublicKey = (of byte:,)
 				reference.Version = version
 				print "fix ref $reference" if verbose
-			assembly.Write(file)
+			try:
+				assembly.MainModule.ReadSymbols()
+			except e:
+				pass
+			assembly.Write(file, WriterParameters(WriteSymbols: true))
 		except e as NotSupportedException:
 			if verbose:
 				print file
