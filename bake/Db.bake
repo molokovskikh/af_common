@@ -277,15 +277,20 @@ def ImportSchema(mysqldump as string, mysql as string):
 		Rm("schema.txt")
 
 def ImportDatabases(mysqldump as string, mysql as string, databases as (string), ignoreTables as string*):
+	debug = Configuration.Maybe.debug
 	ignoreTablesOption = join(ignoreTables.Select({t| "--ignore-table=" + t}).ToArray())
 	return unless databases
 	i = 0
 	for database in databases:
 		filename = "db.data.$database.txt"
 		Time "export $database ${++i} of ${len(databases)}":
-			Sh("$mysqldump --skip-triggers --no-create-db --no-create-info $database $ignoreTablesOption > $filename")
+			exportCmd = "$mysqldump --insert-ignore --skip-triggers --no-create-db --no-create-info $database $ignoreTablesOption > $filename"
+			print exportCmd if debug
+			Sh(exportCmd)
 		Time "import $database":
-			Sh("$mysql -D$database < $filename")
+			importCmd = "$mysql -D$database < $filename"
+			print importCmd if debug
+			Sh(importCmd)
 		unless Configuration.Maybe.DoNotClean:
 			Rm(filename)
 
@@ -296,7 +301,7 @@ def ImportTables(mysqldump as string, mysql as string, tables as (string)):
 		database, tableName = table.Split(char('.'))
 		filename = "table.data.$table.txt"
 		Time "export $table ${++i} of ${len(tables)}":
-			Sh("$mysqldump --skip-triggers --no-create-db --no-create-info --tables $database $tableName > $filename")
+			Sh("$mysqldump --insert-ignore --skip-triggers --no-create-db --no-create-info --tables $database $tableName > $filename")
 		Time "import $table":
 			Sh("$mysql -D$database < $filename")
 		unless Configuration.Maybe.DoNotClean:

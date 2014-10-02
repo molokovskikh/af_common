@@ -19,5 +19,6 @@ rm -r lib/net40/*
 cp ./$name/build/NET40/NET40-Release/bin/$mask.* lib/net40/
 cp -r ./$name/build/NET40/NET40-Release/bin/ru lib/net40/
 find lib -iname '*.Tests.*' | xargs rm
+rm lib/net40/ru -rf
 nuget pack -Verbose Package.nuspec -Exclude '**\'$name'\**' -Exclude pack.sh
 mv *.nupkg ../../nuget
