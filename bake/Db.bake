@@ -382,6 +382,14 @@ task "db:seed":
 		unless Configuration.Maybe.DoNotClean:
 			Rm(filename)
 
+desc """
+создает пользователя
+параметры
+	user - имя пользователя, c паролем newpass
+	host - ip-адерс хоста с которого будет осуществляться доступ, по умолчанию 91.209.124.%
+	permissions - набор прав, доступные значения all - все права, readonly - только чтение
+		по умолчанию даются права select, update, insert, delete
+"""
 task "db:create:user":
 	user = Configuration.user
 	password = "newpass"
