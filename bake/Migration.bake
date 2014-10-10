@@ -530,11 +530,10 @@ task "db:migration:generate":
 
 Desc """
 генерирует миграцю для обновления тригеров и таблицы логирования
-Пример bake db:generate:log Table=Catalog Database=Catalogs
+Пример bake db:generate:log Name=Catalogs.Catalog
 """
 task "db:generate:log", [@OnlyInProject]:
-	table = Configuration.Table
-	database = Configuration.Database
+	database, table = Configuration.Name.Split(char('.'))
 	sufix = ReadGlobalConfig(Globals, "db:generate:log", "Sufix")
 	migration = Migration()
 
@@ -560,11 +559,10 @@ desc """
 создает миграцию и миграцию отката для безопасного удаления таблицы, она переименуется в
 _<таблица> что бы потом когда станет понятно что ничего не сломалось
 ее можно было удалить
-пример bake SafeDropTable Db=Usersettings Name=Clientsdata
+пример bake db:drop:table Name=Usersettings.Clientsdata
 """
 task "db:drop:table":
-	db = Configuration.Db
-	name = Configuration.Name
+	db, name = Configuration.Name.Split(char('.'))
 	migration = Migration()
 	migration.Commands.Add("rename table $db.$name to $db._$name")
 	migration.Rollback.Add("rename table $db._$name to $db.$name")
@@ -572,41 +570,37 @@ task "db:drop:table":
 
 desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake db:alter:procedure Db=Future Name=GetPrices
+пример bake db:alter:procedure Name=Future.GetPrices
 """
 task "db:alter:procedure":
-	db = Configuration.Db
-	name = Configuration.Name
+	db, name = Configuration.Name.Split(char('.'))
 	type = "PROCEDURE"
 	AlterRoutnie(type, db, name)
 
 desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake db:alter:function Db=Future Name=GetPrices
+пример bake db:alter:function Name=Future.GetPrices
 """
 task "db:alter:function":
-	db = Configuration.Db
-	name = Configuration.Name
+	db, name = Configuration.Name.Split(char('.'))
 	type = "FUNCTION"
 	AlterRoutnie(type, db, name)
 
 desc """
 создает миграцию и миграцию отката с текстом указанной хранимой процедуры
-пример bake db:alter:event Db=Future Name=GetPrices
+пример bake db:alter:event Name=Future.GetPrices
 """
 task "db:alter:event":
-	db = Configuration.Db
-	name = Configuration.Name
+	db, name = Configuration.Name.Split(char('.'))
 	type = "EVENT"
 	AlterRoutnie(type, db, name)
 
 desc """
 создает миграцию и миграцию отката с текстом указанного триггера
-пример bake db:alter:trigger Db=Future Name=IntersectionAfterInsert
+пример bake db:alter:trigger Name=Future.IntersectionAfterInsert
 """
 task "db:alter:trigger":
-	db = Configuration.Db
-	trigger = Configuration.Name
+	db, name = Configuration.Name.Split(char('.'))
 	text = Db.Read("show create trigger $db.$trigger").First()["SQL Original Statement"]
 	text = text.Replace("TRIGGER $trigger", "TRIGGER $db.$trigger")
 	drop = "drop trigger $db.$trigger"
