@@ -600,7 +600,7 @@ desc """
 пример bake db:alter:trigger Name=Future.IntersectionAfterInsert
 """
 task "db:alter:trigger":
-	db, name = Configuration.Name.Split(char('.'))
+	db, trigger = Configuration.Name.Split(char('.'))
 	text = Db.Read("show create trigger $db.$trigger").First()["SQL Original Statement"]
 	text = text.Replace("TRIGGER $trigger", "TRIGGER $db.$trigger")
 	drop = "drop trigger $db.$trigger"
