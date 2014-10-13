@@ -22,10 +22,15 @@ class GitStatus:
 		ChangesExists = status.IndexOf("nothing to commit", StringComparison.OrdinalIgnoreCase) < 1
 		NeedPush = status.IndexOf("Your branch is ahead of", StringComparison.OrdinalIgnoreCase) > 0
 		branchString = "# On branch "
-		branchStringLen = branchString.Length
 		if status.StartsWith(branchString, StringComparison.OrdinalIgnoreCase):
-			nextSeparator = status.IndexOfAny(" \r\n".ToCharArray(), branchStringLen)
-			Branch = status.Substring(branchStringLen, nextSeparator - branchStringLen + 1).Trim() if nextSeparator > 0
+			nextSeparator = status.IndexOfAny(" \r\n".ToCharArray(), branchString.Length)
+			Branch = status.Substring(branchString.Length, nextSeparator - branchString.Length + 1).Trim() if nextSeparator > 0
+		#в git 2 все изменилось
+		unless Branch:
+			branchString = "On branch "
+			if status.StartsWith(branchString, StringComparison.OrdinalIgnoreCase):
+				nextSeparator = status.IndexOfAny(" \r\n".ToCharArray(), branchString.Length)
+				Branch = status.Substring(branchString.Length, nextSeparator - branchString.Length + 1).Trim() if nextSeparator > 0
 
 	def IsBranchMaster() as bool:
 		return Branch.Equals("master", StringComparison.OrdinalIgnoreCase)
