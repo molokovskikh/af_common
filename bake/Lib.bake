@@ -8,7 +8,6 @@ import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
 import NuGet from NuGet.Core
 import NuGet.PackageRepositoryExtensions from NuGet.Core
-import FubuCsProjFile.MSBuild
 
 class Hint:
 	public Id as string
@@ -180,15 +179,7 @@ def GetPackages():
 	return GetPackageConfigs().SelectMany({c| GetPackagesForConfig(c)}).ToArray()
 
 def GetLibPaths():
-	debug = Configuration.Maybe.debug
-	targetFramework = Configuration.Maybe.targetFramework or Globals.TargetFramework
-	try:
-		_, _, projectFile = GetBuildConfig(Globals)
-		version = MSBuildProject.LoadFrom(projectFile).FrameworkName.Version
-		targetFramework = "net${version.Major}${version.Minor}"
-	except e:
-		if debug:
-			print e
+	targetFramework = DetectTargetFramework(Globals)
 	packages = Directory.GetDirectories(@packages).Select({d| Path.Combine(d, @lib)}).Where({d| Exist(d)})\
 		.Select({d| CheckPlatformSpecificVersion(d, targetFramework)})\
 		.Select({d| '$(PackagePath)\\' + d})

@@ -3,6 +3,7 @@ import System.Threading
 import System.Text
 import System.IO
 import System.Diagnostics
+import FubuCsProjFile.MSBuild
 
 [DllImport("advapi32.dll", SetLastError: true, CharSet: CharSet.Unicode)]
 def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as String, dwLogonType as int, dwLogonProvider as int, ref phToken as IntPtr) as bool:
@@ -11,6 +12,19 @@ def LogonUser(lpszUsername as String, lpszDomain as String, lpszPassword as Stri
 [DllImport("kernel32.dll", CharSet: CharSet.Auto)]
 def CloseHandle(handle as IntPtr) as bool:
 	pass
+
+def DetectTargetFramework(globals as DuckDictionary):
+	conf as DuckDictionary = globals.Configuration
+	debug = conf.Maybe.debug
+	targetFramework = conf.Maybe.targetFramework or globals.TargetFramework
+	try:
+		_, _, projectFile = GetBuildConfig(globals)
+		version = MSBuildProject.LoadFrom(projectFile).FrameworkName.Version
+		targetFramework = "net${version.Major}${version.Minor}"
+	except e:
+		if debug:
+			print e
+	return targetFramework
 
 def ImpersonateUser(user as string, password as string, action as Action):
 	LOGON32_PROVIDER_DEFAULT = 0;

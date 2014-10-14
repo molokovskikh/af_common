@@ -14,17 +14,15 @@ import FubuCsProjFile
 class Project:
 	_project as string
 	_projectFile as string
-	_isX86 as bool
 	_frameworkVersion as string
 	_targetFramework as string
 
 	property BuildOutput as string
 	property TestOutput as string
 
-	def constructor(projectFile as string, isX86 as bool, frameworkVersion as string, targetFramework as string):
+	def constructor(projectFile as string, frameworkVersion as string, targetFramework as string):
 		_projectFile = projectFile
 		_project = Path.GetFileNameWithoutExtension(projectFile)
-		_isX86 = isX86
 		_frameworkVersion = frameworkVersion
 		_targetFramework = targetFramework
 
@@ -55,10 +53,10 @@ class Project:
 			assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/$name.dll")
 		print "test $assembly"
 		assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
-		_isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
+		isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
 
 		nunitPath = "nunit-console"
-		if _isX86:
+		if isX86:
 			nunitPath = "nunit-console-x86"
 		nunit = NUnit("\"" + assembly + "\"",
 			ExecutablePath : nunitPath)
@@ -71,9 +69,9 @@ class Project:
 		return _project
 
 def GetProjects():
-	frameworkVersion = Globals.FrameworkVersion
-	isx86 = Globals.Maybe.platform == "x86" or Globals.Maybe.Platform == "x86"
-	return GetProjectsForTest().Select({f| Project(f, isx86, frameworkVersion, Globals.TargetFramework)}).ToList()
+	msbuildVersion = Globals.FrameworkVersion
+	frameworkVersion = DetectTargetFramework(Globals)
+	return GetProjectsForTest().Select({f| Project(f, msbuildVersion, frameworkVersion)}).ToList()
 
 task @integration, [@test]
 
