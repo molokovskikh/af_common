@@ -361,3 +361,8 @@ task "packages:update":
 			print "$package => $updated"
 		except e as InvalidOperationException:
 			print e.Message
+
+desc """
+Удаляет подпись со сборок что бы не нужно было генерировать binding redirection
+"""
+task "packages:fix", ["fix:packages"]
