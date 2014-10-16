@@ -18,6 +18,8 @@ function wait_pid {
 
 clean()
 {
+	git checkout . || :
+	git submodule foreach git checkout . || :
 	if [ -z "$SKIP_DB" ]; then
 		pid=$(cat `find data -name '*.pid' | head -n 1`)
 		mysqladmin --user=root --port=$port shutdown
@@ -64,6 +66,4 @@ fi
 bake generate:binding:redirection notInteractive=true
 bake test Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 
-git checkout .
-git submodule foreach git checkout .
 clean
