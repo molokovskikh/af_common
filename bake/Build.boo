@@ -1,6 +1,7 @@
 import System.Linq
 import Bake.Engine
 import FubuCsProjFile
+import System.Linq.Enumerable
 
 def GetConfigSufix(Globals as duck):
 	if Globals.Environment == @Production:
@@ -305,3 +306,13 @@ def GetDeploy(globals as DuckDictionary, project as string, deployAlias as strin
 
 def GetDeploy(globals as DuckDictionary, project as string):
 	return GetDeploy(globals, project, globals.Maybe.DeployAlias)
+
+def GetServersToDeploy(globals as DuckDictionary):
+	servers = List of string()
+	if globals.Maybe.Servers:
+		for server in globals.Maybe.Servers:
+			servers.Add(server.ToString())
+
+	if not servers.Count:
+		servers.Add(globals.Server.ToString())
+	return servers

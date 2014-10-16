@@ -67,11 +67,22 @@ task @SendDeployNotification:
 		"Обновление ${humanReadableName}",
 		"Релиз подготовил $user\nРевизия $head\n$jenkinsStatus\n$logs")
 
+def GetBackupPath():
+	#Если мы разворачиваем сервис то будет опеределена переменная Server
+	project, _, _ = GetBuildConfig(Globals)
+	if Globals.Maybe.Server:
+		servers = GetServersToDeploy(Globals)
+		rootServer = servers.First()
+		deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
+	else:
+		deployTo = GetDeploy(Globals)
+	return deployTo
+
 task @Backup:
 	return if Globals.Environment == @Test or Configuration.Maybe.Simulate
 
 	project, _, _ = GetBuildConfig(Globals)
-	deployTo = GetDeploy(Globals)
+	deployTo = GetBackupPath()
 
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
 	backup = Path.Combine(backupRoot, backupName)
@@ -81,7 +92,7 @@ task @Backup:
 
 task @RollbackDeploy, [@WebClean]:
 	project, _, _ = GetBuildConfig(Globals)
-	deployTo = GetDeploy(Globals)
+	deployTo = GetBackupPath()
 
 	backup = FindLastBackup(project)
 	Cp(FileSet("**/*.*", Excludes : ["*.log"], BaseDirectory : backup), deployTo)

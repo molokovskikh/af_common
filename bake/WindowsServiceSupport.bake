@@ -86,14 +86,7 @@ def Impersonate(server as string, action as Action):
 			CloseHandle(tokenHandle);
 
 def GetServers():
-	servers = List of string()
-	if Globals.Maybe.Servers:
-		for server in Globals.Maybe.Servers:
-			servers.Add(server.ToString())
-
-	if not servers.Count:
-		servers.Add(Globals.Server.ToString())
-	return servers
+	return GetServersToDeploy(Globals)
 
 unless serviceName = Globals.Maybe.ServiceName:
 	serviceName = project
