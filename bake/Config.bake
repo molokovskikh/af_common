@@ -2,14 +2,6 @@
 import System.Collections
 import System.IO
 
-def GetMigrationPath():
-	baseDirectory = AppDomain.CurrentDomain.BaseDirectory
-	raise "AppDomain.CurrentDomain.BaseDirectory вернул пустую строку" if String.IsNullOrEmpty(baseDirectory)
-	parent = Directory.GetParent(Path.GetDirectoryName(baseDirectory))
-	baseDirectory = Path.Combine(parent.FullName, "Migrations")
-	raise "Не найдена директория с миграциями ${baseDirectory}" if not Directory.Exists(baseDirectory)
-	return baseDirectory + "\\"
-
 def EnvByName(name as string) as string:
 	connectionString = Globals.Environments[name]
 	if not (connectionString.ToLower().Contains("user=") or connectionString.ToLower().Contains("user id=")):
@@ -39,10 +31,13 @@ def UpdateGlobals():
 		or Globals.Maybe.Environment\
 		or @Local
 
-	if Globals.Environment == @Test:
-		Globals.DeployRoot = """\\acdcserv\TEST"""
-
 	Db.Current = Db(Env)
+	if Globals.Maybe.Builtin:
+		vars = Globals.Builtin[Globals.Environment]
+		if vars:
+			for k in vars:
+				Globals[k.Key] = k.Value
+
 	if Globals.Maybe.Variables:
 		vars = Globals.Variables[Globals.Environment]
 		if vars:
@@ -50,9 +45,22 @@ def UpdateGlobals():
 				Globals[k.Key] = k.Value
 
 Global(
+	Builtin: {
+		@Local: {
+			@DeployRoot: """C:\inetpub\wwwroot""",
+			@PublishRoot: ""
+		},
+		@Test: {
+			@DeployRoot: """\\acdcserv\TEST""",
+			@PublishRoot: ""
+		},
+		@Production: {
+			@DeployRoot: """\\adc.analit.net\Inforoom\WebApps\""",
+			@PublishRoot: """\\adc.analit.net\Inforoom\Publish\Publish"""
+		}
+	},
 	Configuration: Configuration,
 	Editor : "vim-nox",
-	MigrationsPath : GetMigrationPath(),
 	FrameworkVersion : "4.0.30319",
 	#используется для определения версии библиотек
 	TargetFramework: "net40",

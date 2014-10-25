@@ -211,9 +211,7 @@ def PrintMigration(name as string, file as string):
 		print "------------------------------------------------------------"
 
 def FindMigration(migration as string):
-	fileName = "${Globals.MigrationsPath}/${migration}.sql"
-	fileName = "migrations/${migration}.sql" if not Exist(fileName)
-	fileName = "${Globals.MigrationsPath}/${migration}.boo" if not Exist(fileName)
+	fileName = "migrations/${migration}.sql"
 	fileName = "migrations/${migration}.boo" if not Exist(fileName)
 	return fileName
 
@@ -363,17 +361,6 @@ task @InitActiveRecord:
 
 task @OnlyInProject:
 	raise "Задачу имеет смысл запускать только в проекте" if not ImInProject()
-
-#Нужно обновить common т.к. может быть ссылка на миграцию а в локальной копии ее нет
-task @UpdateCommon:
-	return if ImInProject()
-	print "Введите учетные данные для обновления Common"
-	startInfo = ProcessStartInfo("git", "pull origin", UseShellExecute : false)
-	startInfo.WorkingDirectory = Globals.MigrationsPath
-	process = Process.Start(startInfo)
-	process.WaitForExit(TimeSpan.FromMinutes(2).TotalMilliseconds)
-	if process.ExitCode !=0:
-		raise "При обновлении Common возникла ошибка с кодом ${process.ExitCode}"
 
 desc """
 применяет миграции из директории migrations
