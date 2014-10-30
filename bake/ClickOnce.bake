@@ -63,7 +63,7 @@ def GetPublishTo():
 	projectName = Globals.Maybe.Project
 	return "${Globals.PublishRoot}\\${projectName}\\"
 
-task @ClickOnceDeploy, [@Production, "packages:install", "check", "version:bump", @ClickOnceBuild, "db:migrate", @publish, @SendDeployNotification]
+task @ClickOnceDeploy, ["env", "packages:install", "check", "version:bump", @ClickOnceBuild, "db:migrate", @publish, @SendDeployNotification]
 
 task @ClickOnceBuild, ["clickonce:clean", "generate:assembly:info"]:
 	MsBuild(projectFile,

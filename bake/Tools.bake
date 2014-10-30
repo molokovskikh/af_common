@@ -143,24 +143,6 @@ def TryLoad(f as string):
 	except:
 		return null
 
-def PatchInternal(assembly as AssemblyDefinition):
-	for t in assembly.MainModule.Types:
-		for method in t.Methods:
-			if method.IsPublic:
-				continue
-			if method.IsAssembly or method.IsFamilyOrAssembly:
-				method.IsPublic = true
-			elif method.IsVirtual:
-				base = method.GetBaseMethod()
-				if method != base\
-					and base.IsFamilyOrAssembly\
-					and IsFixInternal(base.DeclaringType.Module.Assembly):
-					method.IsPublic = true
-		for field in t.Fields:
-			if field.IsAssembly or field.IsFamilyOrAssembly:
-				field.IsPublic = true
-		t.IsPublic = true
-
 def FixWindsor(assembly as AssemblyDefinition):
 	attr = assembly.CustomAttributes.FirstOrDefault({a| a.AttributeType.Name == "PreApplicationStartMethodAttribute"})
 	if attr:
@@ -204,7 +186,15 @@ task "fix:packages":
 			if RemoveStrongName(assembly):
 				if IsFixInternal(assembly):
 					print "fix internal" if verbose
-					PatchInternal(assembly)
+					attrs = assembly.CustomAttributes.Where({a| a.AttributeType.Name == "InternalsVisibleToAttribute"}).ToArray()
+					for attr in attrs:
+						arg = attr.ConstructorArguments[0]
+						val = arg.Value
+						refAssembly = val.Split(char(','))[0]
+						if assemblyNames.Contains(refAssembly):
+							val = refAssembly
+							attr.ConstructorArguments.Remove(arg)
+							attr.ConstructorArguments.Add(CustomAttributeArgument(arg.Type, val))
 			for reference in assembly.MainModule.AssemblyReferences:
 				version as Version
 				if assemblyNames.Contains(reference.Name):
@@ -238,13 +228,6 @@ task "fix:packages":
 		except e:
 			print file
 			print e
-
-task "patch:internal":
-	name = Configuration.name.ToString()
-	assembly = AssemblyDefinition.ReadAssembly(name)
-	RemoveStrongName(assembly)
-	PatchInternal(assembly)
-	assembly.Write(name)
 
 task "assembly:remove:strongname":
 	name = Configuration.name.ToString()

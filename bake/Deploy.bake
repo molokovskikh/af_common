@@ -36,7 +36,7 @@ task "deploy:stub":
 
 task @DeployPipeline, ["deploy:pipeline"]
 
-task "deploy:pipeline", [@Production, "packages:install", "check", "build:stub", @Backup, "db:migrate", "deploy:stub", @SendDeployNotification]
+task "deploy:pipeline", ["env", "packages:install", "check", "build:stub", @Backup, "db:migrate", "deploy:stub", @SendDeployNotification]
 
 task @WebBuild, [@BuildWebSite]
 

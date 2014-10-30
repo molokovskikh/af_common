@@ -125,8 +125,11 @@ class Migration:
 activeRecordInitalized = false
 
 def FindAssembly(name as string):
+	return name if Exist(name)
 	filename = Path.GetFileName(name)
-	projectVariants = ("src/${Globals.Project}", "src/$name")
+	projectVariants = ("src/$name", "src/$name/app")
+	if Globals.Maybe.Project:
+		projectVariants = ("src/${Globals.Project}", "src/$name")
 	paths = projectVariants.SelectMany({p| BinVariants(filename).Select({b|"$p/$b"})})
 	for path in paths:
 		return path if Exist(path)
@@ -134,16 +137,17 @@ def FindAssembly(name as string):
 def LoadProjectAssemblies():
 	assemblies = List of string()
 	if not Globals.Maybe.SkipDefaultLib == true:
-		name = Globals.Project
-		if assembly = FindAssembly(name):
-			assemblies.Add(assembly)
-		else:
-			project, _, projectFile = GetBuildConfig(Globals)
-			assembly = (Path.GetDirectoryName(projectFile), ).SelectMany({d| BinVariants(project).Select({b| Path.Combine(d, b)})}).FirstOrDefault({p| Exist(p)})
-			if assembly:
+		if Globals.Maybe.Project:
+			name = Globals.Project
+			if assembly = FindAssembly(name):
 				assemblies.Add(assembly)
 			else:
-				print "can`t find assembly $name"
+				project, _, projectFile = GetBuildConfig(Globals)
+				assembly = (Path.GetDirectoryName(projectFile), ).SelectMany({d| BinVariants(project).Select({b| Path.Combine(d, b)})}).FirstOrDefault({p| Exist(p)})
+				if assembly:
+					assemblies.Add(assembly)
+				else:
+					print "can`t find assembly $name"
 
 	if Globals.Maybe.AdditionalAssemblies:
 		for name in Globals.AdditionalAssemblies:
@@ -457,6 +461,10 @@ def HasKey(metadata as ITableMetadata, key as ForeignKey):
 
 desc """
 генерирует миграция на основе разницы между мапингом и базы данных
+опциональные параметры
+	assemblies - список сборок которые нужно загрузить, через запятую
+		могут быть как именем файла так и именем проекта
+	load-project=true - что загружать библиотеки из проекта
 """
 task "db:migration:generate":
 	configuration = GetConfiguration()
