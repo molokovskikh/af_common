@@ -196,6 +196,8 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	Cp(FileSet(["**/*.as?x",
 				"**/*.svc",
 				"**/*.brail",
+				"**/*.cshtml",
+				"**/*.config",
 				"**/*.brailjs",
 				"**/*.swf",
 				"**/*.gif",
