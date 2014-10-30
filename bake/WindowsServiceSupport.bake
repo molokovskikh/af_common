@@ -107,9 +107,9 @@ task "sudo":
 	unless CreateProcessWithLogonW(user, "analit", password, 1, app, args, 0, IntPtr.Zero, Directory.GetCurrentDirectory(), info, processInfo):
 		raise Win32Exception()
 
-task @ServiceDeployPipeline, [@Production, "packages:install", "fix:packages", "check", @BuildService, @StopServices, @Production, "db:migrate", @Backup, @SimpleDeployService, @SendDeployNotification]
+task @ServiceDeployPipeline, ["env", "check:env", "packages:install", "fix:packages", "check", @BuildService, @StopServices, "db:migrate", @Backup, @SimpleDeployService, @SendDeployNotification]
 
-task @ServiceDeployPipeline2, [@Production, "packages:install", "fix:packages", "check", @Build, @StopServices, @Production, "db:migrate", @Backup, @DeployApp, @StartServices, @SendDeployNotification]
+task @ServiceDeployPipeline2, ["env", "check:env", "packages:install", "fix:packages", "check", @Build, @StopServices, "db:migrate", @Backup, @DeployApp, @StartServices, @SendDeployNotification]
 
 task @BuildService, [@CleanService]:
 	project = Globals.Project
@@ -124,6 +124,10 @@ task @BuildService, [@CleanService]:
 	Rm("${buildTo}/*.xml")
 	sufix = GetConfigSufix(Globals)
 	Cp("src/${project}/App.$sufix", "${buildTo}/${project}.exe.config", true)
+
+task "check:env":
+	if Globals.Environment != @Production:
+		raise "Развертывание сервиса возможно только в Production среде"
 
 task @CleanService:
 	project = Globals.Project
