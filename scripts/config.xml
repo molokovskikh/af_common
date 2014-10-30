@@ -18,7 +18,7 @@
     <configVersion>2</configVersion>
     <userRemoteConfigs>
       <hudson.plugins.git.UserRemoteConfig>
-        <url>git@git.analit.net:root/${NAME}.git</url>
+        <url>git@git.analit.net:root/$JOB_NAME.git</url>
       </hudson.plugins.git.UserRemoteConfig>
     </userRemoteConfigs>
     <branches>
