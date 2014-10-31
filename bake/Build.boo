@@ -176,7 +176,6 @@ def CopyAssets(output as string):
 def BuildWeb(globals as DuckDictionary, project as string):
 	project, buildTo, projectFile = GetBuildConfig(globals, project)
 	projectPath = Path.GetDirectoryName(projectFile)
-
 	MkDir(buildTo) if not Exist(buildTo)
 	params = { "OutDir" : "${buildTo}\\bin\\",
 		"OutputPath" : "${buildTo}\\bin\\",
@@ -224,7 +223,7 @@ def BuildWeb(globals as DuckDictionary, project as string):
 				BaseDirectory: projectPath),
 		buildTo, true)
 	sufix = GetConfigSufix(globals)
-	Cp("$projectPath/web.$sufix", "${buildTo}/Web.config")
+	Cp("$projectPath/web.$sufix", "${buildTo}/Web.config", true)
 	CopyAssets(buildTo)
 
 def CleanWeb(globals as DuckDictionary, project as string):
