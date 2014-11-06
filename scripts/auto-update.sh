@@ -20,6 +20,8 @@ git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :
 for f in `find -iname '.gitignore' | xargs grep -L '\*\.gen\.\*'`; do echo -ne "\n*.gen.*" >> $f; done;
 git ls-files | grep '\.gitignore' | xargs git add -f || :
+fix-bake.sh
+git ls-files | grep '.bake' | xargs git add -f || :
 
 fix-js.sh
 git ls-files | grep \.js$ | xargs git add -f || :
