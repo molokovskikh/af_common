@@ -61,6 +61,7 @@ class Project:
 			nunitPath = "nunit-console-x86"
 		nunit = NUnit("\"" + assembly + "\"",
 			ExecutablePath : nunitPath)
+		nunit.Arguments.Add("/labels")
 
 		nunit.Execute()
 
