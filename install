@@ -1,13 +1,14 @@
 #!/bin/sh
 
 cd bake
-rm tmp -rf
+rm tmp packages -rf
+git checkout packages/packages.config
 mkdir tmp
 cp packages/packages.config tmp/
 nuget install packages/packages.config -output packages
 nuget install packages/packages.config -output tmp
 find -iname '*.dll' | xargs chmod +x
 find -iname '*.dll' | xargs chown $(whoami)
-bake -I packages:fix root=tmp ignore=mono.cecil
+bake -I packages:fix root=tmp
 rm packages -rf
 mv tmp packages

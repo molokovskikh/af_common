@@ -5,6 +5,7 @@ import System.Xml.Linq
 import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
+import Mono.Cecil
 
 def UnderSourceControl(path as string):
 	dir = Path.GetDirectoryName(path)
@@ -86,3 +87,21 @@ task "generate:assembly:info":
 [assembly: AssemblyInformationalVersion("$version")]
 """)
 			print "generated ${assemblyInfo}"
+
+task "dump:meta":
+	name = Configuration.name
+	dll = name
+	dll = FileSet("packages/**/$name.dll").FirstOrDefault() unless Exist(dll)
+	assembly = AssemblyDefinition.ReadAssembly(dll)
+	print assembly.Name
+	#module = assembly.MainModule
+	#for type in module.Types:
+	#	print type
+	#	for e in type.Events:
+			/*print "\t" + e*/
+		/*for f in type.Fields:*/
+			/*print "\t" + f*/
+		/*for p in type.Properties:*/
+			/*print "\t" + p*/
+		/*for m in type.Methods:*/
+			/*print "\t" + m*/
