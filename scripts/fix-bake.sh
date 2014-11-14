@@ -8,5 +8,6 @@ find -iname *.bak | xargs rm
 for f in *.bake
 do
 	sed -i '/import file from/d' $f
+	sed -i 's/@SendDeployNotification/"deploy:notify"/' $f
 	unix2dos $f
 done

@@ -1,3 +1,2 @@
-﻿import file from Migration.bake
 
 task @default, ["db:migrate"]

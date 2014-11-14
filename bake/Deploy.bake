@@ -34,18 +34,20 @@ task "deploy:stub":
 	else:
 		Engine.Execute("DeployApp")
 
-task @DeployPipeline, ["deploy:pipeline"]
+task "deploy:pipeline", ["deploy:pipeline"]
 
-task "deploy:pipeline", ["env", "packages:install", "check", "build:stub", @Backup, "db:migrate", "deploy:stub", @SendDeployNotification]
+task "deploy:pipeline", ["env", "packages:install", "check", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
 
 task @WebBuild, [@BuildWebSite]
+
+task @SendDeployNotification, ["deploy:notify"]
 
 desc """
 отправляет уведомление о развертывание проекта
 на UpdatesList@subscribe.analit.net
 notifyTo - удрес на который отправлять уведомление вместо стандартного
 """
-task @SendDeployNotification:
+task "deploy:notify":
 	return if Globals.Environment == @Test
 
 	project, _, _ = GetBuildConfig(Globals)
