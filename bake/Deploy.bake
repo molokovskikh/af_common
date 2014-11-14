@@ -34,7 +34,7 @@ task "deploy:stub":
 	else:
 		Engine.Execute("DeployApp")
 
-task "deploy:pipeline", ["deploy:pipeline"]
+task @DeployPipeline, ["deploy:pipeline"]
 
 task "deploy:pipeline", ["env", "packages:install", "check", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
 

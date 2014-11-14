@@ -84,16 +84,21 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 			raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
 			project = Path.GetFileNameWithoutExtension(sln)
 
+	#если передано полное имя
 	if Exist(project):
-		#предполагаю что имя проекта в формате src/<project>/app/app.csproj
 		projectFile = project
-		projectName = CsProjFile.LoadFrom(projectFile).AssemblyName
-		output = Path.GetFullPath(Path.Combine(globals.BuildRoot, projectName))
-		return (projectName, output, projectFile)
-	output = Path.GetFullPath(Path.Combine(globals.BuildRoot, project))
-	projectFile = FileSet("src/${project}/${project}.*proj").FirstOrDefault()
-	raise "Не могу найти файл проекта src/${project}/${project}.*proj" unless projectFile
-	return (project, output, projectFile)
+	else:
+		#если передано частичное имя
+		#проверяю src/<project>/app/app.*proj
+		projectFile = FileSet("src/$project/app/app.*proj").FirstOrDefault()
+		#проверяю src/<project>/<project>.*proj
+		posiblePath = projectFile or FileSet("src/$project/$project.*proj").FirstOrDefault()
+		projectFile = projectFile or FileSet("**/$project.*proj").FirstOrDefault()
+		unless projectFile:
+			raise "Не могу найти файл проекта $project"
+	projectName = CsProjFile.LoadFrom(projectFile).AssemblyName
+	output = Path.GetFullPath(Path.Combine(globals.BuildRoot, projectName))
+	return (projectName, output, projectFile)
 
 def CleanDeployDir(globals as DuckDictionary, project as string):
 	CleanDeployDir(globals, project, null)
