@@ -201,7 +201,6 @@ def BuildWeb(globals as DuckDictionary, project as string):
 				"**/*.svc",
 				"**/*.brail",
 				"**/*.cshtml",
-				"**/*.config",
 				"**/*.brailjs",
 				"**/*.swf",
 				"**/*.gif",
@@ -229,6 +228,8 @@ def BuildWeb(globals as DuckDictionary, project as string):
 		buildTo, true)
 	sufix = GetConfigSufix(globals)
 	Cp("$projectPath/web.$sufix", "${buildTo}/Web.config", true)
+	if(File.Exists("$projectPath/Views/web.config")) :
+		Cp("$projectPath/Views/web.config", "${buildTo}/Views/web.config", true)
 	CopyAssets(buildTo)
 
 def CleanWeb(globals as DuckDictionary, project as string):
