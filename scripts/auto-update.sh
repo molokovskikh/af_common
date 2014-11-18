@@ -50,7 +50,6 @@ bake notInteractive=true|| :
 rm output -rf || :
 msbuild.exe src/*.sln | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 bake -s BuildTests notInteractive=true || :
-bake -s generate:binding:redirection
 #при сохранении конфига он может добавить пустых строк
 git ls-files | grep '\.config' | xargs clean.sh
 git add -f -- packages/packages.config || :
