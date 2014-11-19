@@ -75,7 +75,7 @@ class Hint:
 			.Select({h| VersionUtility.ParseVersionSpec(h.Target)})\
 			.ToArray()
 		if constraints.Length > 1:
-			max = constraints.Min({c| c.MaxVersion})
+			max = constraints.Select({c| c.MaxVersion}).Min()
 			return constraints.First({c| c.MaxVersion == max})
 		return constraints.FirstOrDefault()
 
