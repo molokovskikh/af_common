@@ -60,6 +60,8 @@ class Hint:
 		unparsedHints = ReadGlobalConfig(globals, "packages:update", @hints) or (of string:,)
 		if Exist(hintsfile):
 			unparsedHints = File.ReadAllLines(hintsfile).Concat(unparsedHints).ToArray()
+		if Exist("nugethints"):
+			unparsedHints = File.ReadAllLines("nugethints").Concat(unparsedHints).ToArray()
 		for line in unparsedHints:
 			hint = Hint.TryParse(line)
 			continue unless hint
