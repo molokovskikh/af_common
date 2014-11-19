@@ -23,8 +23,6 @@ git ls-files | grep '\.gitignore' | xargs git add -f || :
 fix-bake.sh
 git ls-files | grep '.bake' | xargs git add -f || :
 
-fix-js.sh
-git ls-files | grep \.js$ | xargs git add -f || :
 fix-npoi.sh
 fix-nh.sh
 git ls-files | grep \.cs$ | xargs git add -f || :

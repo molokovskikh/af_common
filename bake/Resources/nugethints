@@ -24,3 +24,4 @@ Microsoft.AspNet.WebApi.SelfHost 0.0 c [0.0,3.0)
 Microsoft.AspNet.WebApi.WebHost 0.0 c [0.0,3.0)
 #reactiveuit 5 не совместим с .net 4
 reactiveui 0.0 c [0.0,5.0)
+jQuery (1.6.4,999.0.0) x fix-js.sh

@@ -71,9 +71,13 @@ class Hint:
 		return "$Id $Version $Action $Target"
 
 	static def GetConstrain(hints as Hint*, package as IPackage):
-		return hints.Where({h| h.Match(package) and h.Action == "c"})\
+		constraints = hints.Where({h| h.Match(package) and h.Action == "c"})\
 			.Select({h| VersionUtility.ParseVersionSpec(h.Target)})\
-			.FirstOrDefault()
+			.ToArray()
+		if constraints.Length > 1:
+			max = constraints.Min({c| c.MaxVersion})
+			return constraints.First({c| c.MaxVersion == max})
+		return constraints.FirstOrDefault()
 
 def CheckHints(hints as Hint*, package as IPackage, update as IPackage, manager as PackageManager):
 	for hint in hints:
