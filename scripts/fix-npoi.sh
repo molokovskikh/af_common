@@ -12,4 +12,4 @@ do
 	perl -i -pe "s/FontBoldWeight\.BOLD/FontBoldWeight\.Bold/" $f
 	perl -i -pe "s/FillPatternType\.SOLID_FOREGROUND/FillPattern\.SolidForeground/" $f
 done
-find -iname '*.bak' | xargs rm
+find -iname '*.bak' | xargs -r rm

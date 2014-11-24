@@ -6,5 +6,5 @@ if [ -f Gruntfile.js ]; then
 		perl -i -pe "s/\)\.live\(/).on(/" $f
 		git add $f
 	done
-	find -iname '*.bak' | xargs rm
+	find -iname '*.bak' | xargs -r rm
 fi
