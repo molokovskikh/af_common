@@ -337,7 +337,7 @@ task "packages:update":
 	localRepository = SharedPackageRepository(pathResolver, fs, fs, fs)
 	packages = localRepository.GetPackages().ToList()
 	packageSorter = PackageSorter(null)
-	packages = packageSorter.GetPackagesByDependencyOrder(localRepository).Reverse().ToList()
+	packages = packageSorter.GetPackagesByDependencyOrder(localRepository).ToList()
 	c as IPackageConstraintProvider = NullConstraintProvider.Instance
 	packageManager = PackageManager(sourceRep, pathResolver, fs, localRepository)
 	reffiles = GetSlnPackageConfigs().Select({f| PackageReferenceRepository(PhysicalFileSystem(Path.GetDirectoryName(f)), "", localRepository)}).ToArray()
