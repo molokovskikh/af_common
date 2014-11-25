@@ -22,19 +22,10 @@ def GetRevision():
 	lines = head.Split(("\n",), StringSplitOptions.RemoveEmptyEntries)
 	return lines[0].Trim().Replace("commit ", "").Trim()
 
-def GetVersionTags():
-	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
-	versions = List[of Version]()
-	for tag in tags:
-		v as Version
-		if Version.TryParse(tag.Replace("v", ""), v):
-			versions.Add(v)
-	return versions.OrderBy({v| return v}).ToList()
-
 task @UpdateRevision, ["version:bump"]
 
 desc """
-создает новый тего версии увеличиваю существующий на 1
+создает новый тег версии увеличиваю существующий на 1
 что пропустить skipVersionBump=true
 """
 task "version:bump":

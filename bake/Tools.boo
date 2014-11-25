@@ -26,6 +26,16 @@ def DetectTargetFramework(globals as DuckDictionary):
 			print e
 	return targetFramework
 
+def GetVersionTags():
+	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
+	versions = List[of Version]()
+	for tag in tags:
+		v as Version
+		if Version.TryParse(tag.Replace("v", ""), v):
+			versions.Add(v)
+	return versions.OrderBy({v| return v}).ToList()
+
+
 def ImpersonateUser(user as string, password as string, action as Action):
 	LOGON32_PROVIDER_DEFAULT = 0;
 	LOGON32_LOGON_INTERACTIVE = 2;
