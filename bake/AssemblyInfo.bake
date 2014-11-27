@@ -33,7 +33,8 @@ task "version:bump":
 	return if Configuration.Maybe.skipVersionBump
 
 	output = ExecuteProcess("git", "status")
-	if not output.Contains("nothing to commit (working directory clean)"):
+	if not output.Contains("nothing to commit (working directory clean)")\
+		and output.Contains("nothing to commit working directory clean"):
 		raise "bake deploy можно делать только если все закомичено\r\n" \
 			+ "проверь что git status говорит nothing to commit (working directory clean)\r\n" \
 			+ "а затем попробуй еше раз"

@@ -114,24 +114,39 @@ def Build(globals as DuckDictionary):
 
 def Build(globals as DuckDictionary, project as string):
 	project, buildTo, projectFile = GetBuildConfig(globals, project)
-	MsBuild(projectFile,
-			Target : "build",
-			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
+	MkDir(buildTo) if not Exist(buildTo)
+	params = {
+		"OutputPath" : buildTo,
+		"Configuration" : "Release"
+	}
+	if globals.Maybe.Platform:
+		params.Add("Platform", globals.Platform)
+	sln = FileSet("src/*.sln").First()
+	solution = Solution.LoadFrom(sln)
+	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
+	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
+	target = projectNameForMsbuild
+	MsBuild(sln, "/verbosity:quiet", "/nologo",
+			Target : target,
+			Parameters : params,
 			FrameworkVersion : globals.FrameworkVersion).Execute()
-	Rm("${buildTo}/*.xml")
+
 	src = Path.Combine(Path.GetDirectoryName(projectFile), "App." + GetConfigSufix(globals))
 	config = "${buildTo}/${project}.exe.config"
 	unless Exist(config):
 		config = FileSet("$buildTo/*.config").Files.FirstOrDefault() or config
 	Cp(src, config, true) if Exist(src)
+	Rm("${buildTo}/*.xml")
 	RmDir("$buildTo/_PublishedWebsites", true)
 
 def DeployService(globals as DuckDictionary, app as string, host as string):
-	DeployService(globals, app, host, "\\\\$host\\apps\\$app")
+	project, _, _ = GetBuildConfig(globals, app)
+	DeployService(globals, app, host, "\\\\$host\\apps\\$project")
 
 def DeployService(globals as DuckDictionary, app as string, host as string, path as string):
+	project, _, _ = GetBuildConfig(globals, app)
 	Impersonate(globals, host):
-		services = GetServices(app, (host, ))
+		services = GetServices(project, (host, ))
 		StopServices(services)
 		RepeatTry:
 			XCopyDeploy(globals, app, path)
@@ -267,8 +282,8 @@ def XCopyDeploy(globals as DuckDictionary, project as string):
 	XCopyDeploy(globals, project, null)
 
 def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string):
-	deployTo = deployTo or GetDeploy(globals, project)
 	project, buildTo, _ = GetBuildConfig(globals, project)
+	deployTo = deployTo or GetDeploy(globals, project)
 
 	CleanDeployDir(globals, project, deployTo)
 
