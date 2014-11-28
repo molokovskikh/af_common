@@ -17,6 +17,7 @@ import Boo.Lang.Compiler
 import Boo.Lang.Compiler.TypeSystem.Reflection
 import Mono.Cecil
 import Mono.Cecil.Rocks
+import Ude
 
 class AssemblyResolver(BaseAssemblyResolver):
 	lookup as ILookup[of string, AssemblyDefinition]
@@ -245,14 +246,27 @@ task "fix:js:ref":
 	js = files.Select({f| Path.GetFileName(f)}).Concat(files.Select({f| Path.GetFileNameWithoutExtension(f)})).Where({f| Regex.IsMatch(f, ver)}).ToArray()
 	terms = js.Concat(terms).ToArray()
 	htmls = Directory.GetFiles("test", "*.html").Concat(Directory.GetFiles("test", "test.js"))
-	for f in htmls:
-		lines = File.ReadAllText(f)
+	targets = FileSet("src/**/*.brail").Concat(FileSet("src/**/*.master").Concat(FileSet("src/**/*.aspx")).Concat(htmls))
+	for f in targets:
+		encoding = Encoding.UTF8
+		using s = File.OpenRead(f):
+			s.Position = 0
+			detector = CharsetDetector()
+			detector.Feed(s)
+			detector.DataEnd()
+			if detector.Charset:
+				encoding = Encoding.GetEncoding(detector.Charset)
+		lines = File.ReadAllText(f, encoding)
+		write = false
 		for term in terms:
 			match = Regex(ver).Match(term)
 			name = Regex.Escape(term.Substring(0, match.Index))
 			name += ver
 			name += Regex.Escape(term.Substring(match.Index + match.Length, term.Length - match.Index - match.Length))
 			reg = Regex(name, RegexOptions.IgnoreCase)
-			print reg
-			lines = reg.Replace(lines, term)
-		File.WriteAllText(f, lines)
+			result = reg.Replace(lines, term)
+			if lines != result:
+				lines = result
+				write = true
+		if write:
+			File.WriteAllText(f, lines, Encoding.UTF8)
