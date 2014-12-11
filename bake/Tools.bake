@@ -238,15 +238,18 @@ task "assembly:remove:strongname":
 	assembly.Write(name)
 
 task "fix:js:ref":
-	return unless Exist("test")
 	ver = "\\d+(\\.\\d+){1,3}"
 	packages = Directory.GetDirectories("packages")
 	terms = packages.Select({p| Path.GetFileName(p)}).ToArray()
 	files = FileSet("packages/**/*.js")
 	js = files.Select({f| Path.GetFileName(f)}).Concat(files.Select({f| Path.GetFileNameWithoutExtension(f)})).Where({f| Regex.IsMatch(f, ver)}).ToArray()
 	terms = js.Concat(terms).ToArray()
-	htmls = Directory.GetFiles("test", "*.html").Concat(Directory.GetFiles("test", "test.js"))
-	targets = FileSet("src/**/*.brail").Concat(FileSet("src/**/*.master").Concat(FileSet("src/**/*.aspx")).Concat(htmls))
+	targets = FileSet("test/*.html").Concat(FileSet("src/**/*.brail").Concat(FileSet("src/**/*.master").Concat(FileSet("src/**/*.aspx")).Concat(FileSet("test/test.js"))))
+	if Configuration.Maybe.debug:
+		for f in terms:
+			print f
+		for f in targets:
+			print f
 	for f in targets:
 		encoding = Encoding.UTF8
 		using s = File.OpenRead(f):
