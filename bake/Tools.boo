@@ -123,6 +123,9 @@ def ExecuteProcess(exe as string, command as string, baseDirectory as string):
 	return output
 
 def GetVersion():
+	version = GetVersionTags().LastOrDefault()
+	if version:
+		return version.ToString()
 	lines = File.ReadAllLines("build/version.txt")
 	if not lines.Length or not lines[0].Trim():
 		raise "Файл 'build/version.txt' пустой, нужно указать номер версии"
