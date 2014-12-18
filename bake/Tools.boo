@@ -122,7 +122,7 @@ def GetVersionTags():
 	return versions.OrderBy({v| return v}).ToList()
 
 def GetVersion():
-	version = GetVersionTags().LastOrDefault()
+	return GetVersionTags().LastOrDefault()
 
 def AskPassword(request as string):
 	Console.Write(request)
