@@ -44,7 +44,7 @@ task "version:bump":
 		print "Последний коммит был релизом, не буду обновлять номер версии тк похоже что это на повторный деплой"
 		return
 
-	currentVersion = GetVersionTags().LastOrDefault() or Version(GetVersion())
+	currentVersion = GetVersion()
 	revision = currentVersion.Revision
 	if revision == -1:
 		revision = 0
@@ -55,11 +55,10 @@ task "version:bump":
 
 task "generate:assembly:info":
 	hash = GetRevision()
-	rawVersion = GetVersion()
-	unless rawVersion:
+	version = GetVersion()
+	unless version:
 		print "Не удалось определить версию, проверь git tag"
 		return
-	version = Version(rawVersion)
 	ignore = (/Common\..+/, /Test\..+/, /.+\.Test/)
 	if Globals.Maybe.GenerateAssemblyInfoIgnore:
 		ignore = ignore.Concat(Globals.Maybe.GenerateAssemblyInfoIgnore).ToArray()
