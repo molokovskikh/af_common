@@ -79,9 +79,7 @@ task @integration, [@test]
 
 task @test, [@RunTests]
 
-task @PrepareBuild, ["check:common:error", "packages:install"]:
-	if Exist("build/version.txt"):
-		Engine.Execute("GenerateAssemblyInfo")
+task @PrepareBuild, ["generate:assembly:info", "check:common:error", "packages:install"]
 
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
