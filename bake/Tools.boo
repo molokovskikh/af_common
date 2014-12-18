@@ -26,16 +26,6 @@ def DetectTargetFramework(globals as DuckDictionary):
 			print e
 	return targetFramework
 
-def GetVersionTags():
-	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
-	versions = List[of Version]()
-	for tag in tags:
-		v as Version
-		if Version.TryParse(tag.Replace("v", ""), v):
-			versions.Add(v)
-	return versions.OrderBy({v| return v}).ToList()
-
-
 def ImpersonateUser(user as string, password as string, action as Action):
 	LOGON32_PROVIDER_DEFAULT = 0;
 	LOGON32_LOGON_INTERACTIVE = 2;
@@ -122,14 +112,17 @@ def ExecuteProcess(exe as string, command as string, baseDirectory as string):
 	Thread.Sleep(100)
 	return output
 
+def GetVersionTags():
+	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
+	versions = List[of Version]()
+	for tag in tags:
+		v as Version
+		if Version.TryParse(tag.Replace("v", ""), v):
+			versions.Add(v)
+	return versions.OrderBy({v| return v}).ToList()
+
 def GetVersion():
 	version = GetVersionTags().LastOrDefault()
-	if version:
-		return version.ToString()
-	lines = File.ReadAllLines("build/version.txt")
-	if not lines.Length or not lines[0].Trim():
-		raise "Файл 'build/version.txt' пустой, нужно указать номер версии"
-	return lines[0].Trim()
 
 def AskPassword(request as string):
 	Console.Write(request)
