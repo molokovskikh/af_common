@@ -65,6 +65,7 @@ Global(
 			@PublishRoot: ""
 		}
 	},
+	BackupRoot: """\\offdc\MMedia\AppBackUp\""",
 	Configuration: Configuration,
 	Editor : "vim-nox",
 	FrameworkVersion : "4.0.30319",

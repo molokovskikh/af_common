@@ -53,12 +53,15 @@ task "version:bump":
 	Sh("git tag v$newVersion")
 	Sh("git push --tags")
 
+task "assembly:info:generate", ["generate:assembly:info"]
+
 task "generate:assembly:info":
 	hash = GetRevision()
 	version = GetVersion()
 	unless version:
 		print "Не удалось определить версию, проверь git tag"
 		return
+	Globals.Version = version
 	ignore = (/Common\..+/, /Test\..+/, /.+\.Test/)
 	if Globals.Maybe.GenerateAssemblyInfoIgnore:
 		ignore = ignore.Concat(Globals.Maybe.GenerateAssemblyInfoIgnore).ToArray()

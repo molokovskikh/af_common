@@ -10,9 +10,8 @@ import System.Linq.Enumerable from System.Core
 import System.Globalization
 import System.Text.RegularExpressions
 
-backupRoot = """\\offdc\MMedia\AppBackUp\"""
 
-def FindLastBackup(project as string):
+def FindLastBackup(project as string, backupRoot as string):
 	directories = Directory.GetDirectories(backupRoot)
 	return directories\
 		.Where({d| Path.GetFileName(d).StartsWith(project)})\
@@ -34,13 +33,7 @@ task "deploy:stub":
 	else:
 		Engine.Execute("DeployApp")
 
-task @DeployPipeline, ["deploy:pipeline"]
-
-task "deploy:pipeline", ["env", "packages:install", "check", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
-
-task @WebBuild, [@BuildWebSite]
-
-task @SendDeployNotification, ["deploy:notify"]
+task "deploy:pipeline", ["env", "packages:install", "check", "version:bump", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
 
 desc """
 отправляет уведомление о развертывание проекта
@@ -80,13 +73,14 @@ def GetBackupPath():
 		deployTo = GetDeploy(Globals)
 	return deployTo
 
-task @Backup:
 	return if Globals.Environment == @Test or Configuration.Maybe.Simulate
 
+task "deploy:backup":
 	project, _, _ = GetBuildConfig(Globals)
 	deployTo = GetBackupPath()
 
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
+	backupRoot = Globals.Maybe.BackupRoot
 	backup = Path.Combine(backupRoot, backupName)
 	MkDir(backup)
 	Cp(FileSet("**/*.*", Excludes : ["*.log", "logs", "request","responce","IdxDir/*.*"], BaseDirectory : deployTo), backup)
@@ -96,7 +90,8 @@ task @RollbackDeploy, [@WebClean]:
 	project, _, _ = GetBuildConfig(Globals)
 	deployTo = GetBackupPath()
 
-	backup = FindLastBackup(project)
+	backupRoot = Globals.Maybe.BackupRoot
+	backup = FindLastBackup(project, backupRoot)
 	Cp(FileSet("**/*.*", Excludes : ["*.log"], BaseDirectory : backup), deployTo)
 	backupDate = DateTime.ParseExact(backup[backup.IndexOf("-") + 1:], "yyyyMMddHHmmss", CultureInfo.CurrentCulture)
 	print "rollback to $project at $backupDate"

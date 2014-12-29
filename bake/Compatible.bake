@@ -1,2 +1,6 @@
 task @Migrate, ["db:migrate"]
+task @DeployPipeline, ["deploy:pipeline"]
+task @WebBuild, [@BuildWebSite]
 task @GenerateAssemblyInfo, ["generate:assembly:info"]
+task @SendDeployNotification, ["deploy:notify"]
+task @Backup, ["deploy:backup"]
