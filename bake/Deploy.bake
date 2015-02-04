@@ -33,7 +33,7 @@ task "deploy:stub":
 	else:
 		Engine.Execute("DeployApp")
 
-task "deploy:pipeline", ["env", "packages:install", "check", "version:bump", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
+task "deploy:pipeline", ["env", "packages:install", "check", "version:bump", "assembly:info:generate", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
 
 desc """
 отправляет уведомление о развертывание проекта
@@ -106,4 +106,4 @@ task @CopyTiny:
 	Cp(files, deployTo + "/Assets/Javascripts/", true)
 
 task @WebClean:
-	CleanDeployDir(Globals, Globals.Project.ToString())
+	CleanDeployDir(Globals)

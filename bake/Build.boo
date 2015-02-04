@@ -77,15 +77,15 @@ def GetBuildConfig(globals as DuckDictionary):
 	return GetBuildConfig(globals, null)
 
 def GetBuildConfig(globals as DuckDictionary, project as string):
+	sln = FileSet("src/*.sln").Concat(FileSet("*.sln")).FirstOrDefault()
 	unless project:
 		project = globals.Maybe.Project or globals.Maybe.project
 		unless project:
-			sln = FileSet("src/*.sln").Files.FirstOrDefault()
 			raise "Не удалось определить имя проекта его нет в build.bake и src/*.sln не найден" unless sln
 			project = Path.GetFileNameWithoutExtension(sln)
 
 	#если передано полное имя
-	if Exist(project):
+	if File.Exists(project):
 		projectFile = project
 	else:
 		#если передано частичное имя
@@ -95,10 +95,17 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 		posiblePath = projectFile or FileSet("src/$project/$project.*proj").FirstOrDefault()
 		projectFile = projectFile or FileSet("**/$project.*proj").FirstOrDefault()
 		unless projectFile:
+			if sln:
+				solution = Solution.LoadFrom(sln)
+				projectFile = solution.Projects.Where({p| p.Project.AssemblyName == project}).Select({p| p.Project.FileName}).FirstOrDefault()
+		unless projectFile:
 			raise "Не могу найти файл проекта $project"
 	projectName = CsProjFile.LoadFrom(projectFile).AssemblyName
 	output = Path.GetFullPath(Path.Combine(globals.BuildRoot, projectName))
 	return (projectName, output, projectFile)
+
+def CleanDeployDir(globals as DuckDictionary):
+	CleanDeployDir(globals, null, null)
 
 def CleanDeployDir(globals as DuckDictionary, project as string):
 	CleanDeployDir(globals, project, null)
@@ -121,7 +128,7 @@ def Build(globals as DuckDictionary, project as string):
 	}
 	if globals.Maybe.Platform:
 		params.Add("Platform", globals.Platform)
-	sln = FileSet("src/*.sln").First()
+	sln = FileSet("src/*.sln").Concat(FileSet("*.sln")).First()
 	solution = Solution.LoadFrom(sln)
 	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
 	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")

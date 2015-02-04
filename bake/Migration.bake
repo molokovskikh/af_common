@@ -187,9 +187,6 @@ def SetupActiveRecord():
 	GetConfiguration()
 	activeRecordInitalized = true
 
-def ImInProject():
-	return Exist("src")
-
 def GetMigratedMigrations():
 	migrations = List of Migration()
 	for migration in Db.Read("select Version, MigratedOn from logs.SchemaMigrations order by MigratedOn"):
@@ -221,15 +218,11 @@ def FindMigration(migration as string):
 
 def GetMigrations():
 	migrations = List[of string]()
-	if ImInProject():
-		if Exist("migration.txt"):
-			migrations.AddRange(File.ReadAllLines("migrations.txt").Where({l| not String.IsNullOrEmpty(l)}))
-		if Exist("migrations"):
-			migrations.AddRange(Directory.GetFiles("migrations", "*.sql"))
-			migrations.AddRange(Directory.GetFiles("migrations", "*.boo"))
-	else:
-		migrations.AddRange(Directory.GetFiles(".", "*.sql"))
-		migrations.AddRange(Directory.GetFiles(".", "*.boo"))
+	if Exist("migration.txt"):
+		migrations.AddRange(File.ReadAllLines("migrations.txt").Where({l| not String.IsNullOrEmpty(l)}))
+	if Exist("migrations"):
+		migrations.AddRange(Directory.GetFiles("migrations", "*.sql"))
+		migrations.AddRange(Directory.GetFiles("migrations", "*.boo"))
 	migrations = migrations.Select({m| Path.GetFileNameWithoutExtension(m)}).Where({m| not m =~ /_rollback/ and (m =~ /^\d/ or m =~ /^\d_/)}).ToList()
 	return migrations
 
@@ -248,8 +241,7 @@ def Apply(fileName as string):
 	rows = 0
 	match Path.GetExtension(fileName).ToLower():
 		case ".boo":
-			if ImInProject():
-				SetupActiveRecord()
+			SetupActiveRecord()
 
 			#compiler = BooCompiler()
 			#compiler.Parameters.Input.Add(FileInput(fileName))
@@ -363,21 +355,19 @@ task @LoadAssemblies:
 task @InitActiveRecord:
 	SetupActiveRecord()
 
-task @OnlyInProject:
-	raise "Задачу имеет смысл запускать только в проекте" if not ImInProject()
-
 desc """
 применяет миграции из директории migrations
 для отслеживания примененных миграций используется logs.schemamigrations
+параметры:
+	id - части имени миграции, все найденые миграции будут применены
+	env - среда для применения миграции, по умолчанию Local, доступные значения Local, Development, Production
 """
 task "db:migrate":
 	migrations as List[of string]
 	if Configuration.Maybe.id:
 		migrations = FindMigrations(Configuration.id.ToString())
-	elif Globals.Environment == @Development or ImInProject():
-		migrations = GetMigrations()
 	else:
-		raise "You must set migration id. Example: 'bake id=12'"
+		migrations = GetMigrations()
 	Migrate(migrations)
 
 task @Waiting:
@@ -393,13 +383,12 @@ desc """
 создает новую миграцию
 """
 task "db:migration:init":
-	if ImInProject():
-		MkDir("migrations") if not Exist("migrations")
-		filename = Migration.GetMigrationFileNameByRequest()
-		filename = Path.Combine("migrations", filename)
-		File.WriteAllText(filename, "")
-		print "saved to ${filename}"
-		StartEditor(filename)
+	MkDir("migrations") if not Exist("migrations")
+	filename = Migration.GetMigrationFileNameByRequest()
+	filename = Path.Combine("migrations", filename)
+	File.WriteAllText(filename, "")
+	print "saved to ${filename}"
+	StartEditor(filename)
 
 desc """
 повторяет миграцию
@@ -527,7 +516,7 @@ Desc """
 генерирует миграцю для обновления тригеров и таблицы логирования
 Пример bake db:generate:log Name=Catalogs.Catalog
 """
-task "db:generate:log", [@OnlyInProject]:
+task "db:generate:log":
 	database, table = Configuration.Name.Split(char('.'))
 	sufix = ReadGlobalConfig(Globals, "db:generate:log", "Sufix")
 	migration = Migration()

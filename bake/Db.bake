@@ -238,9 +238,10 @@ desc """
 дампит полную схему рабочей базы в файл dump.txt удобно если надо поискать что то в схеме, например использование определенных таблиц в триггерах или процедурах
 """
 task "db:dump":
-	user = Ask("user:")
-	password = AskPassword("password:")
-	host = Ask("host:")
+	connectionString = MySqlConnectionStringBuilder(Db.Current.ConnectionString)
+	host = connectionString.Server
+	user = connectionString.UserID
+	password = connectionString.Password
 	Sh("mysqldump -h$host -u$user -p$password --lock-tables=false --all-databases --events --no-data --routines --triggers > dump.txt")
 
 def Time(name as string, action as callable()):

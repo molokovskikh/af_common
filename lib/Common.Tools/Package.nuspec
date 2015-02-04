@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Common.Tools</id>
+    <version>1.0.0.0</version>
+    <authors>kvasov</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Common.Tools</description>
+    <dependencies>
+    </dependencies>
+  </metadata>
+</package>

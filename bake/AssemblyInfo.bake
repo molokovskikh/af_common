@@ -45,6 +45,9 @@ task "version:bump":
 		return
 
 	currentVersion = GetVersion()
+	unless currentVersion:
+		currentVersion = Version(1, 0, 0, 0)
+		print "Не удалось отпределить предыдущую версию, создана версия $currentVersion"
 	revision = currentVersion.Revision
 	if revision == -1:
 		revision = 0
@@ -56,11 +59,15 @@ task "version:bump":
 task "assembly:info:generate", ["generate:assembly:info"]
 
 task "generate:assembly:info":
-	hash = GetRevision()
-	version = GetVersion()
-	unless version:
-		print "Не удалось определить версию, проверь git tag"
-		return
+	if Configuration.Maybe.Version:
+		hash = ""
+		version = Version.Parse(Configuration.Maybe.Version)
+	else:
+		hash = GetRevision()
+		version = GetVersion()
+		unless version:
+			print "Не удалось определить версию, проверь git tag"
+			return
 	Globals.Version = version
 	ignore = (/Common\..+/, /Test\..+/, /.+\.Test/)
 	if Globals.Maybe.GenerateAssemblyInfoIgnore:

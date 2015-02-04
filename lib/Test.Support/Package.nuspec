@@ -1,0 +1,13 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>Test.Support</id>
+    <version>1.0.0.0</version>
+    <authors>kvasov</authors>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Test.Support</description>
+    <dependencies>
+      <dependency id="Common.Tools" version="1.0" />
+    </dependencies>
+  </metadata>
+</package>
