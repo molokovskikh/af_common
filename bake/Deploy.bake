@@ -41,7 +41,7 @@ desc """
 notifyTo - удрес на который отправлять уведомление вместо стандартного
 """
 task "deploy:notify":
-	return if Globals.Environment == @Test
+	return if Globals.Environment != @Production
 
 	project, _, _ = GetBuildConfig(Globals)
 	humanReadableName = Globals.Maybe.humanReadableName or Globals.Maybe.HumanReadableName
@@ -76,6 +76,8 @@ def GetBackupPath():
 	return if Globals.Environment == @Test or Configuration.Maybe.Simulate
 
 task "deploy:backup":
+	return if Globals.Environment != @Production
+
 	project, _, _ = GetBuildConfig(Globals)
 	deployTo = GetBackupPath()
 
