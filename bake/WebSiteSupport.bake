@@ -1,7 +1,7 @@
 import System.IO
 import System.Linq.Enumerable
 
-task @BuildWebSite, [@CleanWebSite]:
+task @BuildWebSite, [@CleanWebSite, "assembly:info:generate"]:
 	BuildWeb(Globals, Globals.Project)
 
 task @CleanWebSite:
