@@ -60,7 +60,7 @@ Global(
 			@DeployRoot: """\\adc.analit.net\Inforoom\WebApps\""",
 			@PublishRoot: """\\adc.analit.net\Inforoom\Publish\Publish"""
 		},
-		@Inforoom2_Test: {
+		@Test2: {
 			@DeployRoot: """\\test2.analit.net\WWW\""",
 			@PublishRoot: ""
 		}
@@ -86,7 +86,7 @@ Global(
 		@Local : """Data Source=localhost;Database=Usersettings;User ID=root;Password=;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=300;Allow User Variables=true;""",
 		@LocalLong : """Data Source=localhost;Database=Usersettings;User ID=root;Password=;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=0;Allow User Variables=true;""",
 		@Test : """Data Source=testsql.analit.net;Database=Usersettings;User ID=system;Password=newpass;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=300;Allow User Variables=true;""",
-		@Inforoom2_Test : """Data Source=test2.analit.net;Database=Internet;User ID=root;Password=inforoom2db_test;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=300;Allow User Variables=true;""",
+		@Test2 : """Data Source=test2.analit.net;Database=Internet;User ID=root;Password=inforoom2db_test;Connect Timeout=300;convert zero datetime=yes;Default Command Timeout=300;Allow User Variables=true;""",
 	}
 )
 UpdateGlobals()
