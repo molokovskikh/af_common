@@ -53,7 +53,7 @@ Global(
 			@PublishRoot: ""
 		},
 		@Test: {
-			@DeployRoot: """\\acdcserv\TEST""",
+			@DeployRoot: """\\solo\TEST""",
 			@PublishRoot: ""
 		},
 		@Production: {
