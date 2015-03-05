@@ -1,7 +1,7 @@
 import System.IO
 import System.Linq.Enumerable
 
-task @BuildWebSite, [@CleanWebSite, "assembly:info:generate"]:
+task @BuildWebSite, ["packages:install", "packages:fix", "assembly:info:generate", @CleanWebSite]:
 	BuildWeb(Globals, Globals.Project)
 
 task @CleanWebSite:

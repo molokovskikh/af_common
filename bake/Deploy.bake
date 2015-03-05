@@ -9,6 +9,7 @@ import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Globalization
 import System.Text.RegularExpressions
+import System.DirectoryServices
 
 
 def FindLastBackup(project as string, backupRoot as string):
@@ -54,10 +55,23 @@ task "deploy:notify":
 	if lastDeployHash:
 		logs = GetGit("log --no-merges $lastDeployHash..")
 	user = Environment.UserName
+	host = Environment.MachineName
 	smtp = SmtpClient("box.analit.net")
-	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project) values('$user', now(), '$head', '$project')")
+	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project, Host) values('$user', now(), '$head', '$project', '$host')")
 	jenkinsStatus = Globals.Maybe.JenkinsStatus
-	smtp.Send("r.kvasov@analit.net",
+	fromEmail = "dev@analit.net"
+	try:
+		using s = DirectorySearcher():
+			s.Filter = String.Format("(sAMAccountName={0})", user)
+			entry = s.FindOne().GetDirectoryEntry()
+			if entry:
+				values = entry.Properties["mail"]
+				if values.Count:
+					fromEmail = values[0].ToString()
+	except e:
+		print "Не удалось определьть email отправителя $user использую dev@analit.net"
+		print e
+	smtp.Send(fromEmail,
 		to,
 		"Обновление ${humanReadableName}",
 		"Релиз подготовил $user\nРевизия $head\n$jenkinsStatus\n$logs")
