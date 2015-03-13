@@ -1,3 +1,4 @@
+import System
 import System.Linq
 import Bake.Engine
 import FubuCsProjFile
@@ -299,13 +300,18 @@ def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string
 	if conf.Maybe.Simulate:
 		print "${files.Files.Count} files deployed to $deployTo"
 		return
+	ImpersonateIfNeeded(globals):
+		Cp(files, deployTo, true)
+	print "${files.Files.Count} files deployed to $deployTo"
+
+def ImpersonateIfNeeded(globals as DuckDictionary, action as Action):
+	conf as DuckDictionary = globals.Configuration
 	impersonate = conf.Maybe.impersonate != null
 	if impersonate:
 		ImpersonateUser("deployer", '$sdfsd887!'):
-			Cp(files, deployTo, true)
+			action()
 	else:
-		Cp(files, deployTo, true)
-	print "${files.Files.Count} files deployed to $deployTo"
+		action()
 
 def GetExcludes(globals as DuckDictionary):
 	excludes = List()
