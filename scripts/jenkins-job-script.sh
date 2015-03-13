@@ -63,7 +63,6 @@ bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || 
 if [ -z "$SKIP_DB" ]; then
 	bake db:setup Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 fi
-bake generate:binding:redirection notInteractive=true
 bake test Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 
 clean
