@@ -75,8 +75,8 @@ task "generate:assembly:info":
 
 	for project in GetProjects():
 		projectName = Path.GetFileNameWithoutExtension(project)
-		title = ReadGlobalConfig(Globals, "assembly:info:generate", @title) or @projectName
-		product = ReadGlobalConfig(Globals, "assembly:info:generate", @product) or @projectName
+		title = ReadGlobalConfig(Globals, "assembly:info:generate", @title) or projectName
+		product = ReadGlobalConfig(Globals, "assembly:info:generate", @product) or projectName
 		continue if ignore.Any({i| i.IsMatch(projectName)})
 		projectDir = Path.GetDirectoryName(project)
 		assemblyInfo = Path.Combine(projectDir, "Properties", "AssemblyInfo.cs")
