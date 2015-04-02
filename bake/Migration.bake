@@ -515,16 +515,49 @@ task "db:migration:generate":
 Desc """
 генерирует миграцю для обновления тригеров и таблицы логирования
 Пример bake db:generate:log Name=Catalogs.Catalog
+параметры
+	Force=true - пересоздать тригеры
+	Sufix=<строка> - произвольная строка добавляется в конец имени таблицы
+		протоколирования что бы избежать конфликта имен, когда в разных базах
+		есть таблицы с одинаковым еменем
 """
 task "db:generate:log":
 	database, table = Configuration.Name.Split(char('.'))
 	sufix = ReadGlobalConfig(Globals, "db:generate:log", "Sufix")
+	force = ReadGlobalConfig(Globals, "db:generate:log", "Force")
 	migration = Migration()
 
-	migration.Commands.Add(GetUpdateLogTableCommand(database, table, sufix))
+	unless force:
+		migration.Commands.Add(GetUpdateLogTableCommand(database, table, sufix))
 	migration.Commands.Add(GetLogTriggerCommand("DELETE", database, table, sufix))
 	migration.Commands.Add(GetLogTriggerCommand("UPDATE", database, table, sufix))
 	migration.Commands.Add(GetLogTriggerCommand("INSERT", database, table, sufix))
+	migration.FileName = Migration.GetMigrationFileName("${database}${table}UpdateLogging")
+	ProcessMigration(migration)
+
+Desc """
+генерирует миграцю для обновления тригеров и таблицы логирования
+отличается от db:generate:log тем что
+* использует литирные идентификаторы операций
+* сохраняет значение поля перед обновлением
+Пример bake db:generate:log2 Name=Catalogs.Catalog
+параметры
+	Force=true - пересоздать тригеры
+	Sufix=<строка> - произвольная строка добавляется в конец имени таблицы
+		протоколирования что бы избежать конфликта имен, когда в разных базах
+		есть таблицы с одинаковым еменем
+"""
+task "db:generate:log2":
+	database, table = Configuration.Name.Split(char('.'))
+	sufix = ReadGlobalConfig(Globals, "db:generate:log", "Sufix")
+	force = ReadGlobalConfig(Globals, "db:generate:log", "Force")
+	migration = Migration()
+
+	unless force:
+		migration.Commands.Add(GetUpdateLogTableCommand2(database, table, sufix))
+	migration.Commands.Add(GetLogTriggerCommand2("DELETE", database, table, sufix))
+	migration.Commands.Add(GetLogTriggerCommand2("UPDATE", database, table, sufix))
+	migration.Commands.Add(GetLogTriggerCommand2("INSERT", database, table, sufix))
 	migration.FileName = Migration.GetMigrationFileName("${database}${table}UpdateLogging")
 	ProcessMigration(migration)
 

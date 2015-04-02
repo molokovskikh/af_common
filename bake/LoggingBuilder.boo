@@ -27,6 +27,29 @@ END;
 	sql = "DROP TRIGGER IF EXISTS ${database}.${triggerName};" + sql
 	return sql
 
+def GetLogTriggerTemplate2(action as string, fields as string, database as string, table as string, sufix as string):
+	operation = "'I'"
+	operation = "'D'" if action == "DELETE"
+	operation = "'U'" if action == "UPDATE"
+	operation = "'I'" if action == "INSERT"
+	logTable = GetLogTableName(table, sufix)
+	SingularizedTable = Singulize(ToPascal(table))
+	triggerName = ToPascal(SingularizedTable) + "Log" + ToPascal(action)
+	sql = """
+CREATE DEFINER = RootDBMS@127.0.0.1 TRIGGER ${database}.${triggerName} AFTER ${action} ON ${database}.${table}
+FOR EACH ROW BEGIN
+	INSERT
+	INTO `logs`.${logTable}
+	SET LogTime = now(),
+		OperatorName = IFNULL(@INUser, SUBSTRING_INDEX(USER(),'@',1)),
+		OperatorHost = IFNULL(@INHost, SUBSTRING_INDEX(USER(),'@',-1)),
+		Operation = ${operation},
+${fields};
+END;
+"""
+	sql = "DROP TRIGGER IF EXISTS ${database}.${triggerName};" + sql
+	return sql
+
 def GetLogTableName(table as string, sufix as string):
 	table = Singulize(ToPascal(table))
 	return table + sufix + "Logs"
@@ -49,6 +72,13 @@ def GetTableFields(db as string, table as string, getLine as Func[of duck, strin
 			fields.Add("\t\t" + getLine(column, field))
 	return join(fields, ",\r\n")
 
+def GetTableFields2(db as string, table as string, getLine as Func[of duck, string, string]):
+	fields = Boo.Lang.List()
+	for column in Db.Read("show columns from ${db}.${table}"):
+		field = column.Field.ToString()
+		fields.Add("\t\t" + getLine(column, field))
+	return join(fields, ",\r\n")
+
 def LogId(table as string):
 	return LastWord(Singulize(table)) + "Id"
 
@@ -62,11 +92,12 @@ def GetUpdateLogTableCommand(db as string, table as string):
 
 def GetUpdateLogTableCommand(db as string, table as string, sufix as string):
 	logTable = GetLogTableName(table, sufix)
+	columns = GetTableColumns(table, db)
 	unless Db.Read("show tables in logs").Select({r| r[0].ToString()}).Contains(logTable, StringComparer.OrdinalIgnoreCase):
-		return GetCreateLogTableCommand(db, table, sufix)
+		return GetCreateLogTableCommand(logTable, GetLogTableColumnsSql(table, columns))
 	notExistColumns = List[of (string)]()
 	logTableColumns = (name for name, type in GetTableColumns(logTable, "logs")).ToList()
-	for name, type in GetTableColumns(table, db):
+	for name, type in columns:
 		notExistColumns.Add((name, type)) if not logTableColumns.Contains(name)
 	fields = ""
 	i = 0
@@ -83,41 +114,63 @@ ${fields}
 ;
 """
 
-def GetCreateLogTableCommand(db as string, table as string):
-	return GetCreateLogTableCommand(db, table, "")
-
-def GetCreateLogTableCommand(db as string, table as string, sufix as string):
-	fields = ""
-	for name, type in GetTableColumns(table, db):
-		if name.ToLower() == "id":
-			name = LogId(table)
-			fields += "  `${name}` ${type} not null,\r\n"
-			continue
-		fields += "  `${name}` ${type},\r\n"
-
+def GetUpdateLogTableCommand2(db as string, table as string, sufix as string):
 	logTable = GetLogTableName(table, sufix)
+	columns = GetTableColumns(table, db)
+	newColumns = List of (string)()
+	for name, type in columns:
+		newColumns.Add(("New" + name, type))
+		newColumns.Add(("Old" + name, type))
+	columns = newColumns
+	unless Db.Read("show tables in logs").Select({r| r[0].ToString()}).Contains(logTable, StringComparer.OrdinalIgnoreCase):
+		return GetCreateLogTableCommand(logTable, GetLogTableColumnsSql(table, columns))
+	notExistColumns = List[of (string)]()
+	logTableColumns = (name for name, type in GetTableColumns(logTable, "logs")).ToList()
+	for name, type in columns:
+		notExistColumns.Add((name, type)) if not logTableColumns.Contains(name)
+	fields = ""
+	i = 0
+	if notExistColumns.Count == 0:
+		raise "log table ${logTable} is up to date"
+	for name, type in notExistColumns:
+		fields += "add column ${name} ${type}"
+		fields += ",\r\n" if i < notExistColumns.Count - 1
+		i++
+
+	return """
+alter table Logs.${logTable}
+${fields}
+;
+"""
+
+def GetCreateLogTableCommand(logTable as string, fields as string):
 	commandText = """
 CREATE TABLE  `logs`.`${logTable}` (
   `Id` int unsigned NOT NULL AUTO_INCREMENT,
   `LogTime` datetime NOT NULL,
   `OperatorName` varchar(50) NOT NULL,
   `OperatorHost` varchar(50) NOT NULL,
-  `Operation` tinyint(3) unsigned NOT NULL,
+  `Operation` char(1) NOT NULL,
 ${fields}
   PRIMARY KEY (`Id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=cp1251;
 """
-	#if Configuration.Maybe.Force:
-	#	commandText  = "DROP TABLE IF EXISTS `logs`.`${logTable}`; " + commandText
 	return commandText
+
+def GetLogTableColumnsSql(table as string, columns as duck):
+	fields = ""
+	for name, type in columns:
+		if name.ToLower() == "id":
+			name = LogId(table)
+			fields += "  `${name}` ${type} not null,\r\n"
+			continue
+		fields += "  `${name}` ${type},\r\n"
+	return fields
 
 def CheckForNull(column as duck):
 	if column.Key.ToString() == "PRI" or column.Extra.ToString() == "auto_increment":
 		return false
 	return true
-
-def GetLogTriggerCommand(action as string, db as string, table as string):
-	return GetLogTriggerCommand(action, db, table, "")
 
 def GetLogTriggerCommand(action as string, db as string, table as string, sufix as string):
 	match action:
@@ -132,3 +185,17 @@ def GetLogTriggerCommand(action as string, db as string, table as string, sufix 
 			fields = GetTableFields(db, table, getLine)
 
 	return GetLogTriggerTemplate(action, fields, db, table, sufix)
+
+def GetLogTriggerCommand2(action as string, db as string, table as string, sufix as string):
+	match action:
+		case "INSERT":
+			fields = GetTableFields2(db, table, {column, logTo| "New${logTo} = NEW.${column.Field}"})
+		case "DELETE":
+			fields = GetTableFields2(db, table, {column, logTo| "Old${logTo} = OLD.${column.Field}"})
+		case "UPDATE":
+			getLine as Func[of duck, string, string] = def(column as duck, logTo as string):
+				return "New${logTo} = NEW.${column.Field},\r\n"\
+					+ "\t\tOld${logTo} = OLD.${column.Field}"
+			fields = GetTableFields2(db, table, getLine)
+
+	return GetLogTriggerTemplate2(action, fields, db, table, sufix)
