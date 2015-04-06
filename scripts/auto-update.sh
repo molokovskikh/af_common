@@ -39,8 +39,6 @@ git add -f -- packages/packages.config || :
 
 #обновляем пакеты
 bake -s packages:update | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
-#после обновления могут остаться старые версии пакетов чистим их
-bake -s packages:clean | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 bake -s packages:save | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 bake packages:install || bake -s packages:install | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 #правим ссылки в сборках
