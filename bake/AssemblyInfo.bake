@@ -32,6 +32,8 @@ task "version:bump":
 	return unless Globals.Environment == @Production
 	return if Configuration.Maybe.skipVersionBump
 
+	#нужно загрузить версии что бы сгенерировать правильный номер версии
+	Sh("git pull --tags")
 	output = ExecuteProcess("git", "status")
 	if not output.Contains("nothing to commit (working directory clean)")\
 		and output.Contains("nothing to commit working directory clean"):
