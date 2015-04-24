@@ -57,7 +57,7 @@ else
 	if [ $? -ne 0 ]; then
 		exit $?
 	fi
-	bake -s fix:packages | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+	bake -s packages:fix | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 fi
 bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 if [ -z "$SKIP_DB" ]; then
