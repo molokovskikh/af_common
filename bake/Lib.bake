@@ -9,6 +9,15 @@ import System.Collections.Generic
 import NuGet from NuGet.Core
 import NuGet.PackageRepositoryExtensions from NuGet.Core
 
+class AssemblyResolver(BaseAssemblyResolver):
+	lookup as ILookup[of string, AssemblyDefinition]
+
+	def constructor(cache as ILookup[of string, AssemblyDefinition]):
+		lookup = cache
+
+	override def Resolve(name as AssemblyNameReference):
+		return lookup[name.Name].FirstOrDefault() or super(name)
+
 class Hint:
 	public Id as string
 	public Version as IVersionSpec
@@ -359,7 +368,124 @@ task "packages:update":
 		except e as InvalidOperationException:
 			print e.Message
 
+def RemoveStrongName(assembly as AssemblyDefinition):
+	module = assembly.MainModule
+	assemblyName = assembly.Name
+
+	return false unless assemblyName.HasPublicKey
+	assemblyName.HasPublicKey = false
+	assemblyName.PublicKey = (of byte:,)
+	module.Attributes &= ~ModuleAttributes.StrongNameSigned
+	return true
+
+def TryLoad(f as string):
+	try:
+		return AssemblyDefinition.ReadAssembly(f)
+	except:
+		return null
+
+def FixWindsor(assembly as AssemblyDefinition):
+	attr = assembly.CustomAttributes.FirstOrDefault({a| a.AttributeType.Name == "PreApplicationStartMethodAttribute"})
+	if attr:
+		assembly.CustomAttributes.Remove(attr)
+
+def GetPatches(assembly as AssemblyDefinition) as (Action[of AssemblyDefinition]):
+	if assembly.Name.Name == "Castle.Windsor":
+		return (FixWindsor,)
+	return (,)
+
+def IsFixInternal(assembly as AssemblyDefinition):
+	return assembly.CustomAttributes.Any({a| a.AttributeType.Name == "InternalsVisibleToAttribute"})
+
 desc """
-Удаляет подпись со сборок что бы не нужно было генерировать binding redirection
+для обратной совместимости, используй packages:fix
 """
-task "packages:fix", ["fix:packages"]
+task "fix:packages", ["packages:fix"]
+
+desc """
+правит ссылки на сборки внутри пакетов приводя их все к одному виду
+что не нужно было генерировать binding redirection
+которые все равно не работают
+тк msbuild проверяет номер версии когда копирует коственные зависимости
+парамерты
+root - путь к пакетам
+Retarget - при установки опции ссылки на сборку System.Core из portable library
+правятся на .net 4 это нужно тк .net 4 что бы обойти ошибку в .net
+что бы не ставить пакет исправлений KB2468871
+"""
+task "packages:fix":
+	verbose = Configuration.Maybe.verbose
+	excludes = ("Xceed.Wpf.Toolkit", "Mono.Cecil", "Mono.Cecil.Mdb", "Mono.Cecil.Pdb", "Mono.Cecil.Rocks",\
+		"StyleCop", "StyleCop.CSharp", "StyleCop.CSharp.Rules")
+	root = Configuration.Maybe.root or "packages"
+	files = FileSet("$root/**/*.dll")
+	isNet45 = DetectTargetFramework(Globals) == "net45"
+	assemblyNames = files.Select({f| TryLoad(f)}).Where({a| a != null}).ToLookup({a| a.Name.Name})
+	for file in files:
+		try:
+			print "inspect $file" if verbose
+			parameters = ReaderParameters()
+			parameters.AssemblyResolver = AssemblyResolver(assemblyNames)
+			assembly = AssemblyDefinition.ReadAssembly(file, parameters)
+			if excludes.Contains(assembly.Name.Name):
+				print "skip ${assembly.Name.Name}" if verbose
+				continue
+			patches = GetPatches(assembly)
+			for patch in patches:
+				patch(assembly)
+			if RemoveStrongName(assembly):
+				if IsFixInternal(assembly):
+					print "fix internal" if verbose
+					attrs = assembly.CustomAttributes.Where({a| a.AttributeType.Name == "InternalsVisibleToAttribute"}).ToArray()
+					for attr in attrs:
+						arg = attr.ConstructorArguments[0]
+						val = arg.Value
+						refAssembly = val.Split(char(','))[0]
+						if assemblyNames.Contains(refAssembly):
+							val = refAssembly
+							attr.ConstructorArguments.Remove(arg)
+							attr.ConstructorArguments.Add(CustomAttributeArgument(arg.Type, val))
+			for reference in assembly.MainModule.AssemblyReferences:
+				version as Version
+				if isNet45:
+					#в 4.5 сборка стала частью .net хотя формально она исправлена править ссылку
+					#на нее не следует тк при сборке будет предпочитаться ссылка из .net
+					if reference.Name == "System.Net.Http":
+						continue
+				if assemblyNames.Contains(reference.Name):
+					version = assemblyNames[reference.Name].First().Name.Version
+				elif Globals.Maybe.Retarget and reference.Name == "System.Core" and reference.Version.ToString() == "2.0.5.0":
+					reference.Version = Version(4, 0, 0, 0)
+					reference.PublicKeyToken = (of byte: 0xb7, 0x7a, 0x5c, 0x56, 0x19, 0x34, 0xe0, 0x89)
+					reference.IsRetargetable = false
+				continue unless version
+				reference.HasPublicKey = false
+				reference.PublicKey = (of byte:,)
+				reference.Version = version
+				print "fix ref $reference" if verbose
+			try:
+				assembly.MainModule.ReadSymbols()
+			except e:
+				pass
+			assembly.Write(file, WriterParameters(WriteSymbols: true))
+		except e as NotSupportedException:
+			if verbose:
+				print file
+				print e
+		except e as AssemblyResolutionException:
+			if verbose:
+				print file
+				print e
+		except e as BadImageFormatException:
+			if verbose:
+				print file
+				print e
+		except e:
+			print file
+			print e
+
+task "assembly:remove:strongname":
+	name = Configuration.name.ToString()
+	assembly = AssemblyDefinition.ReadAssembly(name)
+	RemoveStrongName(assembly)
+	assembly.Write(name)
