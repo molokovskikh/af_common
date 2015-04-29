@@ -176,7 +176,7 @@ def CopyAssets(output as string):
 
 		fonts = Path.Combine(dir, "Content", "Fonts")
 		if Exist(fonts):
-			files = FileSet(["*.ttf", "*.svg", "*.woff", "*.eot"], BaseDirectory: fonts)
+			files = FileSet(["*.ttf", "*.svg", "*.woff", "*.woff2", "*.eot"], BaseDirectory: fonts)
 			Cp(files, Path.Combine(output, "Assets", "Fonts"))
 
 	javaScripts = FileSet("src/Common.Web.UI/Common.Web.Ui/Assets/Content/javascripts/**.*")
