@@ -51,7 +51,7 @@ fi
 
 if [ -e ./scripts/prepare.sh ]
 then
-	./scripts/prepare.sh
+	./scripts/prepare.sh | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 else
 	bake -s packages:install notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 	if [ $? -ne 0 ]; then
