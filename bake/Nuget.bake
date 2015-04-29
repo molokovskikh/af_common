@@ -29,24 +29,3 @@ task "nuget:deploy", ["check:common", "nuget:build"]:
 	Sh("git --work-tree='$tree' --git-dir='$dir' add nuget")
 	Sh("git --work-tree='$tree' --git-dir='$dir' commit -m \"Обновил пакет $name\"")
 	Sh("git --work-tree='$tree' --git-dir='$dir' push")
-
-
-desc """
-генерирует binding redirection
-"""
-task "generate:binding:redirection":
-	files = GetProjects().Concat(GetProjectsForTest()).Select({f| Path.GetFullPath(f)}).Distinct()
-	for project in files:
-		name = Path.GetFileNameWithoutExtension(project)
-		path = Path.GetDirectoryName(project)
-		filename = BinVariants(name).Select({b| Path.Combine(path, b)}).FirstOrDefault({b| Exist(b)})
-		continue unless filename
-		dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(filename), ".."))
-		configs = Directory.GetFiles(dir, "*.config")
-		unless configs.Length:
-			dir = Path.GetFullPath(Path.Combine(Path.GetDirectoryName(filename), "..", ".."))
-			configs = Directory.GetFiles(dir, "*.config")
-		for config in configs:
-			name = Path.GetFileName(config).ToLower()
-			continue if not name.StartsWith("app") and not name.StartsWith("web")
-			Bash("binding.redirection.builder.exe '$filename' '$config'")
