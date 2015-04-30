@@ -3,6 +3,9 @@
 set -e
 set -x
 
+assets="`dirname $0`"
+assets=`realpath $assets/../bake/assets`
+
 git checkout master
 git pull
 git submodule sync
@@ -22,6 +25,11 @@ for f in `find -iname '.gitignore' | xargs grep -L '\*\.gen\.\*'`; do echo -ne "
 git ls-files | grep '\.gitignore' | xargs git add -f || :
 fix-bake.sh
 git ls-files | grep '.bake' | xargs git add -f || :
+cp -f $assets/.editorconfig .editorconfig
+git ls-files | grep '.editorconfig' | xargs git add -f || :
+cp -f $assets/nuget.config nuget.config
+git ls-files | grep 'nuget.config' | xargs git add -f || :
+rm src/nuget.config || :
 
 fix-npoi.sh
 fix-nh.sh

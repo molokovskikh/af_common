@@ -278,8 +278,7 @@ desc """
 создает файл конфигурации nuget, вызывается автоматически
 """
 task "packages:init":
-	if not Exist("src/nuget.config"):
-		File.WriteAllText("src/nuget.config", "<settings>\r\n\t<repositoryPath>..\\packages\\</repositoryPath>\r\n</settings>")
+	Cp(GetResource("nuget.config"), "nuget.config", true)
 
 desc """
 сохраняет все установленные пакеты в packages/packages.config

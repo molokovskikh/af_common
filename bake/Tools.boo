@@ -59,7 +59,7 @@ def CalculateRelativePath(base as string, dst as string):
 	return Uri(Path.GetFullPath(base)).MakeRelative(Uri(Path.GetFullPath(dst))).Replace("/", "\\")
 
 def GetResource(resource as string):
-	return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Resources/${resource}")
+	return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "assets/${resource}")
 
 def Bash(cmd as string):
 	path = Environment.CurrentDirectory.Replace("\\", "/")

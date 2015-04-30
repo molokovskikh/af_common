@@ -17,7 +17,7 @@
     <Version>0.0.0.0</Version>
     <MinVersion>0.0.0.0</MinVersion>
   </PropertyGroup>
-  
+
   <ItemGroup>
     <GetVersionAssembly Include="$(PublishDir)\$(SolutionName).exe"/>
   </ItemGroup>
@@ -26,13 +26,13 @@
     <ClickOnceInstallationFiles Include="$(SolutionName).application"/>
     <ClickOnceInstallationFiles Include="$(SolutionName).exe.manifest"/>
     <ClickOnceInstallationFiles Include="setup.exe"/>
-  </ItemGroup> 
+  </ItemGroup>
 
-  <Target Name="PrepareClickOnceDeployment">        
+  <Target Name="PrepareClickOnceDeployment">
     <CreateItem Include="$(PublishDir)\**\*.*">
       <Output TaskParameter="Include" ItemName="AppManifestContents"/>
     </CreateItem>
-    
+
     <GenerateApplicationManifest
         AssemblyName="$(SolutionName).exe"
         AssemblyVersion="$(Version)"
@@ -54,7 +54,7 @@
                                 MinimumRequiredVersion="$(MinVersion)"
                                 MapFileExtensions="true"/>
     <Exec Command="&quot;$(SdkPath)\mage.exe&quot; -Sign $(SolutionName).application -CertFile $(SigningCert) -Password $(password)"/>
-    <GenerateBootstrapper 
+    <GenerateBootstrapper
       ApplicationFile="$(SolutionName).application"
       ApplicationName="$(ClickOnceAppTitle)"
       ApplicationUrl="$(ClickOnceUrl)"
