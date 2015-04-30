@@ -26,7 +26,7 @@ git ls-files | grep '\.gitignore' | xargs git add -f || :
 fix-bake.sh
 git ls-files | grep '.bake' | xargs git add -f || :
 cp -f $assets/.editorconfig .editorconfig
-git ls-files | grep '.editorconfig' | xargs git add -f || :
+git add -f .editorconfig || :
 cp -f $assets/nuget.config nuget.config
 git ls-files | grep 'nuget.config' | xargs git add -f || :
 rm src/nuget.config || :
@@ -53,7 +53,7 @@ bake packages:install || bake -s packages:install | iconv -s -f cp866 -t cp1251 
 bake -s packages:fix | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 bake -s fix:js:ref | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 #пробуем собрать, но это может не получиться из-за специальной магии
-bake notInteractive=true|| :
+bake notInteractive=true || :
 rm output -rf || :
 msbuild.exe src/*.sln | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 bake -s BuildTests notInteractive=true || :
