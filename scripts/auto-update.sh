@@ -28,6 +28,7 @@ git ls-files | grep '.bake' | xargs git add -f || :
 cp -f $assets/.editorconfig .editorconfig
 git add -f .editorconfig || :
 cp -f $assets/nuget.config nuget.config
+git add -f nuget.config || :
 git ls-files | grep 'nuget.config' | xargs git add -f || :
 rm src/nuget.config || :
 
@@ -52,6 +53,10 @@ bake packages:install || bake -s packages:install | iconv -s -f cp866 -t cp1251 
 #правим ссылки в сборках
 bake -s packages:fix | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 bake -s fix:js:ref | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+#fix:js:ref может поправить ссылки в файлах нужно их добавить к комиту
+git ls-files | grep '\.master' | xargs git add -f || :
+git ls-files | grep '\.aspx' | xargs git add -f || :
+
 #пробуем собрать, но это может не получиться из-за специальной магии
 bake notInteractive=true || :
 rm output -rf || :
