@@ -33,7 +33,7 @@ task "version:bump":
 	return if Configuration.Maybe.skipVersionBump
 
 	#нужно загрузить версии что бы сгенерировать правильный номер версии
-	Sh("git pull --tags")
+	Sh("git fetch --tags")
 	output = ExecuteProcess("git", "status")
 	if not output.Contains("nothing to commit (working directory clean)")\
 		and output.Contains("nothing to commit working directory clean"):
