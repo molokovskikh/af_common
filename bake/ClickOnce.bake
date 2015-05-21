@@ -97,7 +97,8 @@ task "build publish package", [@ClickOnceBuild, "clean publish package"]:
 							"PublishDir" : buildTo,
 							"SigningCert" : certPath,
 							"Password" : password,
-							"SdkPath" : Path.Combine(MicrosoftSdk.Path(), "NETFX 4.0 Tools"),
+							#8.0 - последняя sdk поддерживающая net 4.0
+							"SdkPath" : Path.Combine(MicrosoftSdk("v8.0A").BinPath, "NETFX 4.0 Tools"),
 							"BootstrapperSdkPath" : BootstrapperSdkPath()},
 			FrameworkVersion : "4.0.30319").Execute()
 	CopyWithDeploy(FileSet("**\\*.*", BaseDirectory : buildTo), buildPublishTo)
