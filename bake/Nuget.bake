@@ -9,7 +9,7 @@ desc """
 создает пакет на основе проекта
 Globals.NugetPackageName - задает название проекта
 """
-task "nuget:build", ["nuget:clean"]:
+task "nuget:build", ["assembly:info:generate", "nuget:clean"]:
 	MkDir("output") unless Exist("output")
 	MkDir("output/nuget") unless Exist("output/nuget")
 	name = Globals.NugetPackageName
