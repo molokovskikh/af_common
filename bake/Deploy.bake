@@ -59,7 +59,7 @@ task "deploy:notify":
 	smtp = SmtpClient("box.analit.net")
 	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project, Host) values('$user', now(), '$head', '$project', '$host')")
 	jenkinsStatus = Globals.Maybe.JenkinsStatus
-	fromEmail = "dev@analit.net"
+	fromEmail = "r.kvasov@analit.net"
 	try:
 		using s = DirectorySearcher():
 			s.Filter = String.Format("(sAMAccountName={0})", user)
