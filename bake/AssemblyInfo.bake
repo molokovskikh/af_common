@@ -18,7 +18,7 @@ def UnderSourceControl(path as string):
 def GetRevision():
 	#если не сделать git status то на devsrv git show HEAD вернет пустоту
 	head = ExecuteProcess("git", "status")
-	head = ExecuteProcess("git", "show HEAD")
+	head = ExecuteProcess("git", "show HEAD -s")
 	lines = head.Split(("\n",), StringSplitOptions.RemoveEmptyEntries)
 	return lines[0].Trim().Replace("commit ", "").Trim()
 
