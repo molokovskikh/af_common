@@ -130,7 +130,7 @@ task "check:env":
 task @CleanService:
 	project = Globals.Project
 	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
-	MsBuild(projectFile, verbosity, "/nologo",
+	MsBuild(projectFile,
 			Target : "clean",
 			Parameters : params,
 			Verbosity : GetVerbosity(Globals),
