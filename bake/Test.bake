@@ -35,14 +35,12 @@ class Project:
 			Target : "clean",
 			Parameters : parameters,
 			FrameworkVersion : _frameworkVersion)
-		clean.Arguments.Add("/verbosity:minimal")
+		clean.Execute()
 
 		build = MsBuild(_projectFile,
 			Target : "build",
 			Parameters : parameters,
 			FrameworkVersion : _frameworkVersion)
-		build.Arguments.Add("/verbosity:minimal")
-		clean.Execute()
 		build.Execute()
 
 		BuildOutput = clean.Output.ToString() + "\r\n" + build.Output.ToString()
@@ -117,7 +115,7 @@ task @RunTests, [@TestJs, @BuildTests]:
 #boo миграции которые используют классы из проекта
 task @TryToBuild, [@PrepareBuild, @TryBeforeTest]:
 	projectFile = FileSet("src/*.sln").Files.First()
-	MsBuild(projectFile, "/verbosity:quiet",
+	MsBuild(projectFile,
 			Target: "build",
 			FrameworkVersion: Globals.FrameworkVersion).Execute()
 

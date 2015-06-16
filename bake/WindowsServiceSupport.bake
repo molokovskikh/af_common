@@ -113,13 +113,11 @@ task @ServiceDeployPipeline2, ["env", "check:env", "packages:install", "packages
 
 task @BuildService, [@CleanService, "generate:assembly:info"]:
 	project = Globals.Project
-	verbosity = "/verbosity:quiet"
 	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
-	if Configuration.Maybe.msbuildDebug:
-		verbosity = "/verbosity:detailed"
-	MsBuild(projectFile, verbosity, "/nologo",
+	MsBuild(projectFile,
 			Target : "build",
 			Parameters : params,
+			Verbosity : GetVerbosity(Globals),
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/*.xml")
 	sufix = GetConfigSufix(Globals)
@@ -131,13 +129,11 @@ task "check:env":
 
 task @CleanService:
 	project = Globals.Project
-	verbosity = "/verbosity:quiet"
 	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
-	if Configuration.Maybe.msbuildDebug:
-		verbosity = "/verbosity:detailed"
 	MsBuild(projectFile, verbosity, "/nologo",
 			Target : "clean",
 			Parameters : params,
+			Verbosity : GetVerbosity(Globals),
 			FrameworkVersion : Globals.FrameworkVersion).Execute()
 	if Exist(buildTo):
 		Rm("${buildTo}/*", true)

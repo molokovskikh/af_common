@@ -134,10 +134,11 @@ def Build(globals as DuckDictionary, project as string):
 	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
 	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
 	target = projectNameForMsbuild
-	MsBuild(sln, "/verbosity:quiet", "/nologo",
-			Target : target,
-			Parameters : params,
-			FrameworkVersion : globals.FrameworkVersion).Execute()
+	MsBuild(sln,
+		Target : target,
+		Parameters : params,
+		Verbosity: GetVerbosity(globals),
+		FrameworkVersion : globals.FrameworkVersion).Execute()
 
 	src = Path.Combine(Path.GetDirectoryName(projectFile), "App." + GetConfigSufix(globals))
 	config = "${buildTo}/${project}.exe.config"
@@ -262,12 +263,20 @@ def CleanWeb(globals as DuckDictionary, project as string):
 	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
 	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
 	target = "$projectNameForMsbuild:clean"
-	MsBuild(sln, "/verbosity:quiet", "/nologo",
+	MsBuild(sln,
 			Target : target,
+			Verbosity: GetVerbosity(globals),
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						"Configuration" : "release" },
 			FrameworkVersion : globals.FrameworkVersion).Execute()
 	Rm("${buildTo}/*", true) if Exist(buildTo)
+
+def GetVerbosity(globals):
+	verbosity = "quiet"
+	conf as DuckDictionary = globals.Configuration
+	if conf.Maybe.msbuildDebug:
+		verbosity = "detailed"
+	return verbosity
 
 def Clean(globals as DuckDictionary):
 	Clean(globals, null)
