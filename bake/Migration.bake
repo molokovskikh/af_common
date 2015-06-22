@@ -282,7 +282,14 @@ def Apply(fileName as string):
 			sql = File.ReadAllText(fileName)
 			if not sql:
 				return
-			rows = Db.Execute(sql)
+			if Configuration.Maybe.showWarning:
+				for part in sql.Split((';', ), StringSplitOptions.RemoveEmptyEntries):
+					continue unless part.Trim()
+					rows = Db.Execute(part)
+					for message in Db.Read("show warnings"):
+						print "${message.Level}(${message.Code}) ${message.Message}"
+			else:
+				Db.Execute(sql)
 	seconds = (DateTime.Now - begin).TotalSeconds
 	print "executed in ${seconds}s, ${rows} rows affected"
 	Db.Execute("insert into logs.SchemaMigrations Values('${migration}', now())")
