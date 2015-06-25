@@ -97,12 +97,20 @@ task "generate:assembly:info":
 """)
 			print "generated ${assemblyInfo}"
 
+desc """
+выводит метаданные о сборке
+параметры
+	name - путь к сборке
+"""
 task "dump:meta":
 	name = Configuration.name
 	dll = name
 	dll = FileSet("packages/**/$name.dll").FirstOrDefault() unless Exist(dll)
 	assembly = AssemblyDefinition.ReadAssembly(dll)
 	print assembly.Name
+	print "References"
+	for reference in assembly.MainModule.AssemblyReferences:
+		print "  " + reference
 	#module = assembly.MainModule
 	#for type in module.Types:
 	#	print type
