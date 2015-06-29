@@ -11,6 +11,9 @@ git pull
 git submodule sync
 git submodule update --init
 git submodule foreach "git checkout master && git pull"
+#после обновления сабмодулей правим ссылки на проекты внутри сабмодулей тк они могли измениться
+bake -s sln:ref:fix
+git add src/*.sln || :
 git clean -fdx
 git submodule foreach git clean -fdx
 

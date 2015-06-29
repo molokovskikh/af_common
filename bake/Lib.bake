@@ -8,6 +8,7 @@ import System.Linq.Enumerable from System.Core
 import System.Collections.Generic
 import NuGet from NuGet.Core
 import NuGet.PackageRepositoryExtensions from NuGet.Core
+import FubuCsProjFile
 
 class AssemblyResolver(BaseAssemblyResolver):
 	lookup as ILookup[of string, AssemblyDefinition]
@@ -488,3 +489,25 @@ task "assembly:remove:strongname":
 	assembly = AssemblyDefinition.ReadAssembly(name)
 	RemoveStrongName(assembly)
 	assembly.Write(name)
+
+task "sln:ref:fix":
+	slnname = FileSet("src/*.sln").FirstOrDefault()
+	unless slnname:
+		print "Не нашел src/*.sln файл"
+		return
+	sln = Solution.LoadFrom(slnname)
+	root = Path.GetFullPath(Path.GetDirectoryName(slnname))
+	projectsInSolution = sln.Projects.Select({p| Path.GetFullPath(Path.Combine(root, p.RelativePath))}).ToArray()
+	projectReferenced = List[of string]()
+	for p in sln.Projects:
+		projectRoot = Path.Combine(root, Path.GetDirectoryName(p.RelativePath))
+		for dep in p.Project.All[of ProjectReference]():
+			projectReferenced.Add(Path.GetFullPath(Path.Combine(projectRoot, dep.Include)))
+
+	notFound = projectReferenced.Distinct().Except(projectsInSolution).ToArray()
+	for f in notFound:
+		if Exist(f):
+			proj = CsProjFile.LoadFrom(f)
+			sln.AddProject(proj)
+			dirty = true
+	sln.Save() if dirty
