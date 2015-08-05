@@ -138,7 +138,8 @@ def Build(globals as DuckDictionary, project as string):
 		Target : target,
 		Parameters : params,
 		Verbosity: GetVerbosity(globals),
-		FrameworkVersion : globals.FrameworkVersion).Execute()
+		FrameworkVersion : globals.FrameworkVersion,
+		ExecutablePath: globals.Maybe.MsbuildExe).Execute()
 
 	src = Path.Combine(Path.GetDirectoryName(projectFile), "App." + GetConfigSufix(globals))
 	config = "${buildTo}/${project}.exe.config"
@@ -219,7 +220,8 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
 			Target : target,
 			Parameters : params,
-			FrameworkVersion : globals.FrameworkVersion).Execute()
+			FrameworkVersion : globals.FrameworkVersion,
+			ExecutablePath: globals.Maybe.MsbuildExe).Execute()
 	Rm("${buildTo}/bin/*.xml")
 	Cp(FileSet(["**/*.as?x",
 				"**/*.svc",
@@ -268,7 +270,8 @@ def CleanWeb(globals as DuckDictionary, project as string):
 			Verbosity: GetVerbosity(globals),
 			Parameters : { "OutDir" : "${buildTo}\\bin\\",
 						"Configuration" : "release" },
-			FrameworkVersion : globals.FrameworkVersion).Execute()
+			FrameworkVersion : globals.FrameworkVersion,
+			ExecutablePath: globals.Maybe.MsbuildExe).Execute()
 	Rm("${buildTo}/*", true) if Exist(buildTo)
 
 def GetVerbosity(globals):
@@ -286,7 +289,8 @@ def Clean(globals as DuckDictionary, project as string):
 	MsBuild(projectFile,
 			Target : "clean",
 			Parameters : { "OutputPath" : buildTo, "Configuration" : "release" },
-			FrameworkVersion : globals.FrameworkVersion).Execute()
+			FrameworkVersion : globals.FrameworkVersion,
+			ExecutablePath: globals.Maybe.MsbuildExe).Execute()
 	if Exist(buildTo):
 		Rm("${buildTo}/*", true)
 	else:

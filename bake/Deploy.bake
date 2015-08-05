@@ -52,6 +52,10 @@ task "deploy:notify":
 	if deployRecord:
 		lastDeployHash = deployRecord.GitHash
 	head = GetGitHead(null)
+	branch = ""
+	match = Regex("""On branch (?<branch>\w+)""").Match(GetGit("status"))
+	if match.Success:
+		branch = match.Groups["branch"].Value
 	if lastDeployHash:
 		logs = GetGit("log --no-merges $lastDeployHash..")
 	user = Environment.UserName
@@ -74,7 +78,7 @@ task "deploy:notify":
 	smtp.Send(fromEmail,
 		to,
 		"Обновление ${humanReadableName}",
-		"Релиз подготовил $user\nРевизия $head\n$jenkinsStatus\n$logs")
+		"Релиз подготовил $user ветка $branch\nРевизия $head\n$jenkinsStatus\n$logs")
 
 def GetBackupPath():
 	#Если мы разворачиваем сервис то будет опеределена переменная Server

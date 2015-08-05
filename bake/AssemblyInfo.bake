@@ -62,14 +62,21 @@ task "assembly:info:generate", ["generate:assembly:info"]
 
 task "generate:assembly:info":
 	if Configuration.Maybe.Version:
-		hash = ""
 		version = Version.Parse(Configuration.Maybe.Version)
+	if Configuration.Maybe.version:
+		version = Version.Parse(Configuration.Maybe.version)
 	else:
-		hash = GetRevision()
 		version = GetVersion()
 		unless version:
 			print "Не удалось определить версию, проверь git tag"
 			return
+	hash = GetRevision()
+	branch = ""
+	match = Regex("""On branch (?<branch>\w+)""").Match(GetGit("status"))
+	if match.Success:
+		branch = match.Groups["branch"].Value
+	if branch:
+		hash = branch + "/" + hash
 	Globals.Version = version
 	ignore = (/Common\..+/, /Test\..+/, /.+\.Test/)
 	if Globals.Maybe.GenerateAssemblyInfoIgnore:

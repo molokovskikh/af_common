@@ -16,15 +16,17 @@ class Project:
 	_projectFile as string
 	_frameworkVersion as string
 	_targetFramework as string
+	exe as string
 
 	property BuildOutput as string
 	property TestOutput as string
 
-	def constructor(projectFile as string, frameworkVersion as string, targetFramework as string):
+	def constructor(projectFile as string, frameworkVersion as string, exe as string, targetFramework as string):
 		_projectFile = projectFile
 		_project = Path.GetFileNameWithoutExtension(projectFile)
 		_frameworkVersion = frameworkVersion
 		_targetFramework = targetFramework
+		self.exe = exe
 
 	def Build():
 		conf = "debug"
@@ -34,13 +36,15 @@ class Project:
 		clean = MsBuild(_projectFile,
 			Target : "clean",
 			Parameters : parameters,
-			FrameworkVersion : _frameworkVersion)
+			FrameworkVersion : _frameworkVersion,
+			ExecutablePath: exe)
 		clean.Execute()
 
 		build = MsBuild(_projectFile,
 			Target : "build",
 			Parameters : parameters,
-			FrameworkVersion : _frameworkVersion)
+			FrameworkVersion : _frameworkVersion,
+			ExecutablePath: exe)
 		build.Execute()
 
 		BuildOutput = clean.Output.ToString() + "\r\n" + build.Output.ToString()
@@ -71,7 +75,7 @@ class Project:
 def GetProjects():
 	msbuildVersion = Globals.FrameworkVersion
 	frameworkVersion = DetectTargetFramework(Globals)
-	return GetProjectsForTest().Select({f| Project(f, msbuildVersion, frameworkVersion)}).ToList()
+	return GetProjectsForTest().Select({f| Project(f, msbuildVersion, Globals.Maybe.MsbuildExe, frameworkVersion)}).ToList()
 
 task @integration, [@test]
 
@@ -117,7 +121,8 @@ task @TryToBuild, [@PrepareBuild, @TryBeforeTest]:
 	projectFile = FileSet("src/*.sln").Files.First()
 	MsBuild(projectFile,
 			Target: "build",
-			FrameworkVersion: Globals.FrameworkVersion).Execute()
+			FrameworkVersion: Globals.FrameworkVersion,
+			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
 
 task @TryBeforeTest:
 	if Engine.Tasks.FirstOrDefault({t| t.Name == @BeforeTest}):

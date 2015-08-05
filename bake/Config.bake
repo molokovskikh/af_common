@@ -29,6 +29,9 @@ def Env() as string:
 	return EnvByName(name)
 
 def UpdateGlobals():
+	path = """C:\Program Files (x86)\MSBuild\14.0\Bin\msbuild.exe"""
+	if Exist(path):
+		Globals.MsbuildExe = path
 	Globals.Environment = ToPascal(Configuration.Maybe.env)\
 		or Globals.Maybe.Environment\
 		or @Local

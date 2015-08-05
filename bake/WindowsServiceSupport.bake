@@ -118,7 +118,8 @@ task @BuildService, [@CleanService, "generate:assembly:info"]:
 			Target : "build",
 			Parameters : params,
 			Verbosity : GetVerbosity(Globals),
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
+			FrameworkVersion: Globals.FrameworkVersion,
+			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
 	Rm("${buildTo}/*.xml")
 	sufix = GetConfigSufix(Globals)
 	Cp("src/${project}/App.$sufix", "${buildTo}/${project}.exe.config", true)
@@ -134,7 +135,8 @@ task @CleanService:
 			Target : "clean",
 			Parameters : params,
 			Verbosity : GetVerbosity(Globals),
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
+			FrameworkVersion : Globals.FrameworkVersion,
+			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
 	if Exist(buildTo):
 		Rm("${buildTo}/*", true)
 	else:

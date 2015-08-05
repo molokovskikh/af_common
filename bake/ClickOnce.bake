@@ -68,7 +68,8 @@ task @ClickOnceDeploy, ["env", "packages:install", "check", "version:bump", @Cli
 task @ClickOnceBuild, ["clickonce:clean", "generate:assembly:info"]:
 	MsBuild(projectFile,
 			Parameters : params,
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
+			FrameworkVersion : Globals.FrameworkVersion,
+			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
 	config = Path.Combine(projectPath, "App." + GetConfigSufix(Globals))
 	Cp(config, "${buildTo}${projectName}.exe.config", true)
 	Rm(FileSet("*.*",
@@ -80,7 +81,8 @@ task "clickonce:clean":
 	MsBuild(projectFile,
 			Target : "clean",
 			Parameters : params,
-			FrameworkVersion : Globals.FrameworkVersion).Execute()
+			FrameworkVersion : Globals.FrameworkVersion,
+			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
 	RmDir(buildTo, true) if Exist(buildTo)
 	MkDir(buildTo)
 
@@ -100,7 +102,8 @@ task "build publish package", [@ClickOnceBuild, "clean publish package"]:
 							#8.0 - последняя sdk поддерживающая net 4.0
 							"SdkPath" : Path.Combine(MicrosoftSdk("v8.0A").BinPath, "NETFX 4.0 Tools"),
 							"BootstrapperSdkPath" : BootstrapperSdkPath()},
-			FrameworkVersion : "4.0.30319").Execute()
+			FrameworkVersion : Globals.FrameworkVersion,
+			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
 	CopyWithDeploy(FileSet("**\\*.*", BaseDirectory : buildTo), buildPublishTo)
 	cert = X509Certificate2(File.ReadAllBytes(certPath), password)
 	Exec("\"signtool.exe\"",
