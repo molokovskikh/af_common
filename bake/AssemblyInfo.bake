@@ -78,11 +78,14 @@ task "generate:assembly:info":
 	if branch:
 		hash = branch + "/" + hash
 	Globals.Version = version
-	ignore = (/Common\..+/, /Test\..+/, /.+\.Test/)
+	ignore = (/[Cc]ommon\..+/, /[tT]est\..+/, /.+\.[tT]est/)
 	if Globals.Maybe.GenerateAssemblyInfoIgnore:
 		ignore = ignore.Concat(Globals.Maybe.GenerateAssemblyInfoIgnore).ToArray()
 
 	for project in GetProjects():
+		if Directory.Exists(project):
+			continue
+
 		projectName = Path.GetFileNameWithoutExtension(project)
 		title = ReadGlobalConfig(Globals, "assembly:info:generate", @title) or projectName
 		product = ReadGlobalConfig(Globals, "assembly:info:generate", @product) or projectName
