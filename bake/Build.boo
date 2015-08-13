@@ -233,6 +233,7 @@ def BuildWeb(globals as DuckDictionary, project as string):
 				"**/*.png",
 				"**/*.ico",
 				"**/*.jpg",
+				"**/*.pdf",
 				"**/*.js",
 				"**/*.woff",
 				"**/*.ttf",
