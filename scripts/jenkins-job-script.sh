@@ -29,7 +29,7 @@ clean()
 
 trap "clean" ERR
 
-PATH=/cygdrive/c/Windows/Microsoft.NET/Framework/v4.0.30319/:$PATH
+PATH=/cygdrive/c/Program\ Files\ \(x86\)/MSBuild/14.0/Bin/:$PATH
 
 if [ -z "$SKIP_DB" ]; then
 	mysqladmin --user=root --port=$(cat data/port) shutdown 2> /dev/null && sleep 2 || :
