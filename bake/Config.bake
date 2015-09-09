@@ -104,6 +104,15 @@ task @Production:
 
 task "env", [@Production]
 
+desc """
+Показывает переменные текущей среды
+"""
 task "debug:env":
+	print "Текущая среда"
 	for i in Globals:
-		print "${i.Key} = ${i.Value}"
+		print "  ${i.Key} = ${i.Value}"
+	print "Доступные среды"
+	for env in cast(Hash, Globals.Builtin):
+		print env.Key
+		for i in env.Value:
+			print "  ${i.Key} = ${i.Value}"
