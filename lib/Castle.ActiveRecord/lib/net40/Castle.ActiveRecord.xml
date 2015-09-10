@@ -8992,7 +8992,7 @@
             <param name="runWhen">Use validators appropriate to the action being performed.</param>
             <returns>True if no validation error was found</returns>
         </member>
-        <member name="M:Castle.ActiveRecord.ActiveRecordValidator.ThrowNotValidException(System.String[],System.Collections.IDictionary)">
+        <member name="M:Castle.ActiveRecord.ActiveRecordValidator.ThrowNotValidException(System.Object,System.String[],System.Collections.IDictionary)">
             <summary>
             Throws an exception explaining why the save or update
             cannot be executed when fields are not ok to pass.
