@@ -77,8 +77,11 @@ def GetServices(serviceName as string, servers as string*):
 def GetBuildConfig(globals as DuckDictionary):
 	return GetBuildConfig(globals, null)
 
+def FindSln():
+	return FileSet("src/*.sln").Concat(FileSet("*.sln")).FirstOrDefault()
+
 def GetBuildConfig(globals as DuckDictionary, project as string):
-	sln = FileSet("src/*.sln").Concat(FileSet("*.sln")).FirstOrDefault()
+	sln = FindSln()
 	unless project:
 		project = globals.Maybe.Project or globals.Maybe.project
 		unless project:
@@ -212,7 +215,7 @@ def BuildWeb(globals as DuckDictionary, project as string):
 		"Configuration" : "Release"}
 	if globals.Maybe.Platform:
 		params.Add("Platform", globals.Platform)
-	sln = FileSet("src/*.sln").First()
+	sln = FindSln()
 	solution = Solution.LoadFrom(sln)
 	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
 	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
@@ -261,7 +264,7 @@ def BuildWeb(globals as DuckDictionary, project as string):
 
 def CleanWeb(globals as DuckDictionary, project as string):
 	project, buildTo, projectFile = GetBuildConfig(globals, project)
-	sln = FileSet("src/*.sln").First()
+	sln = FileSet("src/*.sln").Concat(FileSet("*.sln")).First()
 	solution = Solution.LoadFrom(sln)
 	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
 	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")

@@ -299,6 +299,8 @@ def ToTimeStamp(m as string):
 	return Convert.ToUInt64(string(chars))
 
 def Migrate(migrations as string*):
+	if migrations.Count() == 0:
+		return
 	migrated = GetMigrated()
 	needToMigrate = migrations.Where({m| migrated.All({mg| mg != m})}).ToList()
 	if needToMigrate.Count == 0:

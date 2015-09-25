@@ -36,6 +36,10 @@ task "deploy:stub":
 
 task "deploy:pipeline", ["env", "packages:install", "check", "version:bump", "assembly:info:generate", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
 
+def GetDeployName():
+	project, _, _ = GetBuildConfig(Globals)
+	return Globals.Maybe.DeployAlias or project
+
 desc """
 отправляет уведомление о развертывание проекта
 на UpdatesList@subscribe.analit.net
@@ -44,7 +48,7 @@ notifyTo - удрес на который отправлять уведомле�
 task "deploy:notify":
 	return if Globals.Environment != @Production
 
-	project, _, _ = GetBuildConfig(Globals)
+	project = GetDeployName()
 	humanReadableName = Globals.Maybe.humanReadableName or Globals.Maybe.HumanReadableName
 	to = Configuration.Maybe.notifyTo or "UpdatesList@subscribe.analit.net"
 
@@ -82,7 +86,7 @@ task "deploy:notify":
 
 def GetBackupPath():
 	#Если мы разворачиваем сервис то будет опеределена переменная Server
-	project, _, _ = GetBuildConfig(Globals)
+	project = GetDeployName()
 	if Globals.Maybe.Server:
 		servers = GetServersToDeploy(Globals)
 		rootServer = servers.First()
@@ -96,7 +100,7 @@ def GetBackupPath():
 task "deploy:backup":
 	return if Globals.Environment != @Production
 
-	project, _, _ = GetBuildConfig(Globals)
+	project = GetDeployName()
 	deployTo = GetBackupPath()
 
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
@@ -107,7 +111,7 @@ task "deploy:backup":
 	print "backuped to ${backup}"
 
 task @RollbackDeploy, [@WebClean]:
-	project, _, _ = GetBuildConfig(Globals)
+	project = GetDeployName()
 	deployTo = GetBackupPath()
 
 	backupRoot = Globals.Maybe.BackupRoot
