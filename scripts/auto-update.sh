@@ -20,7 +20,7 @@ git submodule foreach git clean -fdx
 
 #это работает не очень хорошо
 #правим ссылки в файлах проектов, что бы удалить номер версии
-#fix-ref.sh
+fix-ref.sh
 rm-stylecop.sh
 bake -s packages
 git ls-files | grep '\.csproj' | xargs git add -f || :
