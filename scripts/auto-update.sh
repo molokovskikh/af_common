@@ -17,10 +17,11 @@ git add src/*.sln || :
 git clean -fdx
 git submodule foreach git clean -fdx
 
+
+#это работает не очень хорошо
 #правим ссылки в файлах проектов, что бы удалить номер версии
-fix-ref.sh
-update-stylecop.sh
-fix-stylecop.sh
+#fix-ref.sh
+rm-stylecop.sh
 bake -s packages
 git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :

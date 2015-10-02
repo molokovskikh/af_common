@@ -47,7 +47,8 @@ catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.cata
 	"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
 	"catalogs.products", "catalogs.properties",
 	"catalogs.propertyvalues",
-	"farm.rejects"))
+	"farm.rejects",
+	"reports.drugs"))
 
 customersProfile = DbProfile(emptyProfile)
 customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "customers", "ordersendrules", "usersettings"))
