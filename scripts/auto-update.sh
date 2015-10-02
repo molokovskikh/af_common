@@ -21,8 +21,8 @@ git submodule foreach git clean -fdx
 #это работает не очень хорошо
 #правим ссылки в файлах проектов, что бы удалить номер версии
 fix-ref.sh
+bake -s packages:install
 rm-stylecop.sh
-bake -s packages
 git ls-files | grep '\.csproj' | xargs git add -f || :
 git submodule foreach "git ls-files | grep csproj | xargs git add -f || :" || :
 for f in `find -iname '.gitignore' | xargs grep -L '\*\.gen\.\*'`; do echo -ne "\n*.gen.*" >> $f; done;
