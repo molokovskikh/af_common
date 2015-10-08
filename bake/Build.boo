@@ -78,7 +78,10 @@ def GetBuildConfig(globals as DuckDictionary):
 	return GetBuildConfig(globals, null)
 
 def FindSln():
-	return FileSet("src/*.sln").Concat(FileSet("*.sln")).FirstOrDefault()
+	return Sln().FirstOrDefault()
+
+def Sln():
+	return FileSet("src/*.sln").Concat(FileSet("*.sln"))
 
 def GetBuildConfig(globals as DuckDictionary, project as string):
 	sln = FindSln()
