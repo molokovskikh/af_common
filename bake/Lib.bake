@@ -183,6 +183,7 @@ def GetPackageConfigs():
 		.ToArray()
 
 def GetInstalledPackages():
+	return Enumerable.Empty[of Package]().ToArray() unless Directory.Exists("packages")
 	return Directory.GetDirectories(@packages).Select({d| Package(d)}).ToArray()
 
 def GetPackagesForConfig(config as string):
