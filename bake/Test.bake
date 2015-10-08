@@ -118,7 +118,8 @@ task @RunTests, [@TestJs, @BuildTests]:
 #перед запуском тестов нам нужно собрать проект, тк в проекте могут быть
 #boo миграции которые используют классы из проекта
 task @TryToBuild, [@PrepareBuild, @TryBeforeTest]:
-	projectFile = FileSet("src/*.sln").Files.First()
+	projectFile = FindSln()
+	raise "Не удалось найти файл проекта" unless projectFile
 	MsBuild(projectFile,
 			Target: "build",
 			FrameworkVersion: Globals.FrameworkVersion,
