@@ -414,7 +414,7 @@ Retarget - при установки опции ссылки на сборку S
 правятся на .net 4 это нужно тк .net 4 что бы обойти ошибку в .net
 что бы не ставить пакет исправлений KB2468871
 """
-task "packages:fix":
+task "packages:fix", ["packages:install"]:
 	verbose = Configuration.Maybe.verbose
 	if Globals.Maybe.SkipFix:
 		return

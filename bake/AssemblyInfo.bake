@@ -89,6 +89,7 @@ task "generate:assembly:info":
 		projectName = Path.GetFileNameWithoutExtension(project)
 		title = ReadGlobalConfig(Globals, "assembly:info:generate", @title) or projectName
 		product = ReadGlobalConfig(Globals, "assembly:info:generate", @product) or projectName
+		publisher = ReadGlobalConfig(Globals, "assembly:info:generate", @publisher) or "Инфорум"
 		continue if ignore.Any({i| i.IsMatch(projectName)})
 		projectDir = Path.GetDirectoryName(project)
 		assemblyInfo = Path.Combine(projectDir, "Properties", "AssemblyInfo.cs")
@@ -99,7 +100,7 @@ task "generate:assembly:info":
 
 [assembly: AssemblyTitle("$title")]
 [assembly: AssemblyProduct("$product")]
-[assembly: AssemblyCompany("Инфорум")]
+[assembly: AssemblyCompany("$publisher")]
 [assembly: AssemblyCopyright("$hash")]
 [assembly: AssemblyVersion("$version")]
 [assembly: AssemblyFileVersion("$version")]
