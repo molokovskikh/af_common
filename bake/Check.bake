@@ -120,7 +120,7 @@ skipCheckJenkins=true, что бы игнорировать результаты
 task "check:jenkins":
 	return if Globals.Environment == @Test
 	jenkinsProject  = Globals.Maybe.JenkinsProject or Globals.Maybe.Project or Globals.Maybe.project
-	url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
+	url = "http://ci.analit.net/job/$jenkinsProject"
 	uri = url + "/api/xml?depth=1"
 	try:
 		try:
