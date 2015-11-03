@@ -13,7 +13,7 @@ import FubuCsProjFile
 
 class Project:
 	_project as string
-	_projectFile as string
+	public _projectFile as string
 	_frameworkVersion as string
 	_targetFramework as string
 	exe as string
@@ -27,27 +27,6 @@ class Project:
 		_frameworkVersion = frameworkVersion
 		_targetFramework = targetFramework
 		self.exe = exe
-
-	def Build():
-		conf = "debug"
-		parameters = { "Configuration" : conf,  }
-		if _targetFramework == "net45":
-			parameters[@TargetFrameworkVersion] = "v4.5"
-		clean = MsBuild(_projectFile,
-			Target : "clean",
-			Parameters : parameters,
-			FrameworkVersion : _frameworkVersion,
-			ExecutablePath: exe)
-		clean.Execute()
-
-		build = MsBuild(_projectFile,
-			Target : "build",
-			Parameters : parameters,
-			FrameworkVersion : _frameworkVersion,
-			ExecutablePath: exe)
-		build.Execute()
-
-		BuildOutput = clean.Output.ToString() + "\r\n" + build.Output.ToString()
 
 	def Test():
 		assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/${_project}.dll")
@@ -86,7 +65,7 @@ task @PrepareBuild, ["generate:assembly:info", "check:common:error", "packages:i
 task @BuildTests, [@PrepareBuild]:
 	projects = GetProjects()
 	for project in projects:
-		project.Build()
+		BuildCore(Globals, project._projectFile, {})
 
 task @TestJs:
 	return unless Exist("test")

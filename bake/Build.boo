@@ -135,17 +135,7 @@ def Build(globals as DuckDictionary, project as string):
 	}
 	if globals.Maybe.Platform:
 		params.Add("Platform", globals.Platform)
-	sln = FileSet("src/*.sln").Concat(FileSet("*.sln")).First()
-	solution = Solution.LoadFrom(sln)
-	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
-	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
-	target = projectNameForMsbuild
-	MsBuild(sln,
-		Target : target,
-		Parameters : params,
-		Verbosity: GetVerbosity(globals),
-		FrameworkVersion : globals.FrameworkVersion,
-		ExecutablePath: globals.Maybe.MsbuildExe).Execute()
+	BuildCore(globals, projectFile, params)
 
 	src = Path.Combine(Path.GetDirectoryName(projectFile), "App." + GetConfigSufix(globals))
 	config = "${buildTo}/${project}.exe.config"
@@ -154,6 +144,18 @@ def Build(globals as DuckDictionary, project as string):
 	Cp(src, config, true) if Exist(src)
 	Rm("${buildTo}/*.xml")
 	RmDir("$buildTo/_PublishedWebsites", true)
+
+def BuildCore(globals as DuckDictionary, projectFile as string, params as IDictionary):
+	sln = FindSln()
+	solution = Solution.LoadFrom(sln)
+	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
+	target = solutionProject.SolutionPath.Replace(".", "_")
+	MsBuild(sln,
+		Target : target,
+		Parameters : params,
+		Verbosity: GetVerbosity(globals),
+		FrameworkVersion : globals.FrameworkVersion,
+		ExecutablePath: globals.Maybe.MsbuildExe).Execute()
 
 def DeployService(globals as DuckDictionary, app as string, host as string):
 	project, _, _ = GetBuildConfig(globals, app)
