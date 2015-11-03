@@ -145,10 +145,14 @@ def Build(globals as DuckDictionary, project as string):
 	Rm("${buildTo}/*.xml")
 	RmDir("$buildTo/_PublishedWebsites", true)
 
-def BuildCore(globals as DuckDictionary, projectFile as string, params as IDictionary):
+def GetSolutionProject(projectFile as string):
 	sln = FindSln()
 	solution = Solution.LoadFrom(sln)
-	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
+	return solution.Projects.First({p| String.Compare(Path.GetFullPath(p.Project.FileName), Path.GetFullPath(projectFile), true) == 0})
+
+def BuildCore(globals as DuckDictionary, projectFile as string, params as IDictionary):
+	sln = FindSln()
+	solutionProject = GetSolutionProject(projectFile)
 	target = solutionProject.SolutionPath.Replace(".", "_")
 	MsBuild(sln,
 		Target : target,
@@ -221,8 +225,7 @@ def BuildWeb(globals as DuckDictionary, project as string):
 	if globals.Maybe.Platform:
 		params.Add("Platform", globals.Platform)
 	sln = FindSln()
-	solution = Solution.LoadFrom(sln)
-	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
+	solutionProject = GetSolutionProject(projectFile)
 	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
 	target = projectNameForMsbuild
 	MsBuild(sln, "/verbosity:quiet", "/nologo",
@@ -269,9 +272,8 @@ def BuildWeb(globals as DuckDictionary, project as string):
 
 def CleanWeb(globals as DuckDictionary, project as string):
 	project, buildTo, projectFile = GetBuildConfig(globals, project)
-	sln = FileSet("src/*.sln").Concat(FileSet("*.sln")).First()
-	solution = Solution.LoadFrom(sln)
-	solutionProject = solution.Projects.First({p| Path.GetFullPath(p.Project.FileName) == Path.GetFullPath(projectFile)})
+	sln = FindSln()
+	solutionProject = GetSolutionProject(projectFile)
 	projectNameForMsbuild = solutionProject.SolutionPath.Replace(".", "_")
 	target = "$projectNameForMsbuild:clean"
 	MsBuild(sln,
