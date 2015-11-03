@@ -72,16 +72,8 @@ def GetTableFields(db as string, table as string, getLine as Func[of duck, strin
 			fields.Add("\t\t" + getLine(column, field))
 	return join(fields, ",\r\n")
 
-def GetTableFields2(db as string, table as string, getLine as Func[of duck, string, string]):
-	fields = Boo.Lang.List()
-	for column in Db.Read("show columns from ${db}.${table}"):
-		field = column.Field.ToString()
-		fields.Add("\t\t" + getLine(column, field))
-	return join(fields, ",\r\n")
-
 def LogId(table as string):
 	return LastWord(Singulize(table)) + "Id"
-
 
 def GetTableColumns(table as string, database as string) as IEnumerable[of (string)]:
 	for column in Db.Read("show columns from ${database}.${table}"):
@@ -119,8 +111,11 @@ def GetUpdateLogTableCommand2(db as string, table as string, sufix as string):
 	columns = GetTableColumns(table, db)
 	newColumns = List of (string)()
 	for name, type in columns:
-		newColumns.Add(("New" + name, type))
-		newColumns.Add(("Old" + name, type))
+		if name.ToLower() == "id":
+			newColumns.Add((LogId(table), type))
+		else:
+			newColumns.Add(("New" + name, type))
+			newColumns.Add(("Old" + name, type))
 	columns = newColumns
 	unless Db.Read("show tables in logs").Select({r| r[0].ToString()}).Contains(logTable, StringComparer.OrdinalIgnoreCase):
 		return GetCreateLogTableCommand(logTable, GetLogTableColumnsSql(table, columns))
@@ -187,15 +182,25 @@ def GetLogTriggerCommand(action as string, db as string, table as string, sufix 
 	return GetLogTriggerTemplate(action, fields, db, table, sufix)
 
 def GetLogTriggerCommand2(action as string, db as string, table as string, sufix as string):
-	match action:
-		case "INSERT":
-			fields = GetTableFields2(db, table, {column, logTo| "New${logTo} = NEW.${column.Field}"})
-		case "DELETE":
-			fields = GetTableFields2(db, table, {column, logTo| "Old${logTo} = OLD.${column.Field}"})
-		case "UPDATE":
-			getLine as Func[of duck, string, string] = def(column as duck, logTo as string):
-				return "New${logTo} = NEW.${column.Field},\r\n"\
-					+ "\t\tOld${logTo} = OLD.${column.Field}"
-			fields = GetTableFields2(db, table, getLine)
+	fields = Boo.Lang.List()
+	for column, type in GetTableColumns(table, db):
+		if column.ToLower() == "id":
+			logId = LogId(table)
+			match action:
+				case "INSERT":
+					fields.Add("\t\t$logId = NEW.${column}")
+				case "DELETE":
+					fields.Add("\t\t$logId = OLD.${column}")
+				case "UPDATE":
+					fields.Add("\t\t$logId = OLD.${column}")
+		else:
+			match action:
+				case "INSERT":
+					fields.Add("\t\tNew${column} = NEW.${column}")
+				case "DELETE":
+					fields.Add("\t\tOld${column} = OLD.${column}")
+				case "UPDATE":
+					fields.Add("\t\tNew${column} = NEW.${column},\r\n"\
+						+ "\t\tOld${column} = OLD.${column}")
 
-	return GetLogTriggerTemplate2(action, fields, db, table, sufix)
+	return GetLogTriggerTemplate2(action, join(fields, ",\r\n"), db, table, sufix)

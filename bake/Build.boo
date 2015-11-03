@@ -148,7 +148,10 @@ def Build(globals as DuckDictionary, project as string):
 def GetSolutionProject(projectFile as string):
 	sln = FindSln()
 	solution = Solution.LoadFrom(sln)
-	return solution.Projects.First({p| String.Compare(Path.GetFullPath(p.Project.FileName), Path.GetFullPath(projectFile), true) == 0})
+	project = solution.Projects.FirstOrDefault({p| String.Compare(Path.GetFullPath(p.Project.FileName), Path.GetFullPath(projectFile), true) == 0})
+	unless project:
+		raise "Не удалось найти файл проекта $projectFile в $sln"
+	return project
 
 def BuildCore(globals as DuckDictionary, projectFile as string, params as IDictionary):
 	sln = FindSln()

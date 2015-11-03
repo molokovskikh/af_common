@@ -54,7 +54,13 @@ class Project:
 def GetProjects():
 	msbuildVersion = Globals.FrameworkVersion
 	frameworkVersion = DetectTargetFramework(Globals)
-	return GetProjectsForTest().Select({f| Project(f, msbuildVersion, Globals.Maybe.MsbuildExe, frameworkVersion)}).ToList()
+	projects = GetProjectsForTest().Select({f| Project(f, msbuildVersion, Globals.Maybe.MsbuildExe, frameworkVersion)}).ToList()
+
+	ignore = (of Regex: ,)
+	if Globals.Maybe.TestIgnore:
+		ignore = ignore.Concat(Globals.Maybe.TestIgnore).ToArray()
+
+	return projects.Where({x| not ignore.Any({i| i.IsMatch(x.ToString())})}).ToList()
 
 task @integration, [@test]
 
@@ -63,8 +69,7 @@ task @test, [@RunTests]
 task @PrepareBuild, ["generate:assembly:info", "check:common:error", "packages:install"]
 
 task @BuildTests, [@PrepareBuild]:
-	projects = GetProjects()
-	for project in projects:
+	for project in GetProjects():
 		BuildCore(Globals, project._projectFile, {})
 
 task @TestJs:
@@ -82,13 +87,7 @@ task @TestJs:
 
 task @RunTests, [@TestJs, @BuildTests]:
 	index = 0
-
-	ignore = (of Regex: ,)
-	if Globals.Maybe.TestIgnore:
-		ignore = ignore.Concat(Globals.Maybe.TestIgnore).ToArray()
-
 	for project in GetProjects():
-		continue if ignore.Any({i| i.IsMatch(project.ToString())})
 		index++
 		if Exist("TestResult.xml"):
 			Cp("TestResult.xml", "TestResult.$project.$index.xml", true)
