@@ -145,24 +145,28 @@ def Build(globals as DuckDictionary, project as string):
 	Rm("${buildTo}/*.xml")
 	RmDir("$buildTo/_PublishedWebsites", true)
 
-def GetSolutionProject(projectFile as string):
+def FindSolutionProject(projectFile as string):
 	sln = FindSln()
 	solution = Solution.LoadFrom(sln)
-	project = solution.Projects.FirstOrDefault({p| String.Compare(Path.GetFullPath(p.Project.FileName), Path.GetFullPath(projectFile), true) == 0})
-	unless project:
-		raise "Не удалось найти файл проекта $projectFile в $sln"
-	return project
+	return solution.Projects.FirstOrDefault({p| String.Compare(Path.GetFullPath(p.Project.FileName), Path.GetFullPath(projectFile), true) == 0})
 
 def BuildCore(globals as DuckDictionary, projectFile as string, params as IDictionary):
 	sln = FindSln()
-	solutionProject = GetSolutionProject(projectFile)
-	target = solutionProject.SolutionPath.Replace(".", "_")
-	MsBuild(sln,
-		Target : target,
-		Parameters : params,
-		Verbosity: GetVerbosity(globals),
-		FrameworkVersion : globals.FrameworkVersion,
-		ExecutablePath: globals.Maybe.MsbuildExe).Execute()
+	solutionProject = FindSolutionProject(projectFile)
+	if solutionProject:
+		target = solutionProject.SolutionPath.Replace(".", "_")
+		MsBuild(sln,
+			Target : target,
+			Parameters : params,
+			Verbosity: GetVerbosity(globals),
+			FrameworkVersion : globals.FrameworkVersion,
+			ExecutablePath: globals.Maybe.MsbuildExe).Execute()
+	else:
+		MsBuild(projectFile,
+			Parameters : params,
+			Verbosity: GetVerbosity(globals),
+			FrameworkVersion : globals.FrameworkVersion,
+			ExecutablePath: globals.Maybe.MsbuildExe).Execute()
 
 def DeployService(globals as DuckDictionary, app as string, host as string):
 	project, _, _ = GetBuildConfig(globals, app)
