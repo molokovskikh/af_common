@@ -145,6 +145,14 @@ def Build(globals as DuckDictionary, project as string):
 	Rm("${buildTo}/*.xml")
 	RmDir("$buildTo/_PublishedWebsites", true)
 
+def GetSolutionProject(projectFile as string):
+	sln = FindSln()
+	solution = Solution.LoadFrom(sln)
+	project = solution.Projects.FirstOrDefault({p| String.Compare(Path.GetFullPath(p.Project.FileName), Path.GetFullPath(projectFile), true) == 0})
+	unless project:
+		raise "Не удалось найти файл проекта $projectFile в $sln"
+	return project
+
 def FindSolutionProject(projectFile as string):
 	sln = FindSln()
 	solution = Solution.LoadFrom(sln)
