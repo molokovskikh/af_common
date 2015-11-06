@@ -119,7 +119,15 @@ skipCheckJenkins=true, что бы игнорировать результаты
 """
 task "check:jenkins":
 	return if Globals.Environment == @Test
-	jenkinsProject  = Globals.Maybe.JenkinsProject or Globals.Maybe.Project or Globals.Maybe.project
+
+	remote = GetGit("remote -v").Split((Environment.NewLine, ), StringSplitOptions.None).First({x| x.StartsWith("origin\t") and x.EndsWith("(fetch)")})
+	parts = remote.Split(char('\t'))[1].Split(char('/'))
+	name = parts[parts.Length - 1].Split(char(' '))[0].Replace(".git", "")
+	gitlabgroup = parts[parts.Length - 2].Split(char(':'))[1]
+	if gitlabgroup != "root":
+		name = gitlabgroup + "_" + name
+
+	jenkinsProject  = Globals.Maybe.JenkinsProject or name
 	url = "http://ci.analit.net/job/$jenkinsProject"
 	uri = url + "/api/xml?depth=1"
 	try:
@@ -128,7 +136,7 @@ task "check:jenkins":
 				doc = XDocument.Load(uri)
 			except e as WebException:
 				jenkinsProject = jenkinsProject.Replace(".", "-")
-				url = "http://devsrv.adc.analit.net:8080/job/$jenkinsProject"
+				url = "http://ci.analit.net/job/$jenkinsProject"
 				uri = url + "/api/xml?depth=1"
 				doc = XDocument.Load(uri)
 		except e:
@@ -151,7 +159,7 @@ task "check:jenkins":
 			raise "Тесты для ревизии $head не запускались,"\
 				+ " перед развертывание следует прогнать все тесты в jenkins"
 	except e:
-		message = "Не удалось проверить результаты тестов в jenkins,"\
+		message = "Не удалось проверить результаты тестов в jenkins($url),"\
 				+ " skipCheckJenkins=true что бы обойти проверку"
 		if Configuration.Maybe.skipCheckJenkins:
 			print message
