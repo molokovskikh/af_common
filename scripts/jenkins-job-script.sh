@@ -53,11 +53,9 @@ if [ -e ./scripts/prepare.sh ]
 then
 	./scripts/prepare.sh | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 else
-	bake -s packages:install notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
-	if [ $? -ne 0 ]; then
-		exit $?
-	fi
-	bake -s packages:fix | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+	#build.bake может содержать ссылки на библиотеи и без них не соберется для этого нужен -s
+	#так же там может быть настройка для установки пакетов по этому сначала пробуем загрузить build.bake
+	bake packages:fix || bake -s packages:fix | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[1]} -eq 0
 fi
 bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 if [ -z "$SKIP_DB" ]; then
