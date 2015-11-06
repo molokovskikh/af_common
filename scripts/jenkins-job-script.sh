@@ -55,7 +55,7 @@ then
 else
 	#build.bake может содержать ссылки на библиотеи и без них не соберется для этого нужен -s
 	#так же там может быть настройка для установки пакетов по этому сначала пробуем загрузить build.bake
-	bake packages:fix || bake -s packages:fix | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[1]} -eq 0
+	(bake packages:fix || bake -s packages:fix) | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[1]} -eq 0
 fi
 bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
 if [ -z "$SKIP_DB" ]; then

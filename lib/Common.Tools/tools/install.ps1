@@ -1,4 +1,5 @@
 param($installPath, $toolsPath, $package, $project, $name="common-tools")
+$env:Path = $env:Path + ";C:\cygwin\bin"
 
 $git="git.exe"
 if (Test-Path "C:\cygwin\bin\git.exe") {
