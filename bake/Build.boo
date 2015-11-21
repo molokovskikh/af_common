@@ -122,6 +122,15 @@ def CleanDeployDir(globals as DuckDictionary, project as string, deployTo as str
 	excludes = GetExcludes(globals);
 	excludes.Add("*.log")
 	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
+	DeleteEmptyDirs(deployTo)
+
+def DeleteEmptyDirs(root as string):
+	return unless Directory.Exists(root)
+	return if Directory.GetFiles(root).Length
+	for dir in Directory.GetDirectories(root):
+		DeleteEmptyDirs(dir)
+	return if Directory.GetDirectories(root).Length
+	Directory.Delete(root)
 
 def Build(globals as DuckDictionary):
 	Build(globals, null)
