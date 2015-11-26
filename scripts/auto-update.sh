@@ -18,6 +18,7 @@ git clean -fdx
 git submodule foreach git clean -fdx
 
 
+update-target-framework.sh
 #это работает не очень хорошо
 #правим ссылки в файлах проектов, что бы удалить номер версии
 fix-ref.sh
