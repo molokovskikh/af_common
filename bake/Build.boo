@@ -191,8 +191,10 @@ def DeployService(globals as DuckDictionary, app as string, host as string):
 
 def DeployService(globals as DuckDictionary, app as string, host as string, path as string):
 	project, _, _ = GetBuildConfig(globals, app)
+	serviceName = ReadGlobalConfig(globals, project, @ServiceName) or project
+
 	Impersonate(globals, host):
-		services = GetServices(project, (host, ))
+		services = GetServices(serviceName, (host, ))
 		StopServices(services)
 		RepeatTry:
 			XCopyDeploy(globals, app, path)
