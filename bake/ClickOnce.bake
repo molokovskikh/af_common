@@ -109,9 +109,7 @@ task "build publish package", [@ClickOnceBuild, "clean publish package"]:
 			FrameworkVersion : Globals.FrameworkVersion,
 			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
 	CopyWithDeploy(FileSet("**\\*.*", BaseDirectory : buildTo), buildPublishTo)
-	cert = X509Certificate2(File.ReadAllBytes(certPath), password)
-	Exec("\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x86\\signtool.exe\"",
-		"sign /sha1 ${cert.Thumbprint} ${buildPublishTo}setup.exe").Execute()
+	Sign("${buildPublishTo}setup.exe")
 	Rm("${buildPublishTo}/publish.build")
 	GeneratePublishPage("${buildPublishTo}publish.htm", publishVersion, productName)
 

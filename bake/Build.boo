@@ -401,3 +401,10 @@ def GetServersToDeploy(globals as DuckDictionary):
 	if not servers.Count:
 		servers.Add(globals.Server.ToString())
 	return servers
+
+def Sign(path as string):
+	certPath = GetResource("inforoomCS.pfx")
+	password = "password"
+	cert = X509Certificate2(File.ReadAllBytes(certPath), password)
+	Exec("\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x86\\signtool.exe\"",
+		"sign /sha1 ${cert.Thumbprint} \"$path\"").Execute()
