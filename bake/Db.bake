@@ -48,7 +48,8 @@ catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.cata
 	"catalogs.products", "catalogs.properties",
 	"catalogs.propertyvalues",
 	"farm.rejects",
-	"reports.drugs"))
+	"reports.drugs",
+	"Documents.BarCodes"))
 
 customersProfile = DbProfile(emptyProfile)
 customersProfile.Dbs(("accessright", "billing", "catalogs", "contacts", "customers", "ordersendrules", "usersettings"))
@@ -312,7 +313,15 @@ def ImportTables(mysqldump as string, mysql as string, tables as (string)):
 desc """
 Загружает тестовые данные и применяет не примененные миграции
 """
-task "db:setup", ["db:seed", "db:migrate"]
+task "db:setup", ["db:seed", "db:app:seed", "db:migrate"]
+
+desc """
+Задача заглушка что бы создать тестовые данные специфичные для приложения
+в bake файле приложения создай задачу db:local:seed
+"""
+task "db:app:seed":
+	if Engine.Tasks.Any({t| t.Name == "db:local:seed"}):
+		Engine.Execute("db:local:seed")
 
 desc """
 заливает в локальную базу данных схему из тестовой и таблицы справочники такие как regions
