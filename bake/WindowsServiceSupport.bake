@@ -49,42 +49,6 @@ params = { "OutDir" : buildTo + "\\", "Configuration" : "release" }
 if Globals.IsDefined("platform"):
 	params.Add("Platform", Globals.platform)
 
-
-
-def Impersonate(server as string, action as Action):
-	user as string
-	password as string
-	user = ""
-	password = ""
-
-	if Globals.Maybe.User:
-		user = Globals.User
-	if Globals.Maybe.Password:
-		password = Globals.Password
-
-	if String.IsNullOrEmpty(user) or String.IsNullOrEmpty(password):
-		Console.Write("user for $server: ")
-		user = Console.ReadLine()
-		Console.Write("password: ")
-		password = GetPassword()
-
-
-	LOGON32_PROVIDER_DEFAULT = 0;
-	LOGON32_LOGON_INTERACTIVE = 2;
-	tokenHandle = IntPtr.Zero;
-
-	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
-		raise Win32Exception()
-
-	Globals.User = user
-	Globals.Password = password
-
-	using WindowsIdentity.Impersonate(tokenHandle):
-		try:
-			action()
-		ensure:
-			CloseHandle(tokenHandle);
-
 def GetServers():
 	return GetServersToDeploy(Globals)
 
@@ -144,20 +108,20 @@ task @CleanService:
 
 task @RestartServices:
 	servers = GetServers()
-	Impersonate(servers.First()):
+	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
 		StartServices(services)
 
 task @StopServices:
 	servers = GetServers()
-	Impersonate(servers.First()):
+	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
 
 task @StartServices:
 	servers = GetServers()
-	Impersonate(servers.First()):
+	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StartServices(services)
 
@@ -165,7 +129,7 @@ task @DeployService, [@BuildService]:
 	servers = GetServers()
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
-	Impersonate(servers.First()):
+	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
 		RepeatTry:
@@ -183,7 +147,7 @@ task @SimpleDeployService:
 	servers = GetServers()
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
-	Impersonate(servers.First()):
+	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		RepeatTry:
 			Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)

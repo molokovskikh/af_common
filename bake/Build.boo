@@ -42,19 +42,29 @@ def Impersonate(globals as DuckDictionary, server as string, action as Action):
 	if globals.Maybe.Password:
 		password = globals.Password
 
-	if String.IsNullOrEmpty(user) or String.IsNullOrEmpty(password):
-		Console.Write("user for $server: ")
-		user = Console.ReadLine()
-		Console.Write("password: ")
-		password = GetPassword()
+	i = 0
+	while true:
+		i++
+		if String.IsNullOrEmpty(user) or String.IsNullOrEmpty(password):
+			Console.Write("user for $server: ")
+			user = Console.ReadLine()
+			Console.Write("password: ")
+			password = GetPassword()
 
 
-	LOGON32_PROVIDER_DEFAULT = 0;
-	LOGON32_LOGON_INTERACTIVE = 2;
-	tokenHandle = IntPtr.Zero;
-
-	if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
-		raise Win32Exception()
+		LOGON32_PROVIDER_DEFAULT = 0;
+		LOGON32_LOGON_INTERACTIVE = 2;
+		tokenHandle = IntPtr.Zero;
+		try:
+			if not LogonUser(user, "", password, LOGON32_LOGON_INTERACTIVE, LOGON32_PROVIDER_DEFAULT, tokenHandle):
+				raise Win32Exception()
+			break
+		except e:
+			user = null
+			password = null
+			if i > 3:
+				raise
+			print "${i}/3 - ${e.Message}"
 
 	globals.User = user
 	globals.Password = password
