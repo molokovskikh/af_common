@@ -44,7 +44,10 @@ class Project:
 			nunit = Exec("nunit3-console.exe",
 				"--result TestResult.xml;format=nunit2 --labels=all $arch \"${assembly}\"",
 				BaseDirectory: Path.GetDirectoryName(assembly))
+            nunit.CheckExitCode = false
 			nunit.Execute()
+            if nunit.ExitCode < 0:
+                raise "Failt to run test ${nunit.ExecutablePath} ${nunit.CommandLine}"
 			Mv(Path.Combine(nunit.BaseDirectory, "TestResult.xml"), "TestResult.xml")
 
 			TestOutput = nunit.Output.ToString()
