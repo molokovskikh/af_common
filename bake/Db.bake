@@ -313,13 +313,14 @@ def ImportTables(mysqldump as string, mysql as string, tables as (string)):
 desc """
 Загружает тестовые данные и применяет не примененные миграции
 """
-task "db:setup", ["db:seed", "db:app:seed", "db:migrate"]
+task "db:setup", ["db:seed", "db:migrate", "db:app:seed"]
 
 desc """
 Задача заглушка что бы создать тестовые данные специфичные для приложения
 в bake файле приложения создай задачу db:local:seed
 """
 task "db:app:seed":
+	return unless Globals.Environment != @Local
 	if Engine.Tasks.Any({t| t.Name == "db:local:seed"}):
 		Engine.Execute("db:local:seed")
 
