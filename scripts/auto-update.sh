@@ -39,6 +39,7 @@ rm src/nuget.config || :
 
 fix-npoi.sh
 fix-nh.sh
+fix-nunit.sh
 git ls-files | grep \.cs$ | xargs git add -f || :
 git submodule foreach "git ls-files | grep \.cs | xargs git add -f || :" || :
 
