@@ -42,7 +42,7 @@ class Project:
 			if isX86:
 				arch = "--x86"
 			nunit = Exec("nunit3-console.exe",
-				"--result TestResult.xml;format=nunit2 --labels=all $arch \"${assembly}\"",
+				"--workers=1 --result TestResult.xml;format=nunit2 --labels=all $arch \"${assembly}\"",
 				BaseDirectory: Path.GetDirectoryName(assembly))
 			nunit.CheckExitCode = false
 			nunit.Execute()
