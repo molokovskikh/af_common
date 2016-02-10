@@ -41,7 +41,7 @@ log() {
 
   while read -r data
   do
-    printf "$format\n" "$(date +"%H:%M:%S")" "$1" "$data"
+    printf "$format\n" "$1" "$data"
   done
 }
 
