@@ -418,3 +418,7 @@ def Sign(path as string):
 	cert = X509Certificate2(File.ReadAllBytes(certPath), password)
 	Exec("\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x86\\signtool.exe\"",
 		"sign /sha1 ${cert.Thumbprint} \"$path\"").Execute()
+
+def SignFile(filename as string, cert as string, password as string):
+	Exec("\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x86\\signtool.exe\"",
+		"sign /f \"$cert\" /p \"$password\" \"$filename\"").Execute()
