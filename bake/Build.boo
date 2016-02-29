@@ -111,6 +111,7 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 		#проверяю src/<project>/<project>.*proj
 		posiblePath = projectFile or FileSet("src/$project/$project.*proj").FirstOrDefault()
 		projectFile = projectFile or FileSet("**/$project.*proj").FirstOrDefault()
+		projectFile = projectFile or FileSet("src/$project/app.*proj").FirstOrDefault()
 		unless projectFile:
 			if sln:
 				solution = Solution.LoadFrom(sln)
