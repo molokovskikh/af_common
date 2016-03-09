@@ -377,7 +377,7 @@ task "db:seed":
 	unless Configuration.Maybe.SkipSchema:
 		ImportSchema(mysqldump, mysql)
 
-	unless localDb.ReadSql("select * from mysql.user where User = 'RootDBMS'").Count():
+	unless localDb.ReadSql("select * from mysql.user where User = 'RootDBMS' and Host = '127.0.0.1'").Count():
 		sql = "flush privileges;CREATE USER 'RootDBMS'@'127.0.0.1';GRANT ALL PRIVILEGES ON *.* TO 'RootDBMS'@'127.0.0.1';"
 		Sh("$mysql --execute=\"$sql\"")
 
