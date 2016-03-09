@@ -353,11 +353,13 @@ task "db:seed":
 	mysql = "mysql -h$destination -uroot"
 	local = Globals.Environments[@Local].ToString()
 	localLong = Globals.Environments[@LocalLong].ToString()
+	connectionString = MySqlConnectionStringBuilder(local)
+	connectionString.Database = ""
 	if Environment.MachineName.ToLower() == "devsrv":
 		port = Globals.Maybe.Port or Configuration.Maybe.Port
 		if port:
 			mysql = "$mysql --port=$port"
-			local += ";port=$port" unless local.Contains("port")
+			connectionString.Port = Convert.ToInt32(port)
 			localLong += ";port=$port" unless localLong.Contains("port")
 
 	profileName = ReadGlobalConfig(Globals, "db:seed", @profile) or @empty
@@ -367,7 +369,7 @@ task "db:seed":
 		raise "не знаю что за профиль $profileName, есть $all"
 
 	db = Db(Globals.Environments[@DevelopmentLong].ToString())
-	localDb = Db(local)
+	localDb = Db(connectionString.ToString())
 	localLongDb = Db(localLong)
 
 	if not Configuration.Maybe.SkipBeforeSql and profile.BeforeExportSql:
