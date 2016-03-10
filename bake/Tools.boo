@@ -47,13 +47,12 @@ def RepeatTry(action as callable()):
 			action()
 			fin = true
 		except e:
-			raise if not e.Message.Contains("The process cannot access the file")\
-				and not e.Message.Contains("Процесс не может получить доступ к файлу")
 			interation++
 			if interation >= 10:
 				raise
+			print e.Message
 			print "can`t access files, sleep..."
-			System.Threading.Thread.Sleep(5000)
+			System.Threading.Thread.Sleep(1000)
 
 def CalculateRelativePath(base as string, dst as string):
 	return Uri(Path.GetFullPath(base)).MakeRelative(Uri(Path.GetFullPath(dst))).Replace("/", "\\")

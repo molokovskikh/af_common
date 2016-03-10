@@ -351,19 +351,20 @@ def XCopyDeploy(globals as DuckDictionary, project as string):
 	XCopyDeploy(globals, project, null)
 
 def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string):
-	project, buildTo, _ = GetBuildConfig(globals, project)
-	deployTo = deployTo or GetDeploy(globals, project)
+	RepeatTry:
+		project, buildTo, _ = GetBuildConfig(globals, project)
+		deployTo = deployTo or GetDeploy(globals, project)
 
-	CleanDeployDir(globals, project, deployTo)
+		CleanDeployDir(globals, project, deployTo)
 
-	files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
-	conf as DuckDictionary = globals.Configuration
-	if conf.Maybe.Simulate:
+		files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
+		conf as DuckDictionary = globals.Configuration
+		if conf.Maybe.Simulate:
+			print "${files.Files.Count} files deployed to $deployTo"
+			return
+		ImpersonateIfNeeded(globals):
+			Cp(files, deployTo, true)
 		print "${files.Files.Count} files deployed to $deployTo"
-		return
-	ImpersonateIfNeeded(globals):
-		Cp(files, deployTo, true)
-	print "${files.Files.Count} files deployed to $deployTo"
 
 def ImpersonateIfNeeded(globals as DuckDictionary, action as Action):
 	conf as DuckDictionary = globals.Configuration
