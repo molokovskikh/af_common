@@ -44,7 +44,7 @@ then
 fi
 
 if [ -z "$SKIP_DB" ]; then
-	bake -s db:start path=data randomPort=true notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+	bake -s db:start path=data randomPort=true notInteractive=true | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 	port=$(cat data/port)
 	grep "(Data Source|server)=localhost" src -lRP | xargs perl -i -pe "s/connectionString=\"([^\"]*)?port=\d+;([^\"]*)?\"/connectionString=\"port="$port";\1\2\"/gi"
 	grep "(Data Source|server)=localhost" src -lRP | xargs perl -i -pe 's/(Data Source|server)=localhost/Data Source=localhost;port='$port'/gi'
@@ -52,16 +52,16 @@ fi
 
 if [ -e ./scripts/prepare.sh ]
 then
-	./scripts/prepare.sh | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+	./scripts/prepare.sh | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 else
 	#build.bake может содержать ссылки на библиотеи и без них не соберется для этого нужен -s
 	#так же там может быть настройка для установки пакетов по этому сначала пробуем загрузить build.bake
-	(bake packages:fix || bake -s packages:fix) | iconv -s -f cp866 -t cp1251 ; test ${PIPESTATUS[1]} -eq 0
+	(bake packages:fix || bake -s packages:fix) | iconv -s -f cp866 -t utf-8 ; test ${PIPESTATUS[1]} -eq 0
 fi
-bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+bake TryToBuild Port=$port notInteractive=true | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 if [ -z "$SKIP_DB" ]; then
-	bake db:setup Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+	bake db:setup Port=$port notInteractive=true | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 fi
-bake test Port=$port notInteractive=true | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+bake test Port=$port notInteractive=true | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 
 clean
