@@ -1,3 +1,4 @@
+choco feature enable -n=allowGlobalConfirmation
 choco install mysql.workbench
 choco install notepadplusplus
 choco install 7zip
