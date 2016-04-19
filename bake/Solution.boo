@@ -30,11 +30,10 @@ def GetProjectsForTest():
 			"src/**/Functional.*proj",\
 			"src/**/Integration.*proj",\
 			"src/**/Test.*proj",\
-			"src/**/Unit.*proj",\
-			"**/*.Test.*proj"],
+			"src/**/Unit.*proj"],
 			Excludes: ["**/Test.Support*.*proj"])
 	else:
-		return FileSet(["**/test.csproj"])
+		return FileSet(["**/test.csproj", "**/*.Test.*proj"])
 
 def BinVariants(name as string) as (string):
 	return ("bin/debug/$name.exe",

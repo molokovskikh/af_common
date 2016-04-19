@@ -28,9 +28,21 @@ class Project:
 		_targetFramework = targetFramework
 		self.exe = exe
 
+	def FindOrInstallConsole(version as Version):
+		unless Exist("C:\\tools"):
+			MkDir("C:\\tools")
+		unless Directory.Exists("C:\\tools\\NUnit.Console.$version"):
+			Exec("nuget", "install NUnit.Console -Version $version -OutputDirectory C:\\tools\\").Execute()
+		if Exist("C:\\tools\\NUnit.Console.$version\\tools\\"):
+			return "C:\\tools\\NUnit.Console.$version\\tools\\nunit3-console.exe"
+		return "C:\\tools\\NUnit.Console.$version\\bin\\nunit3-console.exe"
+
 	def Test():
-		nunit3 = Directory.Exists("packages/NUnit.3.0.1")
-		if nunit3:
+		dirs = Directory.GetDirectories("packages", "NUnit.*")
+		if dirs.Length == 0:
+			raise "Не могу найти nunit в директории packages, убедись что пакет установлен"
+		nunitVersion = Version.Parse(Path.GetFileName(dirs[0]).Replace("NUnit.", ""))
+		if nunitVersion > Version(3, 0):
 			assembly = Path.Combine(Path.GetDirectoryName(_projectFile), "bin/debug/${_project}.dll")
 			unless Exist(assembly):
 				name = CsProjFile.LoadFrom(_projectFile).AssemblyName
@@ -41,7 +53,7 @@ class Project:
 			arch = ""
 			if isX86:
 				arch = "--x86"
-			nunit = Exec("nunit3-console.exe",
+			nunit = Exec(FindOrInstallConsole(nunitVersion),
 				"--workers=1 --result TestResult.xml;format=nunit2 --labels=all $arch \"${assembly}\"",
 				BaseDirectory: Path.GetDirectoryName(assembly))
 			nunit.CheckExitCode = false
@@ -85,10 +97,6 @@ def GetProjects():
 
 	return projects.Where({x| not ignore.Any({i| i.IsMatch(x.ToString())})}).ToList()
 
-task @integration, [@test]
-
-task @test, [@RunTests]
-
 task @PrepareBuild, ["generate:assembly:info", "check:common:error", "packages:install"]
 
 task @BuildTests, [@PrepareBuild]:
@@ -108,9 +116,10 @@ task @TestJs:
 	for file in Directory.GetFiles("test", "*.html"):
 		Sh("$phantom $run $file")
 
-task @RunTests, [@TestJs, @BuildTests]:
+task @test, [@TestJs, @BuildTests]:
 	index = 0
 	for project in GetProjects():
+		print project
 		index++
 		if Exist("TestResult.xml"):
 			Cp("TestResult.xml", "TestResult.$project.$index.xml", true)
