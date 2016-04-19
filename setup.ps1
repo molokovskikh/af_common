@@ -5,7 +5,7 @@ choco install notepadplusplus
 choco install 7zip
 choco install googlechrome
 choco install sysinternals
-choco install nuget.commandline
+choco install nuget.commandline -version 2.8.6
 choco install visualstudio2015community
 choco install consolez
 choco install ilspy
