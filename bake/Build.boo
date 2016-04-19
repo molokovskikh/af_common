@@ -206,10 +206,20 @@ def DeployService(globals as DuckDictionary, app as string, host as string, path
 
 	Impersonate(globals, host):
 		services = GetServices(serviceName, (host, ))
-		StopServices(services)
+		if IsSimulation(globals):
+			print "simulate: stop services ${join(services)}"
+		else:
+			StopServices(services)
 		RepeatTry:
 			XCopyDeploy(globals, app, path)
-		StartServices(services)
+		if IsSimulation(globals):
+			print "simulate: stop services ${join(services)}"
+		else:
+			StartServices(services)
+
+def IsSimulation(globals as DuckDictionary):
+	conf as DuckDictionary = globals.Configuration
+	return conf.Maybe.Simulate
 
 def CopyAssets(output as string):
 	return unless Exist("packages")
@@ -358,11 +368,10 @@ def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string
 		CleanDeployDir(globals, project, deployTo)
 
 		files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
-		conf as DuckDictionary = globals.Configuration
-		if conf.Maybe.Simulate:
-			print "${files.Files.Count} files deployed to $deployTo"
-			return
 		ImpersonateIfNeeded(globals):
+			if IsSimulation(globals):
+				print "simulation: ${files.Files.Count} files deployed to $deployTo"
+				return
 			Cp(files, deployTo, true)
 		print "${files.Files.Count} files deployed to $deployTo"
 
