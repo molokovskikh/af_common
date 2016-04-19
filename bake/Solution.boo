@@ -25,12 +25,13 @@ def GetProjects():
 
 def GetProjectsForTest():
 	if Exist("src"):
-		return FileSet(["src/**/*Test.*proj",\
+		return FileSet([\
 			"src/**/*Tests.*proj",\
 			"src/**/Functional.*proj",\
 			"src/**/Integration.*proj",\
 			"src/**/Test.*proj",\
-			"src/**/Unit.*proj"],
+			"src/**/Unit.*proj",\
+			"**/*.Test.*proj"],
 			Excludes: ["**/Test.Support*.*proj"])
 	else:
 		return FileSet(["**/test.csproj"])
