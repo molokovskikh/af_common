@@ -8,3 +8,16 @@ choco install visualstudio2015community
 choco install consolez
 cyg-get wget
 cyg-get nano
+if ( -Not (Test-Path "C:\tools\mysql" ))
+{
+ cp -r "\\offdc\MMedia\Московский офис\Файлы для установки системы (развертывания проекта с нуля)\файлы настроек\apps\MySQL\mysql-5.6.14-winx64" "C:\tools\mysql"
+ C:\tools\mysql\bin\mysqld.exe --install
+ net start mysql
+}
+bash --login -c git config --global color.branch auto
+bash --login -c git config --global color.diff auto
+bash --login -c git config --global color.interactive auto
+bash --login -c git config --global color.status auto
+bash --login -c git config --global core.whitespace trailing-space,space-before-tab,cr-at-eol
+bash --login -c git config --global core.editor nano
+cp -r "\\offdc\MMedia\Московский офис\Файлы для установки системы (развертывания проекта с нуля)\файлы настроек\.bashrc" "C:\tools\cygwin\home\$env:USERNAME\.bashrc"
