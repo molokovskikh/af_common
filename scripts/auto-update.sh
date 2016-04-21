@@ -53,12 +53,12 @@ git add -A -- lib || :
 git add -f -- packages/packages.config || :
 
 #обновляем пакеты
-bake -s packages:update | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
-bake -s packages:save | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
-bake packages:install || bake -s packages:install | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+bake -s packages:update | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
+bake -s packages:save | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
+bake packages:install || bake -s packages:install | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 #правим ссылки в сборках
-bake -s packages:fix | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
-bake -s fix:js:ref | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+bake -s packages:fix | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
+bake -s fix:js:ref | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 #fix:js:ref может поправить ссылки в файлах нужно их добавить к комиту
 git ls-files | grep '\.master' | xargs git add -f || :
 git ls-files | grep '\.aspx' | xargs git add -f || :
@@ -66,7 +66,7 @@ git ls-files | grep '\.aspx' | xargs git add -f || :
 #пробуем собрать, но это может не получиться из-за специальной магии
 bake notInteractive=true || :
 rm output -rf || :
-msbuild.exe src/*.sln | iconv -s -f cp866 -t cp1251 || : ; test ${PIPESTATUS[0]} -eq 0
+msbuild.exe src/*.sln | iconv -s -f cp866 -t utf-8 || : ; test ${PIPESTATUS[0]} -eq 0
 bake -s BuildTests notInteractive=true || :
 #при сохранении конфига он может добавить пустых строк
 git ls-files | grep '\.config' | xargs clean.sh
