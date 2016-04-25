@@ -35,6 +35,8 @@ class Project:
 			Exec("nuget", "install NUnit.Console -NoCache -Version $version -OutputDirectory C:\\tools\\").Execute()
 		if Exist("C:\\tools\\NUnit.Console.$version\\tools\\"):
 			return "C:\\tools\\NUnit.Console.$version\\tools\\nunit3-console.exe"
+		if Exist("C:\\tools\\NUnit.ConsoleRunner.$version\\tools\\"):
+			return "C:\\tools\\NUnit.ConsoleRunner.$version\\tools\\nunit3-console.exe"
 		return "C:\\tools\\NUnit.Console.$version\\bin\\nunit3-console.exe"
 
 	def Test():
