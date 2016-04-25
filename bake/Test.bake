@@ -29,14 +29,13 @@ class Project:
 		self.exe = exe
 
 	def FindOrInstallConsole(version as Version):
-		MkDir("C:\\tools")
-		unless Directory.Exists("C:\\tools\\NUnit.Runners.$version"):
-			Exec("nuget", "install NUnit.Runners -NoCache -Version $version -OutputDirectory C:\\tools\\").Execute()
-		if Exist("C:\\tools\\NUnit.Console.$version\\tools\\"):
-			return "C:\\tools\\NUnit.Console.$version\\tools\\nunit3-console.exe"
-		if Exist("C:\\tools\\NUnit.ConsoleRunner.$version\\tools\\"):
-			return "C:\\tools\\NUnit.ConsoleRunner.$version\\tools\\nunit3-console.exe"
-		return "C:\\tools\\NUnit.Console.$version\\bin\\nunit3-console.exe"
+		root = "C:\\tools\\nunit-$version"
+		unless Directory.Exists(root):
+			MkDir(root)
+			Exec("nuget", "install NUnit.Runners -NoCache -Version $version -OutputDirectory $root").Execute()
+		exe = FileSet("**/nunit?-console.exe", BaseDirectory: root).FirstOrDefault();
+		raise "Не удалось найти консоль в $root по маске nunit*-console.exe" unless exe
+		return exe
 
 	def Test():
 		dirs = Directory.GetDirectories("packages", "NUnit.*")
