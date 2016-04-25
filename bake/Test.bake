@@ -32,7 +32,7 @@ class Project:
 		unless Exist("C:\\tools"):
 			MkDir("C:\\tools")
 		unless Directory.Exists("C:\\tools\\NUnit.Console.$version"):
-			Exec("nuget", "install NUnit.Console -Version $version -OutputDirectory C:\\tools\\").Execute()
+			Exec("nuget", "install NUnit.Console -NoCache -Version $version -OutputDirectory C:\\tools\\").Execute()
 		if Exist("C:\\tools\\NUnit.Console.$version\\tools\\"):
 			return "C:\\tools\\NUnit.Console.$version\\tools\\nunit3-console.exe"
 		return "C:\\tools\\NUnit.Console.$version\\bin\\nunit3-console.exe"
