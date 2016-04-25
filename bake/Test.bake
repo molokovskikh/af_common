@@ -29,10 +29,9 @@ class Project:
 		self.exe = exe
 
 	def FindOrInstallConsole(version as Version):
-		unless Exist("C:\\tools"):
-			MkDir("C:\\tools")
-		unless Directory.Exists("C:\\tools\\NUnit.Console.$version"):
-			Exec("nuget", "install NUnit.Console -NoCache -Version $version -OutputDirectory C:\\tools\\").Execute()
+		MkDir("C:\\tools")
+		unless Directory.Exists("C:\\tools\\NUnit.Runners.$version"):
+			Exec("nuget", "install NUnit.Runners -NoCache -Version $version -OutputDirectory C:\\tools\\").Execute()
 		if Exist("C:\\tools\\NUnit.Console.$version\\tools\\"):
 			return "C:\\tools\\NUnit.Console.$version\\tools\\nunit3-console.exe"
 		if Exist("C:\\tools\\NUnit.ConsoleRunner.$version\\tools\\"):
