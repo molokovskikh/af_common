@@ -30,6 +30,7 @@ def GetProjectsForTest():
 			"src/**/Functional.*proj",\
 			"src/**/Integration.*proj",\
 			"src/**/Test.*proj",\
+			"**/*.Test.*proj",
 			"src/**/Unit.*proj"],
 			Excludes: ["**/Test.Support*.*proj"])
 	else:

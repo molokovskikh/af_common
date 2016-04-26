@@ -33,7 +33,7 @@ class Project:
 		unless Directory.Exists(root):
 			MkDir(root)
 			Exec("nuget", "install NUnit.Runners -NoCache -Version $version -OutputDirectory $root").Execute()
-		exe = FileSet("**/nunit?-console.exe", BaseDirectory: root).FirstOrDefault();
+		exe = FileSet("**/	nunit?-console.exe", BaseDirectory: root).FirstOrDefault();
 		raise "Не удалось найти консоль в $root по маске nunit*-console.exe" unless exe
 		return exe
 
