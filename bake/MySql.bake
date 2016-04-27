@@ -83,7 +83,7 @@ task "db:start":
 
 	pidFile = Directory.GetFiles(datadir, "*.pid")
 	if port:
-		File.WriteAllText(Path.Combine(datadir, "port"), port.ToString())
+		File.WriteAllText(Path.Combine(root, "port"), port.ToString())
 	mysqlProcess as Process
 	if pidFile.Length:
 		text = File.ReadAllText(pidFile[0])
