@@ -141,7 +141,11 @@ def DeleteEmptyDirs(root as string):
 	for dir in Directory.GetDirectories(root):
 		DeleteEmptyDirs(dir)
 	return if Directory.GetDirectories(root).Length
-	Directory.Delete(root)
+	try:
+		Directory.Delete(root)
+	except:
+		print "fail to delete $root"
+		raise
 
 def Build(globals as DuckDictionary):
 	Build(globals, null)
