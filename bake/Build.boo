@@ -109,7 +109,7 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 		#проверяю src/<project>/app/app.*proj
 		projectFile = FileSet("src/$project/app/app.*proj").FirstOrDefault()
 		#проверяю src/<project>/<project>.*proj
-		posiblePath = projectFile or FileSet("src/$project/$project.*proj").FirstOrDefault()
+		projectFile = projectFile or FileSet("src/$project/$project.*proj").FirstOrDefault()
 		projectFile = projectFile or FileSet("**/$project.*proj").FirstOrDefault()
 		projectFile = projectFile or FileSet("src/$project/app.*proj").FirstOrDefault()
 		unless projectFile:
@@ -365,12 +365,10 @@ def XCopyDeploy(globals as DuckDictionary, project as string):
 	XCopyDeploy(globals, project, null)
 
 def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string):
+	project, buildTo, _ = GetBuildConfig(globals, project)
+	deployTo = deployTo or GetDeploy(globals, project)
 	RepeatTry:
-		project, buildTo, _ = GetBuildConfig(globals, project)
-		deployTo = deployTo or GetDeploy(globals, project)
-
 		CleanDeployDir(globals, project, deployTo)
-
 		files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
 		ImpersonateIfNeeded(globals):
 			if IsSimulation(globals):
