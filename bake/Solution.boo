@@ -20,7 +20,7 @@ def GetProjects():
 			matches = /Project.+=[^,]+,([^,]+),/.Matches(text)
 			for m in matches:
 				value = m.Groups[1].Value.Replace("\"", "").Trim()
-				projects.Add(value) if Exist(value)
+				projects.Add(value) if File.Exists(value)
 	return projects
 
 def GetProjectsForTest():
