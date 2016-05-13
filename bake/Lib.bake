@@ -169,7 +169,7 @@ def GetLibPath(dir as string):
 def NugetInstall(config as string):
 	print config if Configuration.Maybe.debug
 	if Exist(config):
-		Exec("nuget", "install $config -OutputDirectory packages").Execute()
+		Exec("cmd", "/c nuget install $config -OutputDirectory packages").Execute()
 
 def GetSlnPackageConfigs():
 	return GetProjects().Select({p| Path.Combine(Path.GetDirectoryName(p), "packages.config")})\
