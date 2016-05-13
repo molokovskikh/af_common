@@ -243,11 +243,8 @@ def SavePropfile(projectfile as string, libPaths as string, packages as Package*
 		node.Add(XElement(xmlNamespace + nodeName, nodeValue))
 
 	for submodule in submodules:
-		print submodule
 		name = ToPascal(Path.GetFileName(submodule))
 		nodeName = "${name}Dir"
-		print Path.GetFullPath(projectRoot)
-		print Path.GetFullPath(submodule)
 		nodeValue = GetRelativePath(Path.GetFullPath(projectRoot + "\\"), Path.GetFullPath(submodule + "\\"))
 		node.Add(XElement(xmlNamespace + nodeName, nodeValue))
 
