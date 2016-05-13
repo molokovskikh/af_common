@@ -68,8 +68,8 @@ task "generate:assembly:info":
 	else:
 		version = GetVersion()
 		unless version:
-			print "Не удалось определить версию, проверь git tag"
-			return
+			version = Version()
+			print "Не удалось определить версию, проверь git tag, буду использовать 0.0.0.0"
 	hash = GetRevision()
 	branch = ""
 	match = Regex("""On branch (?<branch>\w+)""").Match(GetGit("status"))
