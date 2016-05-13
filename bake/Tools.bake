@@ -47,7 +47,7 @@ def PatchProject(project as string):
 		lib = lib.Split(char(','))[0]
 		libFile = FileSet("lib/**/*.dll").Files.FirstOrDefault()
 		continue unless libFile
-		libPath = ""# CalculateRelativePath(project, libFile)
+		libPath = ""
 		path = node.XPathSelectElement("p:HintPath", manager)
 		if not path:
 			print "add ${libPath}"

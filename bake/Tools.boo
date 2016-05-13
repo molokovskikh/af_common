@@ -54,7 +54,7 @@ def RepeatTry(action as callable()):
 			print "can`t access files, sleep..."
 			System.Threading.Thread.Sleep(1000)
 
-def CalculateRelativePath(base as string, dst as string):
+def GetRelativePath(base as string, dst as string):
 	return Uri(Path.GetFullPath(base)).MakeRelative(Uri(Path.GetFullPath(dst))).Replace("/", "\\")
 
 def GetResource(resource as string):
@@ -112,7 +112,7 @@ def ExecuteProcess(exe as string, command as string, baseDirectory as string):
 	return output
 
 def GetVersionTags():
-	tags = ExecuteProcess("git", "tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
+	tags = GetGit("tag").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)
 	versions = List[of Version]()
 	for tag in tags:
 		v as Version
@@ -155,7 +155,7 @@ def ToPascal(text as string):
 	if text.ToUpper() == text:
 		text = text.ToLower()
 	for c in text:
-		if c == char('_'):
+		if c == char('_') or c == char('-') or c == char('.'):
 			toUpper = true
 			continue;
 		if toUpper:
