@@ -21,7 +21,9 @@ def GetProjects():
 			for m in matches:
 				value = m.Groups[1].Value.Replace("\"", "").Trim()
 				projects.Add(value) if File.Exists(value)
-	return projects.Concat(GetProjectsForTest()).Select({x| Path.GetFullPath(x)}).Distinct().ToList()
+	return projects.Concat(GetProjectsForTest()).Select({x| Path.GetFullPath(x)}).Distinct()\
+		.Where({x| File.Exists(x)})\
+		.ToList()
 
 def GetProjectsForTest():
 	if Exist("src"):
