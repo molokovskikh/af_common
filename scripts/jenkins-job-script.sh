@@ -1,5 +1,7 @@
 #!/bin/sh
 
+export PATH=/usr/bin:$PATH
+
 set -e
 set -x
 set -v
