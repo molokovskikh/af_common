@@ -210,7 +210,9 @@ def GetLibPaths():
 	return String.Join(";", packages.ToArray())
 
 def GetSubmodules():
-	return GetGit("submodule").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries).Where({x| x.IndexOf(" ") >= 0}).Select({x| x.Split(char(' '))[2]})
+	return GetGit("submodule").Split((char('\n'), ), StringSplitOptions.RemoveEmptyEntries)\
+		.Select({x| x.Trim()})\
+		.Where({x| x.IndexOf(" ") >= 0}).Select({x| x.Split(char(' '))[1]})
 
 def SavePropfile(projectfile as string, libPaths as string, packages as Package*, submodules as string*):
 	projectRoot = Path.GetDirectoryName(projectfile)
