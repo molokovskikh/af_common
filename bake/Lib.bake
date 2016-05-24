@@ -440,6 +440,9 @@ task "packages:fix", ["packages:install"]:
 	assemblyNames = files.Select({f| TryLoad(f)}).Where({a| a != null}).ToLookup({a| a.Name.Name})
 	for file in files:
 		try:
+			if excludes.Any({x| file.IndexOf(x, StringComparison.CurrentCultureIgnoreCase) >= 0}):
+				print "skip ${file}" if verbose
+				continue
 			print "inspect $file" if verbose
 			parameters = ReaderParameters()
 			parameters.AssemblyResolver = AssemblyResolver(assemblyNames)
