@@ -59,6 +59,7 @@ desc """
 path - путь к данным, по умолчанию data
 randomPort - выбрать случайный порт
 port - задать порт
+debug=true - не будет запускать mysqld в отдельной консоли, для отладки
 """
 task "db:start":
 	root = Configuration.Maybe.path or "data"
@@ -92,5 +93,8 @@ task "db:start":
 			mysqlProcess = Process.GetProcesses().FirstOrDefault({p| p.Id == pid})
 
 	unless mysqlProcess:
-		Process.Start("mysqld", "$options --console --standalone --datadir=\"$datadir\" --tmpdir=\"$tmpdir\"")
+		if Configuration.Maybe.debug == @true:
+			Exec("mysqld", "$options --console --standalone --datadir=\"$datadir\" --tmpdir=\"$tmpdir\"").Execute()
+		else:
+			Process.Start("mysqld", "$options --console --standalone --datadir=\"$datadir\" --tmpdir=\"$tmpdir\"")
 		Thread.Sleep(2000)

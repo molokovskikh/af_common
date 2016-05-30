@@ -200,7 +200,7 @@ PATH=`cygpath $USERPROFILE/projects/common/bake`:$PATH
 PATH=/cygdrive/c/tools/mysql/bin/:$PATH
 PATH=`cygpath /cygdrive/c/Program\ Files\ \(x86\)/Microsoft\ SDKs/Windows/v7.1A/Bin`:$PATH
 PATH=`cygpath /cygdrive/c/Program\ Files\ \(x86\)/Microsoft\ SDKs/Windows/v8.0A/Bin/NETFX\ 4.0\ Tools`:$PATH
-PATH=`cygpath /cygdrive/c/Program\ Files\ \(x86\)/Windows Kits/8.0/bin/x64`:$PATH
+PATH=`cygpath /cygdrive/c/Program\ Files\ \(x86\)/Windows\ Kits/8.0/bin/x64`:$PATH
 PATH=`cygpath /cygdrive/c/Program\ Files\ \(x86\)/IIS\ Express/`:$PATH
 PATH=/cygdrive/c/Program\ Files\ \(x86\)/MSBuild/14.0/Bin/:$PATH
 

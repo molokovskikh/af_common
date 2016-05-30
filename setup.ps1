@@ -1,4 +1,4 @@
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 choco feature enable -n=allowGlobalConfirmation
 choco install mysql.workbench
 choco install notepadplusplus
@@ -23,7 +23,8 @@ C:\tools\cygwin\bin\bash --login -c "git config --global color.interactive auto"
 C:\tools\cygwin\bin\bash --login -c "git config --global color.status auto"
 C:\tools\cygwin\bin\bash --login -c "git config --global core.whitespace trailing-space,space-before-tab,cr-at-eol"
 C:\tools\cygwin\bin\bash --login -c "git config --global core.editor nano"
-cp $env:USERPROFILE\projects\common\etc\.bashrc "C:\tools\cygwin\home\$env:USERNAME\.bashrc"
+$username=[Environment]::UserName
+cp $env:USERPROFILE\projects\common\etc\.bashrc "C:\tools\cygwin\home\$username\.bashrc"
 if ( -Not (Test-Path $env:USERPROFILE\AppData\Roaming\Console\)) {
     mkdir $env:USERPROFILE\AppData\Roaming\Console\
 }
