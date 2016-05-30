@@ -355,12 +355,11 @@ task "db:seed":
 	localLong = Globals.Environments[@LocalLong].ToString()
 	connectionString = MySqlConnectionStringBuilder(local)
 	connectionString.Database = ""
-	if Environment.MachineName.ToLower() == "devsrv":
-		port = Globals.Maybe.Port or Configuration.Maybe.Port
-		if port:
-			mysql = "$mysql --port=$port"
-			connectionString.Port = Convert.ToInt32(port)
-			localLong += ";port=$port" unless localLong.Contains("port")
+	port = Globals.Maybe.Port or Configuration.Maybe.Port
+	if port:
+		mysql = "$mysql --port=$port"
+		connectionString.Port = Convert.ToInt32(port)
+		localLong += ";port=$port" unless localLong.Contains("port")
 
 	profileName = ReadGlobalConfig(Globals, "db:seed", @profile) or @empty
 	profile = profiles[profileName]
