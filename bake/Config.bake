@@ -16,8 +16,7 @@ def EnvByName(name as string) as string:
 
 	if name.ToLower() == "local" and not connectionString.Contains("port"):
 		port = Globals.Maybe.Port or Configuration.Maybe.Port
-		if Environment.MachineName.ToLower() == "devsrv":
-			connectionString += ";port=$port" if port
+		connectionString += ";port=$port" if port
 	Globals.Environments[name] = connectionString
 	connectionString = Globals.Environments[name]
 	return connectionString
