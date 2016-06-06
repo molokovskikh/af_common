@@ -11,144 +11,68 @@ import System.Runtime.InteropServices
 import System.Diagnostics
 import System.Security
 
-#[StructLayout(LayoutKind.Sequential, CharSet=CharSet.Auto)]
-struct StartupInfo:
-	public cb as int
-	public reserved as String
-	public desktop as String
-	public title as String
-	public x as int
-	public y as int
-	public xSize as int
-	public ySize as int
-	public xCountChars as int
-	public yCountChars as int
-	public fillAttribute as int
-	public flags as int
-	public showWindow as UInt16
-	public reserved2 as UInt16
-	public reserved3 as byte
-	public stdInput as IntPtr
-	public stdOutput as IntPtr
-	public stdError as IntPtr
-
-struct ProcessInformation:
-	public process as IntPtr
-	public thread as IntPtr
-	public processId as int
-	public threadId as int
-
-[DllImport("advapi32.dll", SetLastError: true, CharSet: CharSet.Unicode)]
-def CreateProcessWithLogonW(lpUsername as string, lpDomain as string, lpPassword as string, dwLogonFlags as uint, lpApplicationName as string, commandLine as string, dwCreationFlags as uint, lpEnvironment as IntPtr, currentDirectory as string, ref startupInfo as StartupInfo, ref processInformation as ProcessInformation) as bool:
-	pass
-
-project = Globals.Maybe.Project
-buildTo = Path.GetFullPath("build")
-
-params = { "OutDir" : buildTo + "\\", "Configuration" : "release" }
-if Globals.IsDefined("platform"):
-	params.Add("Platform", Globals.platform)
-
-def GetServers():
-	return GetServersToDeploy(Globals)
-
-unless serviceName = Globals.Maybe.ServiceName:
-	serviceName = project
-
-task "sudo":
-	cmd = Configuration.cmd
-	user = "deployer"
-	password = '$sdfsd887!'
-	app = "cmd.exe"
-	#args = "/C \"$cmd\""
-	args = "/C dir"
-	info = StartupInfo()
-	info.flags = 0x00000100
-	#info.flags &= 0x00000001
-	#info.stdOutput = cast(IntPtr, -11)
-	#info.stdError = cast(IntPtr, -12)
-	processInfo = ProcessInformation()
-	unless CreateProcessWithLogonW(user, "analit", password, 1, app, args, 0, IntPtr.Zero, Directory.GetCurrentDirectory(), info, processInfo):
-		raise Win32Exception()
-
 task @ServiceDeployPipeline, ["env", "check:env", "packages:install", "packages:fix", "check", "version:bump", @BuildService, @StopServices, "db:migrate", @Backup, @SimpleDeployService, "deploy:notify"]
 
 task @ServiceDeployPipeline2, ["env", "check:env", "packages:install", "packages:fix", "check", "version:bump", @Build, @StopServices, "db:migrate", @Backup, @DeployApp, @StartServices, "deploy:notify"]
 
 task @BuildService, [@CleanService, "generate:assembly:info"]:
-	project = Globals.Project
-	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
-	MsBuild(projectFile,
-			Target : "build",
-			Parameters : params,
-			Verbosity : GetVerbosity(Globals),
-			FrameworkVersion: Globals.FrameworkVersion,
-			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
-	Rm("${buildTo}/*.xml")
-	sufix = GetConfigSufix(Globals)
-	Cp("src/${project}/App.$sufix", "${buildTo}/${project}.exe.config", true)
+	Build(Globals, Globals.Project)
 
 task "check:env":
 	if Globals.Environment != @Production:
 		raise "Развертывание сервиса возможно только в Production среде"
 
 task @CleanService:
-	project = Globals.Project
-	projectFile = Path.GetFullPath("src/${project}/${project}.csproj")
-	MsBuild(projectFile,
-			Target : "clean",
-			Parameters : params,
-			Verbosity : GetVerbosity(Globals),
-			FrameworkVersion : Globals.FrameworkVersion,
-			ExecutablePath: Globals.Maybe.MsbuildExe).Execute()
-	if Exist(buildTo):
-		Rm("${buildTo}/*", true)
-	else:
-		MkDir(buildTo)
+	Clean(Globals, Globals.Project)
 
 task @RestartServices:
-	servers = GetServers()
+	serviceName = Globals.Maybe.ServiceName or Globals.Maybe.Project
+	servers = GetServersToDeploy(Globals)
 	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
 		StartServices(services)
 
 task @StopServices:
-	servers = GetServers()
+	serviceName = Globals.Maybe.ServiceName or Globals.Maybe.Project
+	servers = GetServersToDeploy(Globals)
 	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
 
 task @StartServices:
-	servers = GetServers()
+	serviceName = Globals.Maybe.ServiceName or Globals.Maybe.Project
+	servers = GetServersToDeploy(Globals)
 	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StartServices(services)
 
 task @DeployService, [@BuildService]:
-	servers = GetServers()
+	project = Globals.Maybe.Project
+	serviceName = Globals.Maybe.ServiceName or Globals.Maybe.Project
+	servers = GetServersToDeploy(Globals)
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
 	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
-		RepeatTry:
-			Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
+		XCopyDeploy(Globals, project, deployTo)
 		StartServices(services)
 
 task @NakedDeployService:
-	servers = GetServers()
+	project = Globals.Maybe.Project
+	servers = GetServersToDeploy(Globals)
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
-	RepeatTry:
-		Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
+	XCopyDeploy(Globals, project, deployTo)
 
 task @SimpleDeployService:
-	servers = GetServers()
+	serviceName = Globals.Maybe.ServiceName or Globals.Maybe.Project
+	project = Globals.Maybe.Project
+	servers = GetServersToDeploy(Globals)
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
 	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
-		RepeatTry:
-			Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
+		XCopyDeploy(Globals, project, deployTo)
 		StartServices(services)
