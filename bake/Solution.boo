@@ -13,7 +13,7 @@ def GetProjects():
 			for m in matches:
 				value = m.Groups[1].Value.Replace("\"", "").Trim()
 				path = Path.Combine("src", value)
-				projects.Add(path) if Exist(path)
+				projects.Add(path) if File.Exists(path)
 	else:
 		for sln in FileSet("*.sln"):
 			text = File.ReadAllText(sln)
@@ -21,22 +21,12 @@ def GetProjects():
 			for m in matches:
 				value = m.Groups[1].Value.Replace("\"", "").Trim()
 				projects.Add(value) if File.Exists(value)
-	return projects.Concat(GetProjectsForTest()).Select({x| Path.GetFullPath(x)}).Distinct()\
-		.Where({x| File.Exists(x)})\
+	return projects.Select({x| Path.GetFullPath(x).ToLower() }).Distinct()\
 		.ToList()
 
 def GetProjectsForTest():
-	if Exist("src"):
-		return FileSet([\
-			"src/**/*Tests.*proj",\
-			"src/**/Functional.*proj",\
-			"src/**/Integration.*proj",\
-			"src/**/Test.*proj",\
-			"**/*.Test.*proj",
-			"src/**/Unit.*proj"],
-			Excludes: ["**/Test.Support*.*proj"])
-	else:
-		return FileSet(["**/test.csproj", "**/*.Test.*proj"])
+	sufixes = ("integration.csproj", "functional.csproj", "unit.csproj", "test.csproj", ".test.csproj", ".tests.csproj")
+	return GetProjects().Where({x| sufixes.Any({y| x.ToLower().EndsWith(y)}) })
 
 def BinVariants(name as string) as (string):
 	return ("bin/debug/$name.exe",
