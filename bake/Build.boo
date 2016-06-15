@@ -3,6 +3,7 @@ import System.Linq
 import Bake.Engine
 import FubuCsProjFile
 import System.Linq.Enumerable
+import System.DirectoryServices
 
 def GetConfigSufix(Globals as duck):
 	if Globals.Environment == @Production:
@@ -437,3 +438,23 @@ def Sign(path as string):
 def SignFile(filename as string, cert as string, password as string):
 	Exec("\"C:\\Program Files (x86)\\Windows Kits\\8.1\\bin\\x86\\signtool.exe\"",
 		"sign /f \"$cert\" /p \"$password\" \"$filename\"").Execute()
+
+def SendReleaseNotification(global as DuckDictionary, subject as string, body as string):
+	return if global.Environment != @Production
+	conf as DuckDictionary = global.Configuration
+	to = conf.Maybe.notifyTo or "UpdatesList@subscribe.analit.net"
+	fromEmail = "r.kvasov@analit.net"
+	user = Environment.UserName
+	try:
+		using s = DirectorySearcher():
+			s.Filter = String.Format("(sAMAccountName={0})", user)
+			entry = s.FindOne().GetDirectoryEntry()
+			if entry:
+				values = entry.Properties["mail"]
+				if values.Count:
+					fromEmail = values[0].ToString()
+	except e:
+		print "Не удалось определьть email отправителя $user использую dev@analit.net"
+		print e
+	smtp = SmtpClient("box.analit.net")
+	smtp.Send(fromEmail, to, subject, body)

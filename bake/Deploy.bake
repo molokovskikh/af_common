@@ -9,8 +9,6 @@ import System.Xml.XPath.Extensions
 import System.Linq.Enumerable from System.Core
 import System.Globalization
 import System.Text.RegularExpressions
-import System.DirectoryServices
-
 
 def FindLastBackup(project as string, backupRoot as string):
 	directories = Directory.GetDirectories(backupRoot)
@@ -50,8 +48,6 @@ task "deploy:notify":
 
 	project = GetDeployName()
 	humanReadableName = Globals.Maybe.humanReadableName or Globals.Maybe.HumanReadableName
-	to = Configuration.Maybe.notifyTo or "UpdatesList@subscribe.analit.net"
-
 	deployRecord = Db.Read("select GitHash from Logs.Deploys where Project = '$project' order by DeployedOn  desc limit 1").FirstOrDefault()
 	if deployRecord:
 		lastDeployHash = deployRecord.GitHash
@@ -64,24 +60,9 @@ task "deploy:notify":
 		logs = GetGit("log --no-merges $lastDeployHash..")
 	user = Environment.UserName
 	host = Environment.MachineName
-	smtp = SmtpClient("box.analit.net")
 	Db.Execute("insert into logs.Deploys(User, DeployedOn, GitHash, Project, Host) values('$user', now(), '$head', '$project', '$host')")
 	jenkinsStatus = Globals.Maybe.JenkinsStatus
-	fromEmail = "r.kvasov@analit.net"
-	try:
-		using s = DirectorySearcher():
-			s.Filter = String.Format("(sAMAccountName={0})", user)
-			entry = s.FindOne().GetDirectoryEntry()
-			if entry:
-				values = entry.Properties["mail"]
-				if values.Count:
-					fromEmail = values[0].ToString()
-	except e:
-		print "Не удалось определьть email отправителя $user использую dev@analit.net"
-		print e
-	smtp.Send(fromEmail,
-		to,
-		"Обновление ${humanReadableName}",
+	SendReleaseNotification(Globals, "Обновление ${humanReadableName}",\
 		"Релиз подготовил $user ветка $branch\nРевизия $head\n$jenkinsStatus\n$logs")
 
 def GetBackupPath():
