@@ -9,12 +9,14 @@ set -v
 function wait_pid {
 	for i in `seq 0 120`; do
 		pids=`ps -W | /bin/grep mysqld | awk '{print $1}'`
-		for pid in $pids; do
-			if [[ $1 == $pid ]]; then
-				echo "wait for $1"
-				sleep 1
-			fi
-		done
+		if [ -n "$PIDS" ]; then
+			for pid in $pids; do
+				if [[ $1 == $pid ]]; then
+					echo "wait for $1"
+					sleep 1
+				fi
+			done
+		fi
 	done
 }
 
