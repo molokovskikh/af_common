@@ -53,6 +53,7 @@ task @DeployService, [@BuildService]:
 	servers = GetServersToDeploy(Globals)
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
+	_, buildTo, _ = GetBuildConfig(Globals)
 	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		StopServices(services)
@@ -65,6 +66,7 @@ task @NakedDeployService:
 	servers = GetServersToDeploy(Globals)
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
+	_, buildTo, _ = GetBuildConfig(Globals)
 	RepeatTry:
 		Cp(FileSet("**.*", BaseDirectory : buildTo), deployTo, true)
 
@@ -74,6 +76,7 @@ task @SimpleDeployService:
 	servers = GetServersToDeploy(Globals)
 	rootServer = servers.First()
 	deployTo = Globals.Maybe.DeployTo or "\\\\$rootServer\\$project"
+	_, buildTo, _ = GetBuildConfig(Globals)
 	Impersonate(Globals, servers.First()):
 		services = GetServices(serviceName, servers)
 		RepeatTry:
