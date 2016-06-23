@@ -308,6 +308,7 @@ def BuildWeb(globals as DuckDictionary, project as string):
 				"**/*.css",
 				"**/*.skin",
 				"**/*.htm",
+				"**/*.html",
 				"**/*.sitemap",
 				"**/*.master",
 				"**/*.ico",
