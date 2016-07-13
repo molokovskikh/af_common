@@ -77,6 +77,9 @@ reportTypesProfile.Tables(("reports.enum_values",
 
 reportsProfile = DbProfile(customersProfile, reportTypesProfile)
 
+producerInterfaceProfile = DbProfile(catalogProfile)
+producerInterfaceProfile.Dbs(("ProducerInterface", "quartz"))
+
 reportstestProfile = DbProfile(reportTypesProfile)
 reportstestProfile.Tables(("Customers.Suppliers",
 	"Customers.Users",
@@ -233,7 +236,8 @@ profiles = {@empty: emptyProfile,
 	@emptyOrders: emptyOrdersProfile,
 	@reportTest: reportstestProfile,
 	@documents: documentsProfile,
-	@PrgData: PrgDataProfile}
+	@PrgData: PrgDataProfile,
+	@ProducerInterface: producerInterfaceProfile}
 
 
 desc """
