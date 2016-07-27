@@ -46,7 +46,7 @@ notifyTo - удрес на который отправлять уведомле�
 task "deploy:notify":
 	return if Globals.Environment != @Production
 
-	project = GetDeployName()
+	project = Globals.Maybe.Project or Globals.Maybe.project
 	humanReadableName = Globals.Maybe.humanReadableName or Globals.Maybe.HumanReadableName
 	deployRecord = Db.Read("select GitHash from Logs.Deploys where Project = '$project' order by DeployedOn  desc limit 1").FirstOrDefault()
 	if deployRecord:
@@ -80,6 +80,9 @@ def GetBackupPath():
 
 task "deploy:backup":
 	return if Globals.Environment != @Production
+	skip = ReadGlobalConfig(Globals, "deploy:backup", "Skip")
+	if skip:
+		return
 
 	project = GetDeployName()
 	deployTo = GetBackupPath()
