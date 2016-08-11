@@ -35,8 +35,10 @@ task "deploy:stub":
 task "deploy:pipeline", ["env", "packages:install", "check", "version:bump", "assembly:info:generate", "build:stub", @Backup, "db:migrate", "deploy:stub", "deploy:notify"]
 
 def GetDeployName():
-	project, _, _ = GetBuildConfig(Globals)
-	return Globals.Maybe.DeployAlias or project
+	name = Globals.Maybe.Project or Globals.Maybe.project or Globals.Maybe.DeployAlias
+	unless name:
+		name, _, _ = GetBuildConfig(Globals)
+	return name
 
 desc """
 отправляет уведомление о развертывание проекта
@@ -46,7 +48,7 @@ notifyTo - удрес на который отправлять уведомле�
 task "deploy:notify":
 	return if Globals.Environment != @Production
 
-	project = Globals.Maybe.Project or Globals.Maybe.project
+	project = GetDeployName()
 	humanReadableName = Globals.Maybe.humanReadableName or Globals.Maybe.HumanReadableName
 	deployRecord = Db.Read("select GitHash from Logs.Deploys where Project = '$project' order by DeployedOn  desc limit 1").FirstOrDefault()
 	if deployRecord:
