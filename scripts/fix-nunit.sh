@@ -9,5 +9,6 @@ for f in `git ls-files | grep \.cs | xargs grep -l 'NUnit.Framework'`
 do
 	perl -i -pe 's/Is\.StringContaining/Does\.Contain/' $f
 	perl -i -pe 's/Is\.StringMatching/Does\.Match/' $f
+	perl -i -pe 's/Assert\.IsNotNullOrEmpty\((.+)\)/Assert\.That\(\1, Is\.Null\.Or\.Empty\)/' $f
 done
 find -iname '*.bak' | xargs -r rm
