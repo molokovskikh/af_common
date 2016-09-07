@@ -98,7 +98,7 @@ desc """
 skipCheckCurrent=true что бы обойти проверку
 """
 task "check:current":
-	return if Globals.Environment == @Test
+	return unless Globals.Environment == @Production
 	return if Configuration.Maybe.skipCheckCurrent
 
 	CheckRepository(Path.GetFullPath("."))
@@ -108,7 +108,7 @@ desc """
 skipCheckCommon=true что бы обойти проверку
 """
 task "check:common":
-	return if Globals.Environment == @Test
+	return unless Globals.Environment == @Production
 	return if Configuration.Maybe.skipCheckCommon
 
 	CheckRepository(AppDomain.CurrentDomain.BaseDirectory)
@@ -118,7 +118,7 @@ desc """
 skipCheckJenkins=true, что бы игнорировать результаты проверки
 """
 task "check:jenkins":
-	return if Globals.Environment == @Test
+	return unless Globals.Environment == @Production
 
 	remote = GetGit("remote -v").Split((Environment.NewLine, ), StringSplitOptions.None).First({x| x.StartsWith("origin\t") and x.EndsWith("(fetch)")})
 	parts = remote.Split(char('\t'))[1].Split(char('/'))
