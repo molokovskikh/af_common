@@ -61,11 +61,8 @@ task "version:bump":
 task "assembly:info:generate", ["generate:assembly:info"]
 
 task "generate:assembly:info":
-	if Configuration.Maybe.Version:
-		version = Version.Parse(Configuration.Maybe.Version)
-	if Configuration.Maybe.version:
-		version = Version.Parse(Configuration.Maybe.version)
-	else:
+	version = ReadGlobalConfig(Globals, "assembly:info:generate", "version");
+	unless version:
 		version = GetVersion()
 		unless version:
 			version = Version()
