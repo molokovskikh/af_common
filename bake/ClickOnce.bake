@@ -5,7 +5,6 @@ import Bake.Win32.Helper
 import System.IO
 import System.Security.Cryptography.X509Certificates
 import Microsoft.Win32
-import Microsoft.Build.Tasks.Deployment.ManifestUtilities
 
 def CopyWithDeploy(fileSet as FileSet, destination as string):
 	for file in fileSet.Files:
