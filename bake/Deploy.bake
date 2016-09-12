@@ -92,8 +92,9 @@ task "deploy:backup":
 	backupName = "${project}-${DateTime.Now.ToString('yyyyMMddHHmmss')}"
 	backupRoot = Globals.Maybe.BackupRoot
 	backup = Path.Combine(backupRoot, backupName)
-	MkDir(backup)
-	Cp(FileSet("**/*.*", Excludes : ["*.log", "logs", "request","responce","IdxDir/*.*"], BaseDirectory : deployTo), backup)
+	ImpersonateIfNeeded(Globals):
+		MkDir(backup)
+		Cp(FileSet("**/*.*", Excludes : ["*.log", "logs", "request","responce","IdxDir/*.*"], BaseDirectory : deployTo), backup)
 	print "backuped to ${backup}"
 
 task @RollbackDeploy, [@WebClean]:
