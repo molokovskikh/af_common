@@ -33,15 +33,9 @@ def StopServices(services as ServiceController*):
 				print "служба не остановилась за 20 секунд, буду ждать, всего жду 3 раза по 20 секунд"
 
 def Impersonate(globals as DuckDictionary, server as string, action as Action):
-	user as string
-	password as string
-	user = ""
-	password = ""
-
-	if globals.Maybe.User:
-		user = globals.User
-	if globals.Maybe.Password:
-		password = globals.Password
+	conf as DuckDictionary = globals.Configuration
+	user as string = conf.Maybe.User or globals.Maybe.User
+	password as string = conf.Maybe.Password or globals.Maybe.Password
 
 	i = 0
 	while true:
