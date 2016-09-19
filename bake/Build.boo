@@ -5,6 +5,16 @@ import FubuCsProjFile
 import System.Linq.Enumerable
 import System.DirectoryServices
 
+def ReadUserConfig(key as string):
+	dir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
+	file = Path.Combine(dir, "bake.config")
+	return unless File.Exists(file)
+	lines = File.ReadAllLines(file)
+	for line in lines:
+		parts = line.Split(char('='))
+		continue unless parts.Length == 2
+		return parts[1] if parts[0] == key
+
 def GetConfigSufix(Globals as duck):
 	if Globals.Environment == @Production:
 		return "release.config"
@@ -34,15 +44,16 @@ def StopServices(services as ServiceController*):
 
 def Impersonate(globals as DuckDictionary, server as string, action as Action):
 	conf as DuckDictionary = globals.Configuration
-	user as string = conf.Maybe.User or globals.Maybe.User
-	password as string = conf.Maybe.Password or globals.Maybe.Password
+	user as string = conf.Maybe.User or globals.Maybe.User or ReadUserConfig("User")
+	password as string = conf.Maybe.Password or globals.Maybe.Password or ReadUserConfig("Password")
 
 	i = 0
 	while true:
 		i++
-		if String.IsNullOrEmpty(user) or String.IsNullOrEmpty(password):
+		if String.IsNullOrEmpty(user):
 			Console.Write("user for $server: ")
 			user = Console.ReadLine()
+		if String.IsNullOrEmpty(password):
 			Console.Write("password: ")
 			password = GetPassword()
 

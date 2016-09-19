@@ -7,11 +7,11 @@ def EnvByName(name as string) as string:
 	connectionString = Globals.Environments[name]
 	if not (connectionString.ToLower().Contains("user=") or connectionString.ToLower().Contains("user id=")):
 		server = MySqlConnectionStringBuilder(connectionString).Server
-		user = Configuration.Maybe.DbUser or Configuration.Maybe.User or Ask("user for $server:")
+		user = Configuration.Maybe.DbUser or ReadUserConfig("DbUser") or Configuration.Maybe.User or Ask("user for $server:")
 		connectionString += "user=${user};"
 
 	if not connectionString.ToLower().Contains("password="):
-		password = Configuration.Maybe.DbPassword or Configuration.Maybe.Password or AskPassword("password:")
+		password = Configuration.Maybe.DbPassword or ReadUserConfig("DbPassword") or Configuration.Maybe.Password or AskPassword("password:")
 		connectionString += "password=${password};"
 
 	if name.ToLower() == "local" and not connectionString.Contains("port"):
