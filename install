@@ -2,7 +2,7 @@
 
 set -e
 
-choco install choco.config
+choco install --yes choco.config
 
 cd `dirname $0`
 cd bake
