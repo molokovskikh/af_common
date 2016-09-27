@@ -2,6 +2,8 @@
 
 set -e
 
+choco install choco.config
+
 cd `dirname $0`
 cd bake
 rm tmp packages -rf
