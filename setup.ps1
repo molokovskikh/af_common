@@ -2,7 +2,9 @@
 choco feature enable -n=allowGlobalConfirmation
 choco install mysql.workbench notepadplusplus 7zip googlechrome sysinternals consolez ilspy
 choco install nuget.commandline -version 2.8.6
-choco install visualstudio2015community
+if ( -Not (Test-Path "C:\Program Files (x86)\Microsoft Visual Studio 14.0" )) {
+  choco install visualstudio2015community
+}
 choco install resharper-platform -version 104.0.20151218.134438
 choco install wget nano --source cygwin
 if ( -Not (Test-Path "C:\tools\mysql" ))
