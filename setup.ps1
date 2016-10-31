@@ -9,9 +9,14 @@ choco install resharper-platform -version 104.0.20151218.134438
 choco install wget nano --source cygwin
 if ( -Not (Test-Path "C:\tools\mysql" ))
 {
- cp -r "\\offdc\MMedia\Московский офис\Файлы для установки системы (развертывания проекта с нуля)\файлы настроек\apps\MySQL\mysql-5.6.14-winx64" "C:\tools\mysql"
- C:\tools\mysql\bin\mysqld.exe --install
- net start mysql
+  $source="\\offdc\MMedia\Московский офис\Файлы для установки системы (развертывания проекта с нуля)\файлы настроек\apps\MySQL\mysql-5.6.14-winx64"
+  if ( Test-Path "mysql")
+  {
+    $source="mysql"
+  }
+  cp -r $source "C:\tools\mysql"
+  C:\tools\mysql\bin\mysqld.exe --install
+  net start mysql
 }
 C:\tools\cygwin\bin\bash --login -c "git config --global color.branch auto"
 C:\tools\cygwin\bin\bash --login -c "git config --global color.diff auto"
