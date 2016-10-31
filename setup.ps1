@@ -10,9 +10,9 @@ choco install wget nano --source cygwin
 if ( -Not (Test-Path "C:\tools\mysql" ))
 {
   $source="\\offdc\MMedia\Московский офис\Файлы для установки системы (развертывания проекта с нуля)\файлы настроек\apps\MySQL\mysql-5.6.14-winx64"
-  if ( Test-Path "mysql")
+  if ( Test-Path ".\mysql")
   {
-    $source="mysql"
+    $source=".\mysql"
   }
   cp -r $source "C:\tools\mysql"
   C:\tools\mysql\bin\mysqld.exe --install
@@ -33,15 +33,15 @@ cp $env:USERPROFILE\projects\common\etc\Console.xml $env:USERPROFILE\AppData\Roa
 $sources=nuget source
 $sourceExists=$false
 foreach ($line in $sources) {
-	$sourceExists=$line.ToLower().IndexOf("common\nuget\") -ge 0
+	$sourceExists=($line.ToLower().IndexOf("common\nuget\") -ge 0) -or ($line.ToLower().IndexOf("common/nuget/") -ge 0)
 	if ($sourceExists) {
 		break
 	}
 }
 if (-Not $sourceExists) {
-	nuget source add -Name local -Source $env:USERPROFILE/projects/common/nuget/
+	nuget source add -Name local -Source $env:USERPROFILE\projects\common\nuget\
 }
-C:\tools\cygwin\bin\bash --login -c '/cygdrive/c/users/$USER/projects/common/install'
+C:\tools\cygwin\bin\bash --login -c "cd '/cygdrive/c/users/$username/projects/common' && ./install"
 
 function curlex($url, $filename) {
   $path = [io.path]::gettemppath() + "\" + $filename
