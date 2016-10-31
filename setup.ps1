@@ -1,16 +1,10 @@
 ﻿$ErrorActionPreference = "Stop"
 choco feature enable -n=allowGlobalConfirmation
-choco install mysql.workbench
-choco install notepadplusplus
-choco install 7zip
-choco install googlechrome
-choco install sysinternals
+choco install mysql.workbench notepadplusplus 7zip googlechrome sysinternals consolez ilspy
 choco install nuget.commandline -version 2.8.6
 choco install visualstudio2015community
-choco install consolez
-choco install ilspy
 choco install resharper-platform -version 104.0.20151218.134438
-cyg-get wget nano
+choco install wget nano --source cygwin
 if ( -Not (Test-Path "C:\tools\mysql" ))
 {
  cp -r "\\offdc\MMedia\Московский офис\Файлы для установки системы (развертывания проекта с нуля)\файлы настроек\apps\MySQL\mysql-5.6.14-winx64" "C:\tools\mysql"
