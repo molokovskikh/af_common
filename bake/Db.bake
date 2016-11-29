@@ -324,7 +324,7 @@ desc """
 в bake файле приложения создай задачу db:local:seed
 """
 task "db:app:seed":
-	return unless Globals.Environment != @Local
+	return if Globals.Environment != @Local
 	if Engine.Tasks.Any({t| t.Name == "db:local:seed"}):
 		Engine.Execute("db:local:seed")
 
