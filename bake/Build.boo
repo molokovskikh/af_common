@@ -130,18 +130,11 @@ def GetBuildConfig(globals as DuckDictionary, project as string):
 	output = Path.GetFullPath(Path.Combine(globals.BuildRoot, projectName))
 	return (projectName, output, projectFile)
 
-def CleanDeployDir(globals as DuckDictionary):
-	CleanDeployDir(globals, null, null)
-
-def CleanDeployDir(globals as DuckDictionary, project as string):
-	CleanDeployDir(globals, project, null)
-
-def CleanDeployDir(globals as DuckDictionary, project as string, deployTo as string):
-	deployTo = deployTo or GetDeploy(globals, project)
+def CleanDeployDir(globals as DuckDictionary, dir as string):
 	excludes = GetExcludes(globals);
 	excludes.Add("*.log")
-	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : deployTo))
-	DeleteEmptyDirs(deployTo)
+	Rm(FileSet("**/*.*", Excludes : excludes, BaseDirectory : dir))
+	DeleteEmptyDirs(dir)
 
 def DeleteEmptyDirs(root as string):
 	return unless Directory.Exists(root)
@@ -376,15 +369,18 @@ def XCopyDeploy(globals as DuckDictionary, project as string):
 def XCopyDeploy(globals as DuckDictionary, project as string, deployTo as string):
 	project, buildTo, _ = GetBuildConfig(globals, project)
 	deployTo = deployTo or GetDeploy(globals, project)
+	XCopyDeployDir(globals, buildTo, deployTo)
+
+def XCopyDeployDir(globals as DuckDictionary, src as string, dst as string):
 	RepeatTry:
-		CleanDeployDir(globals, project, deployTo)
-		files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : buildTo)
+		CleanDeployDir(globals, dst)
+		files = FileSet("**/*.*", Excludes : GetExcludes(globals), BaseDirectory : src)
 		ImpersonateIfNeeded(globals):
 			if IsSimulation(globals):
-				print "simulation: ${files.Files.Count} files deployed to $deployTo"
+				print "simulation: ${files.Files.Count} files deployed to $dst"
 				return
-			Cp(files, deployTo, true)
-		print "${files.Files.Count} files deployed to $deployTo"
+			Cp(files, dst, true)
+		print "${files.Files.Count} files deployed to $dst"
 
 def ImpersonateIfNeeded(globals as DuckDictionary, action as Action):
 	conf as DuckDictionary = globals.Configuration

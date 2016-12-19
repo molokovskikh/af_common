@@ -117,10 +117,7 @@ task "clean publish package":
 	MkDir(buildPublishTo)
 
 task "publish", ["build publish package", "clean publish dir"]:
-	files = FileSet("**/*.*", BaseDirectory : buildPublishTo)
-	MkDir(GetPublishTo()) unless Exist(GetPublishTo())
-	Cp(files, GetPublishTo(), true)
-	print "${files.Files.Count} files deployed to ${buildPublishTo}"
+	XCopyDeployDir(Globals, buildPublishTo, GetPublishTo())
 
 task "clean publish dir":
 	ClearDir(GetPublishTo())

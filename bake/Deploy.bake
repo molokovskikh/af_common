@@ -117,4 +117,4 @@ task @CopyTiny:
 	Cp(files, deployTo + "/Assets/Javascripts/", true)
 
 task @WebClean:
-	CleanDeployDir(Globals)
+	CleanDeployDir(Globals, GetDeploy(Globals))
