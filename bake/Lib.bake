@@ -326,7 +326,10 @@ targetFramework - версия framework под которую будут заг
 заданного с помощью Globals.Project
 """
 task "packages:install", ["packages:clean"]:
-	NugetInstall(FindSln())
+	sln = FindSln();
+	unless sln:
+		return
+	NugetInstall(sln)
 	nugetPackages = GetPackageConfigs().SelectMany({x| GetPackagesForConfig(x)}).ToList()
 	paths = GetLibPaths()
 	submodules = GetSubmodules()
