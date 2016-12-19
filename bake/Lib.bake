@@ -166,12 +166,10 @@ def GetLibPath(dir as string):
 	return subdirs[0] if version.TryParse(Path.GetFileName(subdirs[0]), version)
 	return dir
 
-def NugetInstall(config as string):
-	print config if Configuration.Maybe.debug
+def NugetInstall(sln as string):
 	nugetConfig = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nuget.config")
 	nuget = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "nuget.exe")
-	if Exist(config):
-		Exec(nuget, "install -config \"$nugetConfig\" \"$config\" -OutputDirectory packages").Execute()
+	Exec(nuget, "restore -config \"$nugetConfig\" -OutputDirectory packages \"$sln\"").Execute()
 
 def GetSlnPackageConfigs():
 	return GetProjects().Select({p| Path.Combine(Path.GetDirectoryName(p), "packages.config")})\
@@ -328,12 +326,8 @@ targetFramework - версия framework под которую будут заг
 заданного с помощью Globals.Project
 """
 task "packages:install", ["packages:clean"]:
-	configs = GetPackageConfigs()
-	var nugetPackages = List[of Package]()
-	for config in configs:
-		NugetInstall(config)
-		nugetPackages.AddRange(GetPackagesForConfig(config))
-
+	NugetInstall(FindSln())
+	nugetPackages = GetPackageConfigs().SelectMany({x| GetPackagesForConfig(x)}).ToList()
 	paths = GetLibPaths()
 	submodules = GetSubmodules()
 	for file in GetProjects():
