@@ -46,7 +46,7 @@ catalogProfile.Tables(("catalogs.assortment", "catalogs.catalog", "catalogs.cata
 	"catalogs.catalognames", "catalogs.descriptions", "catalogs.mnn",
 	"catalogs.producerequivalents", "catalogs.producers", "catalogs.productproperties",
 	"catalogs.products", "catalogs.properties",
-	"catalogs.propertyvalues",
+	"catalogs.propertyvalues", "catalogs.Category",
 	"farm.rejects",
 	"reports.drugs",
 	"Documents.BarCodes"))
