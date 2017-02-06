@@ -60,7 +60,7 @@ Global(
 		},
 		@Production: {
 			@DeployRoot: """\\adc.analit.net\inforoom\secondQueue\WebApps""",
-			@PublishRoot: """\\adc.analit.net\inforoom\secondQueue\Publish"""
+			@PublishRoot: """\\adc.analit.net\inforoom\secondQueue\Publish\Publish"""
 		},
 		@Test2: {
 			@DeployRoot: """\\test2.analit.net\WWW\""",
