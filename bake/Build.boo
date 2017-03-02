@@ -5,6 +5,96 @@ import FubuCsProjFile
 import System.Linq.Enumerable
 import System.DirectoryServices
 
+class TestProject:
+	_project as string
+
+	property CheckExitCode as bool
+	property ProjectFile as string
+	property BuildOutput as string
+	property TestOutput as string
+
+	def constructor(projectFile as string):
+		ProjectFile = projectFile
+		_project = Path.GetFileNameWithoutExtension(projectFile)
+
+	def FindOrInstallConsole(version as Version):
+		map = { Version(3, 6, 1): Version(3, 6, 0) }
+		if map.ContainsKey(version):
+			version = map[version]
+		root = "C:\\tools\\nunit-$version"
+		unless Directory.Exists(root):
+			MkDir(root)
+			Exec("nuget", "install NUnit.Console -NoCache -Version $version -OutputDirectory $root").Execute()
+		exe = FileSet("**/nunit?-console.exe", BaseDirectory: root).FirstOrDefault();
+		raise "Не удалось найти консоль в $root по маске nunit*-console.exe" unless exe
+		return exe
+
+	def Test():
+		Test("")
+
+	def Test(args as string):
+		dirs = Directory.GetDirectories("packages", "NUnit.*")
+		if dirs.Length == 0:
+			raise "Не могу найти nunit в директории packages, убедись что пакет установлен"
+		nunitVersion = Version.Parse(Path.GetFileName(dirs[0]).Replace("NUnit.", ""))
+		if nunitVersion > Version(3, 0):
+			assembly = Path.Combine(Path.GetDirectoryName(ProjectFile), "bin/debug/${_project}.dll")
+			unless Exist(assembly):
+				name = CsProjFile.LoadFrom(ProjectFile).AssemblyName
+				assembly = Path.Combine(Path.GetDirectoryName(ProjectFile), "bin/debug/$name.dll")
+			print "test $assembly"
+			assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
+			isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
+			arch = ""
+			if isX86:
+				arch = "--x86"
+			nunit = Exec(FindOrInstallConsole(nunitVersion),
+				"$args --workers=1 --result TestResult.xml;format=nunit2 --labels=all $arch \"${assembly}\"",
+				BaseDirectory: Path.GetDirectoryName(assembly))
+			nunit.CheckExitCode = CheckExitCode
+			nunit.Execute()
+			if nunit.ExitCode < 0:
+				raise "Failt to run test ${nunit.ExecutablePath} ${nunit.CommandLine}"
+			Mv(Path.Combine(nunit.BaseDirectory, "TestResult.xml"), "TestResult.xml")
+
+			TestOutput = nunit.Output.ToString()
+		else:
+			assembly = Path.Combine(Path.GetDirectoryName(ProjectFile), "bin/debug/${_project}.dll")
+			unless Exist(assembly):
+				name = CsProjFile.LoadFrom(ProjectFile).AssemblyName
+				assembly = Path.Combine(Path.GetDirectoryName(ProjectFile), "bin/debug/$name.dll")
+			print "test $assembly"
+			assemblyDefinition = AssemblyDefinition.ReadAssembly(assembly)
+			isX86 = assemblyDefinition.MainModule.Architecture == TargetArchitecture.I386
+
+			nunitPath = "nunit-console"
+			if isX86:
+				nunitPath = "nunit-console-x86"
+			nunit = NUnit("\"" + assembly + "\"",
+				ExecutablePath : nunitPath)
+			nunit.Arguments.Add("/labels")
+
+			nunit.Execute()
+
+			TestOutput = nunit.Output.ToString()
+
+	def ToString():
+		return ProjectFile
+
+def GetTestProjects(globals as DuckDictionary):
+	return GetTestProjects(globals, null)
+
+def GetTestProjects(globals as DuckDictionary, sln as string):
+	sufixes = ("integration.csproj", "functional.csproj", "unit.csproj", "test.csproj", ".test.csproj", ".tests.csproj")
+	projects = GetProjects(sln).Where({x| sufixes.Any({y| x.ToLower().EndsWith(y)}) })\
+		.Select({f| TestProject(f)}).ToList()
+
+	ignore = (of Regex: ,)
+	if globals.Maybe.TestIgnore:
+		ignore = ignore.Concat(globals.Maybe.TestIgnore).ToArray()
+
+	return projects.Where({x| not ignore.Any({i| i.IsMatch(x.ToString())})}).ToList()
+
 def ReadUserConfig(key as string):
 	dir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
 	file = Path.Combine(dir, "bake.config")
