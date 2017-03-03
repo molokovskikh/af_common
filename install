@@ -2,8 +2,6 @@
 
 set -e
 
-choco install --yes choco.config
-
 cd `dirname $0`
 cd bake
 rm tmp packages -rf
@@ -14,6 +12,6 @@ nuget install packages/packages.config -output packages
 nuget install packages/packages.config -output tmp
 find -iname '*.dll' | xargs chmod +x
 find -iname '*.dll' | xargs chown $(whoami)
-./bake -I packages:fix root=tmp
+./bake -I packages:fix root=tmp --trace
 rm packages -rf
 mv tmp packages

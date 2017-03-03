@@ -10,6 +10,7 @@ def GetProjects():
 def GetProjects(sln as string):
 	sln = sln or FileSet("*.sln").Concat(FileSet("src/*.sln")).FirstOrDefault()
 	projects = List[of string]()
+	return projects unless sln
 	text = File.ReadAllText(sln)
 	matches = /Project.+=[^,]+,([^,]+),/.Matches(text)
 	root = Path.GetDirectoryName(sln)
