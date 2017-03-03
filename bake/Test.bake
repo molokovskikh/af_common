@@ -30,3 +30,13 @@ task @TryToBuild, [@PrepareBuild, @TryBeforeTest]:
 task @TryBeforeTest:
 	if Engine.Tasks.FirstOrDefault({t| t.Name == @BeforeTest}):
 		Engine.Execute(@BeforeTest)
+
+task @test, [@BuildTests]:
+	index = 0
+	for project in GetTestProjects(Globals):
+		print project
+		index++
+		if Exist("TestResult.xml"):
+			sufix = Path.GetFileNameWithoutExtension(project.ProjectFile) + ".$index"
+			Cp("TestResult.xml", "TestResult.$sufix.xml", true)
+		project.Test()
