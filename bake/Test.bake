@@ -39,4 +39,4 @@ task @test, [@BuildTests]:
 		if Exist("TestResult.xml"):
 			sufix = Path.GetFileNameWithoutExtension(project.ProjectFile) + ".$index"
 			Cp("TestResult.xml", "TestResult.$sufix.xml", true)
-		project.Test()
+		project.Test(Environment.GetEnvironmentVariable("NUNIT_ARGS"))
